@@ -788,6 +788,94 @@ textarea.form-control {
     font-size: 24px;
 }
 
+/* Alert info */
+.alert-info {
+    background: var(--info-light);
+    color: var(--info);
+    border: 1px solid #a5f3fc;
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 24px;
+}
+
+/* Stats summary wide card */
+.stat-card-wide {
+    grid-column: span 2;
+}
+
+/* Top defektai list */
+.top-defektai-list {
+    list-style: none;
+    counter-reset: defektai;
+    margin-top: 8px;
+}
+
+.top-defektai-list li {
+    counter-increment: defektai;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    line-height: 1.4;
+    border-bottom: 1px solid var(--border);
+}
+
+.top-defektai-list li:last-child {
+    border-bottom: none;
+}
+
+.top-defektai-list li::before {
+    content: counter(defektai) ".";
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 20px;
+}
+
+.defektas-punktas {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.defektas-tekstas {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Aktyvus defektai */
+.aktyvus-defektai-card {
+    border-color: var(--danger);
+}
+
+.aktyvus-defektai-header {
+    background: var(--danger-light) !important;
+    border-bottom-color: var(--danger);
+}
+
+.aktyvus-thead {
+    background: var(--danger-light) !important;
+}
+
+.aktyvus-thead th {
+    background: var(--danger-light) !important;
+    color: var(--danger);
+}
+
+.aktyvus-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
@@ -829,5 +917,9 @@ textarea.form-control {
     .filter-bar {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .stat-card-wide {
+        grid-column: span 1;
     }
 }

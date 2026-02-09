@@ -2,126 +2,213 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
-$page_title = 'MT Statistika';
+$page_title = 'Pastebėtų gedimų statistika (MT)';
 
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
-$uzsakymas_filter = $_GET['uzsakymas'] ?? '';
-$tipas_filter = $_GET['tipas'] ?? '';
+$uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
+$periodas         = $_GET['periodas'] ?? 'visi';
+$menuo            = $_GET['menuo'] ?? '';
+$nuo              = $_GET['nuo'] ?? '';
+$iki              = $_GET['iki'] ?? '';
 
-$where_clauses = ["gt.grupe = 'MT'"];
+$uzsakymai = $pdo->query("
+    SELECT DISTINCT u.uzsakymo_numeris
+    FROM uzsakymai u
+    JOIN gaminiai g       ON g.uzsakymo_id = u.id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+    WHERE gt.grupe = 'MT'
+    ORDER BY u.uzsakymo_numeris DESC
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$patikrinti = 0;
+$klaidos = 0;
+$top_defektai = [];
+$defektu_gaminiai = [];
+$aktyvus_defektai = [];
+
+$where_uzsakymas = '';
+$where_laikotarpis = '';
 $params = [];
 
-if ($date_from) {
-    $where_clauses[] = "u.sukurtas >= :date_from";
-    $params['date_from'] = $date_from;
-}
-if ($date_to) {
-    $where_clauses[] = "u.sukurtas <= :date_to";
-    $params['date_to'] = $date_to;
-}
-if ($uzsakymas_filter) {
-    $where_clauses[] = "u.uzsakymo_numeris = :uzsakymas";
-    $params['uzsakymas'] = $uzsakymas_filter;
-}
-if ($tipas_filter) {
-    $where_clauses[] = "gt.id = :tipas";
-    $params['tipas'] = $tipas_filter;
+if ($uzsakymo_numeris !== '') {
+    $where_uzsakymas = "u.uzsakymo_numeris = ?";
+    $params[] = $uzsakymo_numeris;
+} else {
+    $where_uzsakymas = "1=1";
 }
 
-$where_sql = implode(' AND ', $where_clauses);
+if ($menuo !== '') {
+    $where_laikotarpis = " AND TO_CHAR(u.sukurtas::timestamp, 'YYYY-MM') = ?";
+    $params[] = $menuo;
+} elseif ($nuo !== '' && $iki !== '') {
+    $where_laikotarpis = " AND DATE(u.sukurtas) BETWEEN ? AND ?";
+    $params[] = $nuo;
+    $params[] = $iki;
+} elseif ($periodas === '1m') {
+    $where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '1 month'";
+} elseif ($periodas === '6m') {
+    $where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '6 month'";
+} elseif ($periodas === '1y') {
+    $where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '1 year'";
+}
 
-$total_mt = $pdo->prepare("SELECT COUNT(g.id) FROM gaminiai g LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id WHERE $where_sql");
-$total_mt->execute($params);
-$total_mt_count = $total_mt->fetchColumn();
+$rodyti_duomenis = !(
+    $uzsakymo_numeris === '' &&
+    $periodas === 'visi' &&
+    $menuo === '' &&
+    ($nuo === '' || $iki === '')
+);
 
-$with_protocol = $pdo->prepare("SELECT COUNT(g.id) FROM gaminiai g LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id WHERE $where_sql AND g.protokolo_nr IS NOT NULL AND g.protokolo_nr != ''");
-$with_protocol->execute($params);
-$protocol_count = $with_protocol->fetchColumn();
+$where_sql = "WHERE $where_uzsakymas $where_laikotarpis";
 
-$with_code = $pdo->prepare("SELECT COUNT(g.id) FROM gaminiai g LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id WHERE $where_sql AND g.atitikmuo_kodas IS NOT NULL AND g.atitikmuo_kodas != ''");
-$with_code->execute($params);
-$code_count = $with_code->fetchColumn();
+if ($rodyti_duomenis) {
 
-$protocol_pct = $total_mt_count > 0 ? round(($protocol_count / $total_mt_count) * 100) : 0;
-$code_pct = $total_mt_count > 0 ? round(($code_count / $total_mt_count) * 100) : 0;
+    $stmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT fb.gaminio_id)
+        FROM mt_funkciniai_bandymai fb
+        JOIN gaminiai g       ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        JOIN uzsakymai u      ON g.uzsakymo_id = u.id
+        $where_sql
+          AND gt.grupe = 'MT'
+    ");
+    $stmt->execute($params);
+    $patikrinti = (int)$stmt->fetchColumn();
 
-$orders_count = $pdo->prepare("SELECT COUNT(DISTINCT g.uzsakymo_id) FROM gaminiai g LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id WHERE $where_sql");
-$orders_count->execute($params);
-$total_orders = $orders_count->fetchColumn();
+    $stmt = $pdo->prepare("
+        SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
+        FROM mt_funkciniai_bandymai fb
+        JOIN gaminiai g       ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        JOIN uzsakymai u      ON g.uzsakymo_id = u.id
+        $where_sql
+          AND gt.grupe = 'MT'
+          AND fb.defektas IS NOT NULL
+          AND TRIM(fb.defektas) <> ''
 
-$mt_types = $pdo->query("SELECT id, gaminio_tipas FROM gaminio_tipai WHERE grupe = 'MT' ORDER BY gaminio_tipas")->fetchAll();
+        UNION ALL
 
-$mt_orders = $pdo->query("SELECT DISTINCT u.uzsakymo_numeris FROM gaminiai g LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id WHERE gt.grupe = 'MT' AND u.uzsakymo_numeris IS NOT NULL ORDER BY u.uzsakymo_numeris")->fetchAll();
+        SELECT u.uzsakymo_numeris,
+               NULL AS reikalavimas,
+               NULL AS defektas,
+               'atitinka' AS isvada
+        FROM uzsakymai u
+        JOIN gaminiai g       ON g.uzsakymo_id = u.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        LEFT JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+        $where_sql
+          AND gt.grupe = 'MT'
+        GROUP BY u.uzsakymo_numeris
+        HAVING SUM(CASE WHEN fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' THEN 1 ELSE 0 END) = 0
 
-$products_by_type = $pdo->prepare("
-    SELECT gt.gaminio_tipas, COUNT(g.id) as kiekis
-    FROM gaminiai g
-    LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id
-    LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    WHERE $where_sql
-    GROUP BY gt.gaminio_tipas
-    ORDER BY kiekis DESC
-");
-$products_by_type->execute($params);
-$type_stats = $products_by_type->fetchAll();
+        ORDER BY uzsakymo_numeris
+    ");
+    $stmt->execute(array_merge($params, $params));
+    $defektu_gaminiai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$products_list = $pdo->prepare("
-    SELECT g.id, g.gaminio_numeris, g.protokolo_nr, g.atitikmuo_kodas, 
-           g.uzsakymo_id, gt.gaminio_tipas, u.uzsakymo_numeris
-    FROM gaminiai g
-    LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id
-    LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    WHERE $where_sql
-    ORDER BY g.id DESC
-    LIMIT 50
-");
-$products_list->execute($params);
-$products = $products_list->fetchAll();
+    foreach ($defektu_gaminiai as $r) {
+        if (!empty(trim((string)$r['defektas']))) {
+            $klaidos++;
+        }
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT 
+            MIN(fb.eil_nr) as eil_nr,
+            fb.reikalavimas, 
+            COUNT(*) AS kiekis
+        FROM mt_funkciniai_bandymai fb
+        JOIN gaminiai g       ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        JOIN uzsakymai u      ON g.uzsakymo_id = u.id
+        $where_sql
+          AND gt.grupe = 'MT'
+          AND fb.defektas IS NOT NULL
+          AND TRIM(fb.defektas) <> ''
+          AND fb.reikalavimas IS NOT NULL
+          AND TRIM(fb.reikalavimas) <> ''
+        GROUP BY fb.reikalavimas
+        ORDER BY kiekis DESC, eil_nr ASC
+        LIMIT 5
+    ");
+    $stmt->execute($params);
+    $top_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt = $pdo->prepare("
+        SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
+        FROM mt_funkciniai_bandymai f
+        JOIN gaminiai g       ON f.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        JOIN uzsakymai u      ON g.uzsakymo_id = u.id
+        $where_sql
+          AND gt.grupe = 'MT'
+          AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
+          AND f.defektas IS NOT NULL
+          AND TRIM(f.defektas) <> ''
+        ORDER BY u.uzsakymo_numeris
+    ");
+    $stmt->execute($params);
+    $aktyvus_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+$export_qs = http_build_query([
+    'uzsakymo_numeris' => $uzsakymo_numeris,
+    'periodas'         => $periodas,
+    'menuo'            => $menuo,
+    'nuo'              => $nuo,
+    'iki'              => $iki,
+    'tik_mt'           => 1,
+]);
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <a href="/index.php" class="back-link" data-testid="link-back-dashboard">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    Grįžti į kokybės rodiklius
+    Gryzti i kokybes rodiklius
 </a>
 
 <div class="filter-bar" data-testid="filter-bar">
     <form method="GET" style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; width: 100%;">
         <div class="form-group">
-            <label class="form-label">Data nuo</label>
-            <input type="date" name="date_from" class="form-control" value="<?= h($date_from) ?>" data-testid="input-date-from">
-        </div>
-        <div class="form-group">
-            <label class="form-label">Data iki</label>
-            <input type="date" name="date_to" class="form-control" value="<?= h($date_to) ?>" data-testid="input-date-to">
-        </div>
-        <div class="form-group">
-            <label class="form-label">Užsakymas</label>
-            <select name="uzsakymas" class="form-control" data-testid="select-order">
-                <option value="">Visi</option>
-                <?php foreach ($mt_orders as $o): ?>
-                <option value="<?= h($o['uzsakymo_numeris']) ?>" <?= $uzsakymas_filter === $o['uzsakymo_numeris'] ? 'selected' : '' ?>><?= h($o['uzsakymo_numeris']) ?></option>
+            <label class="form-label">Pasirinkti uzsakyma</label>
+            <select name="uzsakymo_numeris" class="form-control" data-testid="select-order">
+                <option value="">-- Pasirinkti --</option>
+                <?php foreach ($uzsakymai as $nr): ?>
+                <option value="<?= h($nr) ?>" <?= ($uzsakymo_numeris == $nr) ? 'selected' : '' ?>><?= h($nr) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
+
         <div class="form-group">
-            <label class="form-label">Gaminio tipas</label>
-            <select name="tipas" class="form-control" data-testid="select-type">
-                <option value="">Visi</option>
-                <?php foreach ($mt_types as $t): ?>
-                <option value="<?= $t['id'] ?>" <?= $tipas_filter == $t['id'] ? 'selected' : '' ?>><?= h($t['gaminio_tipas']) ?></option>
-                <?php endforeach; ?>
+            <label class="form-label">Laikotarpis</label>
+            <select name="periodas" class="form-control" data-testid="select-period">
+                <option value="visi" <?= ($periodas=='visi')?'selected':'' ?>>Visi</option>
+                <option value="1m"  <?= ($periodas=='1m') ?'selected':'' ?>>Paskutinis menesys</option>
+                <option value="6m"  <?= ($periodas=='6m') ?'selected':'' ?>>Paskutiniai 6 menesiai</option>
+                <option value="1y"  <?= ($periodas=='1y') ?'selected':'' ?>>Paskutiniai 12 menesiu</option>
             </select>
         </div>
+
         <div class="form-group">
-            <button type="submit" class="btn btn-primary" data-testid="button-filter">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Filtruoti
-            </button>
+            <label class="form-label">Menesys</label>
+            <input type="month" name="menuo" value="<?= h($menuo) ?>" class="form-control" data-testid="input-month">
         </div>
-        <?php if ($date_from || $date_to || $uzsakymas_filter || $tipas_filter): ?>
+
+        <div class="form-group">
+            <label class="form-label">Nuo</label>
+            <input type="date" name="nuo" class="form-control" value="<?= h($nuo) ?>" data-testid="input-date-from">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Iki</label>
+            <input type="date" name="iki" class="form-control" value="<?= h($iki) ?>" data-testid="input-date-to">
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary" data-testid="button-filter">Rodyti</button>
+        </div>
+
+        <?php if ($uzsakymo_numeris !== '' || $periodas !== 'visi' || $menuo !== '' || $nuo !== '' || $iki !== ''): ?>
         <div class="form-group">
             <a href="/mt_statistika.php" class="btn btn-secondary" data-testid="button-clear-filter">Valyti filtrus</a>
         </div>
@@ -129,148 +216,142 @@ require_once __DIR__ . '/includes/header.php';
     </form>
 </div>
 
+<?php if (!$rodyti_duomenis): ?>
+<div class="alert alert-info" data-testid="text-filter-hint">
+    Pasirinkite bent viena filtra (uzsakyma ar laikotarpi), kad butu rodomi duomenys.
+</div>
+<?php else: ?>
+
 <div class="stats-summary">
-    <div class="stat-card" data-testid="stat-mt-total">
+    <div class="stat-card" data-testid="stat-patikrinti">
         <div class="stat-header">
-            <span class="stat-label">MT gaminiai</span>
-            <div class="stat-icon blue">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
-        </div>
-        <div class="stat-value"><?= $total_mt_count ?></div>
-        <div class="stat-change">Viso MT gaminių</div>
-    </div>
-    <div class="stat-card" data-testid="stat-mt-orders">
-        <div class="stat-header">
-            <span class="stat-label">Užsakymai</span>
+            <span class="stat-label">Patikrinti uzsakymai</span>
             <div class="stat-icon green">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-        </div>
-        <div class="stat-value"><?= $total_orders ?></div>
-        <div class="stat-change">MT užsakymų</div>
-    </div>
-    <div class="stat-card" data-testid="stat-mt-protocol">
-        <div class="stat-header">
-            <span class="stat-label">Su protokolu</span>
-            <div class="stat-icon <?= $protocol_pct >= 80 ? 'green' : ($protocol_pct >= 50 ? 'orange' : 'red') ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
         </div>
-        <div class="stat-value"><?= $protocol_pct ?>%</div>
-        <div class="stat-change"><?= $protocol_count ?> iš <?= $total_mt_count ?></div>
+        <div class="stat-value"><?= (int)$patikrinti ?></div>
+        <div class="stat-change">Gaminiu su funkciniais bandymais</div>
     </div>
-    <div class="stat-card" data-testid="stat-mt-code">
+    <div class="stat-card" data-testid="stat-klaidos">
         <div class="stat-header">
-            <span class="stat-label">Su atitikties kodu</span>
-            <div class="stat-icon <?= $code_pct >= 80 ? 'green' : ($code_pct >= 50 ? 'orange' : 'red') ?>">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span class="stat-label">Klaidu skaicius</span>
+            <div class="stat-icon red">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             </div>
         </div>
-        <div class="stat-value"><?= $code_pct ?>%</div>
-        <div class="stat-change"><?= $code_count ?> iš <?= $total_mt_count ?></div>
+        <div class="stat-value"><?= (int)$klaidos ?></div>
+        <div class="stat-change">Rasti defektai</div>
+    </div>
+    <div class="stat-card stat-card-wide" data-testid="stat-top-defektai">
+        <div class="stat-header">
+            <span class="stat-label">5 dazniausiai klaidos punktai</span>
+            <div class="stat-icon orange">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+        </div>
+        <?php if (empty($top_defektai)): ?>
+        <div class="stat-change" style="margin-top: 8px;">Defektu nerasta</div>
+        <?php else: ?>
+        <ol class="top-defektai-list">
+            <?php foreach ($top_defektai as $d): ?>
+            <li>
+                <span class="defektas-punktas">Punktas <?= (int)$d['eil_nr'] ?>:</span>
+                <span class="defektas-tekstas"><?= h($d['reikalavimas']) ?></span>
+                <span class="badge badge-danger"><?= (int)$d['kiekis'] ?></span>
+            </li>
+            <?php endforeach; ?>
+        </ol>
+        <?php endif; ?>
     </div>
 </div>
 
-<div class="grid-2">
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">Gaminiai pagal tipą</span>
-        </div>
-        <div class="card-body">
-            <?php if (count($type_stats) > 0): ?>
-            <ul class="recent-list">
-                <?php foreach ($type_stats as $row): ?>
-                <li>
-                    <span><?= h($row['gaminio_tipas']) ?></span>
-                    <span class="badge badge-primary"><?= $row['kiekis'] ?></span>
-                </li>
-                <?php endforeach; ?>
-            </ul>
-            <?php else: ?>
-            <div class="empty-state"><p>Nėra duomenų pagal pasirinktus filtrus</p></div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">Kokybės rodikliai</span>
-        </div>
-        <div class="card-body">
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="font-size: 13px;">Gaminiai su protokolų Nr.</span>
-                    <span class="badge badge-<?= $protocol_pct >= 80 ? 'success' : ($protocol_pct >= 50 ? 'warning' : 'danger') ?>"><?= $protocol_pct ?>%</span>
-                </div>
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar <?= $protocol_pct >= 80 ? 'green' : ($protocol_pct >= 50 ? 'orange' : 'red') ?>" style="width: <?= $protocol_pct ?>%"></div>
-                </div>
-                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;"><?= $protocol_count ?> iš <?= $total_mt_count ?> gaminių</div>
-            </div>
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="font-size: 13px;">Gaminiai su atitikties kodu</span>
-                    <span class="badge badge-<?= $code_pct >= 80 ? 'success' : ($code_pct >= 50 ? 'warning' : 'danger') ?>"><?= $code_pct ?>%</span>
-                </div>
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar <?= $code_pct >= 80 ? 'green' : ($code_pct >= 50 ? 'orange' : 'red') ?>" style="width: <?= $code_pct ?>%"></div>
-                </div>
-                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;"><?= $code_count ?> iš <?= $total_mt_count ?> gaminių</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card" style="margin-top: 16px;">
+<div class="card" style="margin-bottom: 24px;" data-testid="chart-container">
     <div class="card-header">
-        <span class="card-title">MT gaminių sąrašas</span>
-        <span class="badge badge-info"><?= $total_mt_count ?> viso</span>
+        <span class="card-title">Per savaite: patikrinta gaminiu ir rasta klaidu</span>
+    </div>
+    <div class="card-body">
+        <canvas id="grafikas" height="90" data-testid="chart-weekly"></canvas>
+    </div>
+</div>
+
+<?php if (!empty($defektu_gaminiai)): ?>
+<div class="card" style="margin-bottom: 24px;" data-testid="table-defektai-container">
+    <div class="card-header">
+        <span class="card-title">Uzsakymai ir defektai</span>
+        <span class="badge badge-primary"><?= count($defektu_gaminiai) ?> irasu</span>
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table data-testid="table-mt-products">
+            <table data-testid="table-defektai">
                 <thead>
                     <tr>
-                        <th>Gaminio Nr.</th>
-                        <th>Tipas</th>
-                        <th>Užsakymas</th>
-                        <th>Protokolo Nr.</th>
-                        <th>Atitikties kodas</th>
+                        <th>Uzsakymo numeris</th>
+                        <th>Reikalavimas</th>
+                        <th>Defektas</th>
+                        <th>Busena</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (count($products) > 0): ?>
-                    <?php foreach ($products as $p): ?>
+                    <?php foreach ($defektu_gaminiai as $eil):
+                        $busena = (in_array(strtolower((string)($eil['isvada'] ?? '')), ['neatitinka','nepadaryta'])) ? 'Nepataisyta' : 'Pataisyta';
+                        $busena_class = $busena === 'Nepataisyta' ? 'badge-danger' : 'badge-success';
+                    ?>
                     <tr>
-                        <td style="font-weight: 500;"><?= h($p['gaminio_numeris'] ?: '-') ?></td>
-                        <td><?= h($p['gaminio_tipas'] ?: '-') ?></td>
-                        <td>
-                            <?php if ($p['uzsakymo_numeris']): ?>
-                            <a href="/uzsakymai.php?id=<?= h($p['uzsakymo_id'] ?? '') ?>" style="color: var(--primary);"><?= h($p['uzsakymo_numeris']) ?></a>
-                            <?php else: ?>
-                            -
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($p['protokolo_nr']): ?>
-                            <span class="badge badge-success"><?= h($p['protokolo_nr']) ?></span>
-                            <?php else: ?>
-                            <span class="badge badge-danger">Nėra</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($p['atitikmuo_kodas']): ?>
-                            <span class="badge badge-info"><?= h($p['atitikmuo_kodas']) ?></span>
-                            <?php else: ?>
-                            <span class="badge badge-warning">Nėra</span>
-                            <?php endif; ?>
-                        </td>
+                        <td><?= h($eil['uzsakymo_numeris']) ?></td>
+                        <td><?= h($eil['reikalavimas'] ?? '-') ?></td>
+                        <td><?= h($eil['defektas'] ?? '-') ?></td>
+                        <td><span class="badge <?= $busena_class ?>"><?= h($busena) ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php else: ?>
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <span class="card-title">Uzsakymai ir defektai</span>
+    </div>
+    <div class="card-body">
+        <div class="empty-state"><p>Pagal pasirinktus filtrus uzsakymu nerasta.</p></div>
+    </div>
+</div>
+<?php endif; ?>
+
+<div class="card aktyvus-defektai-card" style="margin-bottom: 24px;" data-testid="table-aktyvus-container">
+    <div class="card-header aktyvus-defektai-header">
+        <span class="card-title">
+            <span class="aktyvus-dot"></span>
+            Aktyvus nepataisyti defektai
+        </span>
+        <span class="badge badge-danger"><?= count($aktyvus_defektai) ?></span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper">
+            <table data-testid="table-aktyvus-defektai">
+                <thead class="aktyvus-thead">
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>Uzsakymo numeris</th>
+                        <th>Reikalavimas</th>
+                        <th>Defekto aprasymas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($aktyvus_defektai)): ?>
+                    <?php foreach ($aktyvus_defektai as $row): ?>
+                    <tr>
+                        <td style="text-align: center;"><span class="aktyvus-dot"></span></td>
+                        <td><?= h($row['uzsakymo_numeris']) ?></td>
+                        <td><?= h($row['reikalavimas']) ?></td>
+                        <td><?= h($row['defektas']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php else: ?>
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 32px; color: var(--text-secondary);">Nėra duomenų pagal pasirinktus filtrus</td>
+                        <td colspan="4" style="text-align: center; padding: 24px; color: var(--text-secondary);">Nera aktyviu nepataisytu defektu</td>
                     </tr>
                     <?php endif; ?>
                 </tbody>
@@ -279,4 +360,67 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<?php endif; ?>
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+<?php if ($rodyti_duomenis): ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(async function() {
+    const params = new URLSearchParams({
+        uzsakymo_numeris: <?= json_encode($uzsakymo_numeris) ?>,
+        periodas: <?= json_encode($periodas) ?>,
+        menuo: <?= json_encode($menuo) ?>,
+        nuo: <?= json_encode($nuo) ?>,
+        iki: <?= json_encode($iki) ?>
+    });
+    try {
+        const res = await fetch('/grafiko_duomenys.php?' + params.toString());
+        const data = await res.json();
+
+        if (!data || data.length === 0) return;
+
+        const labels = data.map(d => 'Savaite ' + d.savaite);
+        const patikrinta = data.map(d => d.patikrinta_gaminiu);
+        const klaidos = data.map(d => d.klaidu);
+
+        const ctx = document.getElementById('grafikas').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Patikrinta gaminiu',
+                        data: patikrinta,
+                        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Rasta klaidu',
+                        data: klaidos,
+                        backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                        borderColor: 'rgba(220, 38, 38, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'vnt.' }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.log('Chart data not available');
+    }
+})();
+</script>
+<?php endif; ?>
