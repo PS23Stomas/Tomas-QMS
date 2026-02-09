@@ -68,7 +68,7 @@ $type_stats = $products_by_type->fetchAll();
 
 $products_list = $pdo->prepare("
     SELECT g.id, g.gaminio_numeris, g.protokolo_nr, g.atitikmuo_kodas, 
-           gt.gaminio_tipas, u.uzsakymo_numeris
+           g.uzsakymo_id, gt.gaminio_tipas, u.uzsakymo_numeris
     FROM gaminiai g
     LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id
     LEFT JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -247,7 +247,7 @@ require_once __DIR__ . '/includes/header.php';
                         <td><?= h($p['gaminio_tipas'] ?: '-') ?></td>
                         <td>
                             <?php if ($p['uzsakymo_numeris']): ?>
-                            <a href="/uzsakymai.php?id=<?= $p['uzsakymo_id'] ?? '' ?>" style="color: var(--primary);"><?= h($p['uzsakymo_numeris']) ?></a>
+                            <a href="/uzsakymai.php?id=<?= h($p['uzsakymo_id'] ?? '') ?>" style="color: var(--primary);"><?= h($p['uzsakymo_numeris']) ?></a>
                             <?php else: ?>
                             -
                             <?php endif; ?>
