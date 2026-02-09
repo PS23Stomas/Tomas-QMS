@@ -19,6 +19,7 @@ $user = currentUser();
                 <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
             </div>
             <nav class="sidebar-nav">
+                <div class="nav-section-label">Gamyba</div>
                 <a href="/index.php" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     <span>Kokybiniai rodikliai</span>
@@ -27,6 +28,21 @@ $user = currentUser();
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     <span>Užsakymai</span>
                 </a>
+                <a href="/pretenzijos.php" class="nav-item <?= $current_page === 'pretenzijos' ? 'active' : '' ?>" data-testid="link-claims">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Pretenzijos</span>
+                </a>
+                <div class="nav-section-label">Administravimas</div>
+                <a href="/prietaisai.php" class="nav-item <?= $current_page === 'prietaisai' ? 'active' : '' ?>" data-testid="link-devices">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <span>Prietaisų patikra</span>
+                </a>
+                <?php if (($user['role'] ?? '') === 'admin'): ?>
+                <a href="/vartotojai.php" class="nav-item <?= $current_page === 'vartotojai' ? 'active' : '' ?>" data-testid="link-users">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Vartotojų valdymas</span>
+                </a>
+                <?php endif; ?>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">

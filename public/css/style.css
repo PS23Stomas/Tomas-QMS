@@ -96,6 +96,21 @@ a {
     overflow-y: auto;
 }
 
+.nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.35);
+    padding: 16px 12px 6px;
+    margin-top: 4px;
+}
+
+.nav-section-label:first-child {
+    padding-top: 4px;
+    margin-top: 0;
+}
+
 .nav-item {
     display: flex;
     align-items: center;

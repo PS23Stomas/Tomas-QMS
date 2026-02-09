@@ -40,9 +40,11 @@ public/                     # Web root served by PHP
 ├── logout.php              # Session destroy and redirect
 ├── index.php               # Dashboard - Kokybiniai rodikliai (quality indicators)
 ├── uzsakymai.php           # Orders - list, view, create, edit, delete
-├── gaminiai.php            # Products - list, create, delete
-├── uzsakovai.php           # Clients - list, create, edit, delete
-├── objektai.php            # Objects - list, create, edit, delete
+├── pretenzijos.php         # Claims - list, view, create, edit, delete
+├── prietaisai.php          # Devices/instruments - calibration tracking, CRUD
+├── vartotojai.php          # User management (admin only) - CRUD
+├── mt_statistika.php       # MT statistics page with filtering
+├── grafiko_duomenys.php    # Chart data API endpoint
 └── router.php              # URL router for PHP built-in server
 ```
 
@@ -57,7 +59,12 @@ public/                     # Web root served by PHP
   - `objektai` - Construction objects/sites
   - `gaminio_tipai` - Product types (with grupe/group classification)
   - `mt_komponentai` - Components
-  - `prietaisai` - Devices/instruments
+  - `mt_funkciniai_bandymai` - Functional tests (defect tracking)
+  - `mt_saugikliu_ideklai` - Fuse holder records
+  - `mt_izeminimo_tikrinimas` - Grounding test records
+  - `mt_dielektriniai_bandymai` - Dielectric test records
+  - `pretenzijos` - Claims/complaints tracking
+  - `prietaisai` - Devices/instruments with calibration tracking
   - `gaminiu_rusys` - Product categories
 
 ### Build & Development
@@ -74,6 +81,8 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-09: Added Pretenzijos (claims), Prietaisų patikra (device calibration), Vartotojų valdymas (user management) pages
+- 2026-02-09: Updated sidebar navigation with section labels (Gamyba, Administravimas)
 - 2026-02-09: Rebuilt entire application from TypeScript/React to PHP/CSS/JavaScript/HTML
 - 2026-02-09: Added "Kokybiniai rodikliai" (quality indicators) dashboard as main page
 - 2026-02-09: All UI in Lithuanian language
