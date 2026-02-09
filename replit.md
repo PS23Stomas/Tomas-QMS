@@ -1,70 +1,79 @@
-# MT Modulis - Order Management System
+# MT Modulis - Gamybos valdymo sistema
 
 ## Overview
 
-MT Modulis is a Lithuanian-language order management system (manufacturing/production module) that allows users to manage orders (užsakymai), products (gaminiai), clients (užsakovai), and construction objects (objektai). The application was originally a PHP/PostgreSQL system that has been rebuilt as a modern full-stack TypeScript application. It features session-based authentication with bcrypt password hashing, CRUD operations for orders and products, and a responsive UI with sidebar navigation.
+MT Modulis is a Lithuanian-language manufacturing order management system that allows users to manage orders (užsakymai), products (gaminiai), clients (užsakovai), and construction objects (objektai). The application uses PHP, CSS, JavaScript and HTML with a PostgreSQL database. It features session-based authentication with bcrypt password hashing, CRUD operations, a responsive sidebar navigation, and a dashboard with quality indicators (kokybiniai rodikliai).
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language
+- Language: Lithuanian (lietuvių kalba)
+- Technology preference: PHP, CSS, JavaScript, HTML
 
 ## System Architecture
 
 ### Frontend
-- **Framework**: React 18 with TypeScript, built with Vite
-- **Routing**: Wouter (lightweight router) with Lithuanian route paths (e.g., `/uzsakymai`, `/gaminiai`)
-- **State Management**: TanStack React Query for server state, no global client state library
-- **UI Components**: shadcn/ui component library (New York style) built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS custom properties for theming, Inter + Playfair Display fonts
-- **Forms**: React Hook Form with Zod validation via `@hookform/resolvers`
-- **Path aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+- **Languages**: HTML, CSS, JavaScript (vanilla)
+- **Styling**: Custom CSS with CSS variables for theming, Inter font via Google Fonts
+- **Responsive**: Mobile-friendly with collapsible sidebar navigation
+- **UI Pattern**: Server-rendered PHP pages with modal dialogs for create/edit forms
 
 ### Backend
-- **Framework**: Express.js running on Node.js with TypeScript (via tsx)
-- **Authentication**: Passport.js with LocalStrategy, express-session for session management
-  - Passwords use bcrypt hashing (handles `$2y$` to `$2a$` prefix conversion from PHP-originated hashes)
-  - Session-based auth with `connect-pg-simple` for session storage
-  - Login fields use Lithuanian names: `el_pastas` (email), `slaptazodis` (password)
-- **API Design**: REST API under `/api/` prefix with typed route definitions in `shared/routes.ts`
-- **Dev Server**: Vite dev server with HMR proxied through Express in development
+- **Language**: PHP 8.3
+- **Server**: PHP built-in development server (launched via `server/index.ts` wrapper)
+- **Authentication**: PHP sessions with `password_verify()` for bcrypt hashes (`$2y$` format from original PHP system)
+- **Database**: PDO with PostgreSQL driver
+- **Security**: Prepared statements for all queries, `htmlspecialchars()` for output escaping
 
-### Shared Layer
-- **Schema**: `shared/schema.ts` defines all database tables and Zod insert schemas using Drizzle ORM
-- **Routes**: `shared/routes.ts` defines typed API contract with Zod validation for both input and responses
-- This shared layer ensures type safety between frontend and backend
+### File Structure
+```
+public/                     # Web root served by PHP
+├── includes/
+│   ├── config.php          # Database connection, session, helper functions
+│   ├── header.php          # Common header with sidebar navigation
+│   └── footer.php          # Common footer with JS
+├── css/
+│   └── style.css           # All application styles
+├── js/
+│   └── app.js              # Sidebar toggle, modal, delete confirmation
+├── login.php               # Login page
+├── logout.php              # Session destroy and redirect
+├── index.php               # Dashboard - Kokybiniai rodikliai (quality indicators)
+├── uzsakymai.php           # Orders - list, view, create, edit, delete
+├── gaminiai.php            # Products - list, create, delete
+├── uzsakovai.php           # Clients - list, create, edit, delete
+├── objektai.php            # Objects - list, create, edit, delete
+└── router.php              # URL router for PHP built-in server
+```
 
 ### Database
-- **Database**: PostgreSQL (required, referenced via `DATABASE_URL` environment variable)
-- **ORM**: Drizzle ORM with `drizzle-zod` for schema-to-validation integration
-- **Schema Push**: Use `npm run db:push` (drizzle-kit push) to sync schema to database
+- **Database**: PostgreSQL (connected via `DATABASE_URL` environment variable)
+- **Driver**: PDO with pgsql extension
 - **Key Tables**:
-  - `vartotojai` - Users (auth, roles)
+  - `vartotojai` - Users (auth, roles: admin, user, skaitytojas)
   - `uzsakymai` - Orders
   - `gaminiai` - Products/items within orders
   - `uzsakovai` - Clients/customers
   - `objektai` - Construction objects/sites
-  - `gaminio_tipai` - Product types
+  - `gaminio_tipai` - Product types (with grupe/group classification)
   - `mt_komponentai` - Components
+  - `prietaisai` - Devices/instruments
   - `gaminiu_rusys` - Product categories
 
 ### Build & Development
-- **Dev**: `npm run dev` runs tsx with Vite HMR
-- **Build**: `npm run build` runs custom `script/build.ts` which builds client with Vite and server with esbuild
-- **Production**: `npm start` serves the built app from `dist/`
-- **Type checking**: `npm run check` runs TypeScript compiler
-
-### Storage Pattern
-- `server/storage.ts` defines an `IStorage` interface and `DatabaseStorage` implementation
-- All database operations go through this abstraction layer
-- Uses Drizzle query builder with `eq`, `desc` operators
+- **Dev**: `npm run dev` runs `tsx server/index.ts` which launches PHP built-in server
+- **PHP Server**: `php -S 0.0.0.0:5000 -t public public/router.php`
+- **Port**: 5000 (bound to 0.0.0.0)
 
 ## External Dependencies
 
-- **PostgreSQL**: Primary database, connected via `DATABASE_URL` environment variable using `pg` (node-postgres) pool
-- **Google Fonts**: Inter, Playfair Display, DM Sans, Fira Code, Geist Mono loaded via CDN
-- **Radix UI**: Full suite of accessible UI primitives (dialog, select, tabs, toast, etc.)
-- **Recharts**: Chart library (available but usage not confirmed in visible code)
-- **Embla Carousel**: Carousel component
-- **Vaul**: Drawer component
-- **Lucide React**: Icon library used throughout the UI
-- **No external auth providers**: Authentication is self-contained with local username/password strategy
+- **PostgreSQL**: Primary database, connected via `DATABASE_URL` environment variable
+- **Google Fonts**: Inter font loaded via CDN
+- **PHP Extensions**: pgsql, pdo_pgsql, mbstring, session
+- **No external auth providers**: Authentication is self-contained with local email/password
+
+## Recent Changes
+
+- 2026-02-09: Rebuilt entire application from TypeScript/React to PHP/CSS/JavaScript/HTML
+- 2026-02-09: Added "Kokybiniai rodikliai" (quality indicators) dashboard as main page
+- 2026-02-09: All UI in Lithuanian language
