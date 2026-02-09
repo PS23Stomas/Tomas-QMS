@@ -1,29 +1,12 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Server } from "http";
 import { storage } from "./storage";
-import { api, errorSchemas } from "@shared/routes";
+import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
-}
-
+import bcrypt from "bcryptjs";
 import express from "express";
 import path from "path";
 
@@ -31,7 +14,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Setup Auth
   passport.use(
     new LocalStrategy(
       { usernameField: "el_pastas", passwordField: "slaptazodis" },
@@ -39,13 +21,11 @@ export async function registerRoutes(
         try {
           const user = await storage.getUserByEmail(email);
           if (!user) return done(null, false, { message: "Vartotojas nerastas" });
-          
-          // In a real migration, we'd check hash format. 
-          // For seed data we use our hash. For legacy data, we might need to support their hash.
-          // Assuming we reset passwords or use new ones.
-          const isValid = await comparePasswords(password, user.slaptazodis);
+
+          const storedHash = user.slaptazodis.replace(/^\$2y\$/, "$2a$");
+          const isValid = await bcrypt.compare(password, storedHash);
           if (!isValid) return done(null, false, { message: "Neteisingas slaptažodis" });
-          
+
           return done(null, user);
         } catch (err) {
           return done(err);
@@ -73,17 +53,21 @@ export async function registerRoutes(
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Protect uploads
   app.use("/uploads", (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     next();
   }, express.static(path.join(process.cwd(), "uploads")));
 
-  // API Routes
-
-  // Auth
-  app.post(api.auth.login.path, passport.authenticate("local"), (req, res) => {
-    res.json(req.user);
+  app.post(api.auth.login.path, (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ message: info?.message || "Prisijungimas nepavyko" });
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        const { slaptazodis, login_token, token_galiojimas, ...safeUser } = user;
+        res.json(safeUser);
+      });
+    })(req, res, next);
   });
 
   app.post(api.auth.logout.path, (req, res) => {
@@ -94,10 +78,11 @@ export async function registerRoutes(
 
   app.get(api.auth.me.path, (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    const user = req.user as any;
+    const { slaptazodis, login_token, token_galiojimas, ...safeUser } = user;
+    res.json(safeUser);
   });
 
-  // Orders (Uzsakymai)
   app.get(api.uzsakymai.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const orders = await storage.getOrders();
@@ -111,7 +96,7 @@ export async function registerRoutes(
       const order = await storage.createOrder({
         ...input,
         vartotojas_id: (req.user as any).id,
-        gaminiu_rusis_id: 1 // Default
+        gaminiu_rusis_id: input.gaminiu_rusis_id || 1,
       });
       res.status(201).json(order);
     } catch (err) {
@@ -150,7 +135,6 @@ export async function registerRoutes(
     res.sendStatus(204);
   });
 
-  // Products (Gaminiai)
   app.get(api.gaminiai.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const orderId = req.query.uzsakymo_id ? Number(req.query.uzsakymo_id) : undefined;
@@ -172,44 +156,23 @@ export async function registerRoutes(
     }
   });
 
-  // Clients
   app.get(api.uzsakovai.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const clients = await storage.getClients();
     res.json(clients);
   });
 
-  // Objects
   app.get(api.objektai.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const objects = await storage.getObjects();
     res.json(objects);
   });
 
-  // Product Types
   app.get(api.gaminio_tipai.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const types = await storage.getProductTypes();
     res.json(types);
   });
 
-  await seedDatabase();
-
   return httpServer;
-}
-
-async function seedDatabase() {
-  const existingUsers = await storage.getUserByEmail("admin@mt.lt");
-  if (!existingUsers) {
-    const password = await hashPassword("admin123");
-    await storage.createUser({
-      vardas: "Admin",
-      pavarde: "Vartotojas",
-      el_pastas: "admin@mt.lt",
-      slaptazodis: password,
-      role: "admin",
-      patvirtintas: true
-    });
-    console.log("Seeded admin user");
-  }
 }
