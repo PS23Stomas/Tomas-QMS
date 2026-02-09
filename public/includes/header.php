@@ -27,18 +27,6 @@ $user = currentUser();
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     <span>Užsakymai</span>
                 </a>
-                <a href="/gaminiai.php" class="nav-item <?= $current_page === 'gaminiai' ? 'active' : '' ?>" data-testid="link-products">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                    <span>Gaminiai</span>
-                </a>
-                <a href="/uzsakovai.php" class="nav-item <?= $current_page === 'uzsakovai' ? 'active' : '' ?>" data-testid="link-clients">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Užsakovai</span>
-                </a>
-                <a href="/objektai.php" class="nav-item <?= $current_page === 'objektai' ? 'active' : '' ?>" data-testid="link-objects">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Objektai</span>
-                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
