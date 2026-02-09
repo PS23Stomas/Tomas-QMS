@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["unzip"]
+packages = ["unzip", "php83", "php83Extensions.pgsql", "php83Extensions.pdo_pgsql", "php83Extensions.mbstring", "php83Extensions.session"]
 
 [[ports]]
 localPort = 5000
