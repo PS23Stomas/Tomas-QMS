@@ -39,12 +39,24 @@ if ($saugoti_eile_id !== null) {
     if ($kodas_naujas !== '') $kodas = $kodas_naujas;
     if ($gamintojas_naujas !== '') $gamintojas = $gamintojas_naujas;
 
-    $stmt = $conn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ? AND eiles_numeris = ?");
-    $stmt->execute([$gaminio_id, $eile_id]);
+    $conn->beginTransaction();
+    try {
+        $stmt = $conn->prepare("SELECT id FROM mt_komponentai WHERE gaminio_id = ? AND eiles_numeris = ?");
+        $stmt->execute([$gaminio_id, $eile_id]);
+        $esamas = $stmt->fetchColumn();
 
-    $stmt = $conn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui)
-                           VALUES (?, ?, ?, ?, ?, ?, 1)");
-    $stmt->execute([$gaminio_id, $eile_id, $kodas, $kiekis, $aprasymas, $gamintojas]);
+        if ($esamas) {
+            $stmt = $conn->prepare("UPDATE mt_komponentai SET gamintojo_kodas = ?, kiekis = ?, aprasymas = ?, gamintojas = ?, parinkta_projektui = 1 WHERE gaminio_id = ? AND eiles_numeris = ?");
+            $stmt->execute([$kodas, $kiekis, $aprasymas, $gamintojas, $gaminio_id, $eile_id]);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$gaminio_id, $eile_id, $kodas, $kiekis, $aprasymas, $gamintojas]);
+        }
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollBack();
+        die("Klaida išsaugant: " . htmlspecialchars($e->getMessage()));
+    }
 
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
@@ -53,23 +65,30 @@ if ($saugoti_eile_id !== null) {
            "&issaugota=taip&parinkta_eile=" . urlencode($eile_id));
     exit;
 } else {
-    $conn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$gaminio_id]);
+    $conn->beginTransaction();
+    try {
+        $conn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$gaminio_id]);
 
-    $sql = "INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)";
-    $stmt = $conn->prepare($sql);
+        $sql = "INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)";
+        $stmt = $conn->prepare($sql);
 
-    for ($i = 0; $i < count($eile_ids); $i++) {
-        $kodas = !empty($kodai_nauji[$i]) ? $kodai_nauji[$i] : ($kodai[$i] ?? '');
-        $gamintojas = !empty($gamintojai_n[$i]) ? $gamintojai_n[$i] : ($gamintojai[$i] ?? '');
+        for ($i = 0; $i < count($eile_ids); $i++) {
+            $kodas = !empty($kodai_nauji[$i]) ? $kodai_nauji[$i] : ($kodai[$i] ?? '');
+            $gamintojas = !empty($gamintojai_n[$i]) ? $gamintojai_n[$i] : ($gamintojai[$i] ?? '');
 
-        $stmt->execute([
-            $gaminio_id,
-            (int)$eile_ids[$i],
-            $kodas,
-            (int)($kiekiai[$i] ?? 0),
-            $aprasymai[$i] ?? '',
-            $gamintojas
-        ]);
+            $stmt->execute([
+                $gaminio_id,
+                (int)$eile_ids[$i],
+                $kodas,
+                (int)($kiekiai[$i] ?? 0),
+                $aprasymai[$i] ?? '',
+                $gamintojas
+            ]);
+        }
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollBack();
+        die("Klaida išsaugant: " . htmlspecialchars($e->getMessage()));
     }
 
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
