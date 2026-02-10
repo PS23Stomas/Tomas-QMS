@@ -19,29 +19,6 @@ if ($gaminys_id <= 0) die('Klaida: nėra gaminio ID');
 try {
     $conn->beginTransaction();
 
-    $conn->prepare("DELETE FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
-
-    if (!empty($_POST['vid_itampa']['aprasymas'])) {
-        $stmt = $conn->prepare("INSERT INTO antriniu_grandiniu_bandymai 
-            (gaminys_id, eiles_nr, grandines_pavadinimas, grandines_itampa, \"bandymo_itampa_kV\", bandymo_trukme, isvada, rezultatas) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-
-        $vid_isvada = $_POST['vid_itampa']['isvada'] ?? '';
-
-        foreach ($_POST['vid_itampa']['aprasymas'] as $i => $apras) {
-            $stmt->execute([
-                $gaminys_id,
-                $_POST['vid_itampa']['eiles_nr'][$i] ?? ($i + 1),
-                $apras,
-                $_POST['vid_itampa']['itampa'][$i] ?? '',
-                $_POST['vid_itampa']['band_itampa'][$i] ?? '',
-                $_POST['vid_itampa']['trukme'][$i] ?? '',
-                $vid_isvada,
-                'bandymą išlaikė'
-            ]);
-        }
-    }
-
     $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
     if (!empty($_POST['maz_itampa']['aprasymas'])) {
