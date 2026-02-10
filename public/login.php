@@ -249,6 +249,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #991b1b;
             border: 1px solid #fecaca;
         }
+        .forgot-link {
+            text-align: center;
+            margin-top: 1.25rem;
+        }
+        .forgot-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 480px) {
             .login-card {
                 padding: 1.5rem;
@@ -293,6 +306,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="btn-login" data-testid="button-login">Prisijungti</button>
         </form>
+        <div class="forgot-link">
+            <a href="/slaptazodis_atstatymas.php" data-testid="link-forgot-password">Pamiršau slaptažodį</a>
+        </div>
     </div>
 </body>
 </html>

@@ -1,0 +1,86 @@
+<?php
+class Emailas {
+    private static $apiKey = null;
+    private static $fromEmail = 'MT Modulis <onboarding@resend.dev>';
+
+    public static function setApiKey(string $key): void {
+        self::$apiKey = $key;
+    }
+
+    public static function setFromEmail(string $email): void {
+        self::$fromEmail = $email;
+    }
+
+    private static function getApiKey(): string {
+        if (self::$apiKey) return self::$apiKey;
+        $key = getenv('RESEND_API_KEY');
+        if (!$key) throw new Exception('RESEND_API_KEY nenustatytas');
+        return $key;
+    }
+
+    public static function siusti(string $kam, string $tema, string $html): bool {
+        $apiKey = self::getApiKey();
+
+        $data = json_encode([
+            'from' => self::$fromEmail,
+            'to' => [$kam],
+            'subject' => $tema,
+            'html' => $html,
+        ]);
+
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $data,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT => 10,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return $httpCode >= 200 && $httpCode < 300;
+    }
+
+    public static function siustiAtstatymoNuoroda(string $kam, string $vardas, string $token): bool {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5000';
+        $url = "{$protocol}://{$host}/slaptazodis_keitimas.php?token=" . urlencode($token);
+
+        $html = '
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 20px;">MT Modulis</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+                <p style="color: #333; font-size: 16px;">Sveiki, <strong>' . htmlspecialchars($vardas) . '</strong></p>
+                <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                    Gavome prašymą atstatyti jūsų slaptažodį MT Modulis sistemoje.
+                </p>
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="' . htmlspecialchars($url) . '" 
+                       style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                              color: white; padding: 12px 30px; border-radius: 6px; 
+                              text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">
+                        Atstatyti slaptažodį
+                    </a>
+                </div>
+                <p style="color: #888; font-size: 13px; line-height: 1.5;">
+                    Ši nuoroda galioja <strong>1 valandą</strong>. 
+                    Jei jūs neprašėte slaptažodžio atstatymo, tiesiog ignoruokite šį laišką.
+                </p>
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+                <p style="color: #aaa; font-size: 11px; text-align: center;">
+                    MT Modulis - Gamybos valdymo sistema
+                </p>
+            </div>
+        </div>';
+
+        return self::siusti($kam, 'Slaptažodžio atstatymas - MT Modulis', $html);
+    }
+}
