@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'el_pastas' => $el_pastas,
                 'slaptazodis' => $slaptazodis,
                 'role' => $_POST['role'] ?? 'user',
-                'patvirtino_id' => $_SESSION['user_id'],
+                'patvirtino_id' => $_SESSION['vartotojas_id'],
             ]);
             $message = 'Vartotojas sukurtas sėkmingai.';
         }
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Vartotojas atnaujintas.';
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
-        if ($id && $id != $_SESSION['user_id']) {
+        if ($id && $id != $_SESSION['vartotojas_id']) {
             $pdo->prepare("DELETE FROM vartotojai WHERE id = :id")->execute(['id' => $id]);
             $message = 'Vartotojas ištrintas.';
         } else {
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("UPDATE vartotojai SET patvirtintas = :patvirtintas, patvirtino_id = :patvirtino_id, patvirtinimo_data = CURRENT_TIMESTAMP WHERE id = :id");
             $stmt->execute([
                 'patvirtintas' => $confirmed ? 'true' : 'false',
-                'patvirtino_id' => $_SESSION['user_id'],
+                'patvirtino_id' => $_SESSION['vartotojas_id'],
                 'id' => $id,
             ]);
             $message = $confirmed ? 'Vartotojas patvirtintas.' : 'Vartotojo patvirtinimas atšauktas.';
@@ -181,7 +181,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <button type="submit" class="btn btn-primary btn-sm" data-testid="button-confirm-user-<?= $u['id'] ?>">Patvirtinti</button>
                                 </form>
                                 <?php endif; ?>
-                                <?php if ($u['id'] != $_SESSION['user_id']): ?>
+                                <?php if ($u['id'] != $_SESSION['vartotojas_id']): ?>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį vartotoją?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $u['id'] ?>">

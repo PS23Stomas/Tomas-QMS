@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'kiekis' => $_POST['kiekis'] ?: null,
             'uzsakovas_id' => $_POST['uzsakovas_id'] ?: null,
             'objektas_id' => $_POST['objektas_id'] ?: null,
-            'vartotojas_id' => $_SESSION['user_id'],
+            'vartotojas_id' => $_SESSION['vartotojas_id'],
         ]);
         $message = 'Užsakymas sukurtas sėkmingai.';
     } elseif ($action === 'update') {

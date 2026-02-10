@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'statusas' => $_POST['statusas'] ?? 'nauja',
             'prioritetas' => $_POST['prioritetas'] ?? 'vidutinis',
             'atsakingas_asmuo' => $_POST['atsakingas_asmuo'] ?? '',
-            'sukure_id' => $_SESSION['user_id'],
+            'sukure_id' => $_SESSION['vartotojas_id'],
         ]);
         $message = 'Pretenzija sukurta sėkmingai.';
     } elseif ($action === 'update') {

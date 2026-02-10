@@ -1,4 +1,13 @@
 <?php
+session_set_cookie_params([
+    'lifetime' => 28800,
+    'path' => '/',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+ini_set('session.gc_maxlifetime', 28800);
+
 session_start();
 
 $database_url = getenv('DATABASE_URL');
@@ -24,7 +33,7 @@ try {
 }
 
 function isLoggedIn() {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['vartotojas_id']);
 }
 
 function requireLogin() {
@@ -35,7 +44,12 @@ function requireLogin() {
 }
 
 function currentUser() {
-    return $_SESSION['user'] ?? null;
+    return [
+        'id' => $_SESSION['vartotojas_id'] ?? null,
+        'vardas' => $_SESSION['vardas'] ?? null,
+        'pavarde' => $_SESSION['pavarde'] ?? null,
+        'role' => $_SESSION['role'] ?? null,
+    ];
 }
 
 function h($str) {
