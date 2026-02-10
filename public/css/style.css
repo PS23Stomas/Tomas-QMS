@@ -1188,6 +1188,10 @@ textarea.form-control {
     color: #4f46e5;
 }
 
+.mt-tile-icon-emerald {
+    background: #d1fae5;
+    color: #059669;
+}
 .mt-tile-icon-slate {
     background: #e2e8f0;
     color: #475569;
