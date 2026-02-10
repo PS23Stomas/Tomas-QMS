@@ -82,7 +82,8 @@ for ($i = 1; $i <= 18; $i++) {
             'kiekis' => $eil['kiekis'],
             'aprasymas' => $eil['aprasymas'],
             'gamintojas' => $eil['gamintojas'],
-            'parinkta_projektui' => isset($parinktos_eilutes[$i]) && $parinktos_eilutes[$i]
+            'parinkta_projektui' => isset($parinktos_eilutes[$i]) && $parinktos_eilutes[$i],
+            'irasyta' => true
         ], $kodai_per_eile[$i] ?? [], $visi_gamintojai);
     } else {
         [$kodas, $kiekis, $aprasymas, $gamintojas] = $default[$i - 1];
@@ -92,7 +93,8 @@ for ($i = 1; $i <= 18; $i++) {
             'kiekis' => $kiekis,
             'aprasymas' => $aprasymas,
             'gamintojas' => $gamintojas,
-            'parinkta_projektui' => false
+            'parinkta_projektui' => false,
+            'irasyta' => false
         ], $kodai_per_eile[$i] ?? [], $visi_gamintojai);
     }
 }

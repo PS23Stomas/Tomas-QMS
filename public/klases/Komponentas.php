@@ -6,6 +6,7 @@ class Komponentas {
     private string $aprasymas;
     private string $gamintojas;
     private bool $parinkta;
+    private bool $irasyta;
     private array $kodai;
     private array $visiGamintojai;
 
@@ -16,6 +17,7 @@ class Komponentas {
         $this->aprasymas = $data['aprasymas'] ?? '';
         $this->gamintojas = $data['gamintojas'] ?? '';
         $this->parinkta = (bool)($data['parinkta_projektui'] ?? false);
+        $this->irasyta = (bool)($data['irasyta'] ?? false);
         $this->kodai = $kodai;
         $this->visiGamintojai = $visiGamintojai;
     }
@@ -30,7 +32,12 @@ class Komponentas {
         $kiekis = $this->kiekis;
         $aprasymas = htmlspecialchars($this->aprasymas);
         $gamintojas = htmlspecialchars($this->gamintojas);
-        $rowStyle = $this->parinkta ? " style='background-color: #d1fae5;'" : "";
+        $rowStyle = $this->irasyta ? " style='background-color: #d1fae5;'" : "";
+
+        $parinkta_html = '';
+        if ($this->irasyta) {
+            $parinkta_html = "<div style='margin-top:4px;'><span style='color:#047857; font-size:12px;'>&#10004; Parinkta pagal projektą</span></div>";
+        }
 
         $kodaiOptions = '<option value="">Pasirinkite arba įveskite</option>';
         foreach ($this->kodai as $k) {
@@ -65,6 +72,7 @@ class Komponentas {
             <td>
                 <select class='form-select' name='gamintojas[]'>{$gamintojaiOptions}</select>
                 <input type='text' class='form-control mt-1' name='gamintojas_naujas[]' placeholder='Naujas gamintojas'>
+                {$parinkta_html}
             </td>
             <td style='vertical-align: middle; text-align: center;'>
                 <button type='submit' name='saugoti[]' value='{$id}' class='btn btn-outline-secondary btn-sm' title='Išsaugoti eilutę' style='padding: 4px 8px;'>
