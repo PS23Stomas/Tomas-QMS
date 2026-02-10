@@ -891,6 +891,226 @@ textarea.form-control {
     50% { opacity: 0.4; }
 }
 
+/* Dashboard KPI */
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border-top: 3px solid;
+}
+
+.kpi-green { border-color: var(--success); }
+.kpi-orange { border-color: var(--warning); }
+.kpi-yellow { border-color: #eab308; }
+.kpi-red { border-color: var(--danger); }
+
+.kpi-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.kpi-green .kpi-value { color: var(--success); }
+.kpi-orange .kpi-value { color: var(--warning); }
+.kpi-yellow .kpi-value { color: #eab308; }
+.kpi-red .kpi-value { color: var(--danger); }
+
+.kpi-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* Dashboard Panels */
+.dashboard-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.dashboard-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.dashboard-panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-container {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+
+/* TOP Klaidos */
+.klaidos-empty {
+    text-align: center;
+    color: var(--success);
+    font-size: 1rem;
+    padding: 40px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.klaidos-item {
+    margin-bottom: 12px;
+}
+
+.klaidos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 8px;
+}
+
+.klaidos-text {
+    color: var(--text);
+    font-size: 0.85rem;
+    flex: 1;
+}
+
+.klaidos-count-badge {
+    background: linear-gradient(90deg, var(--danger), var(--warning));
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.klaidos-bar-bg {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.klaidos-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--danger), var(--warning));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* Aktyvus Panel */
+.aktyvus-panel-wrapper {
+    border-top: 3px solid var(--danger);
+    margin-bottom: 24px;
+}
+
+.aktyvus-badge {
+    background: var(--danger);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* Defekt Grid */
+.defekt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.defekt-card {
+    background: var(--danger-light);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.defekt-dot-indicator {
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.defekt-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.defekt-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+}
+
+.defekt-order-nr {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.85rem;
+}
+
+.defekt-type-badge {
+    background: #7c3aed;
+    color: white;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.defekt-punkt-nr {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.defekt-description {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.dashboard-footer-info {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.8rem;
+    padding: 10px 0 20px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
@@ -922,6 +1142,14 @@ textarea.form-control {
     }
 
     .group-cards-container {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-panels {
         grid-template-columns: 1fr;
     }
 
