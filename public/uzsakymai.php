@@ -329,7 +329,6 @@ require_once __DIR__ . '/includes/header.php';
                     <tr>
                         <th>Nr.</th>
                         <th>Užsakovas</th>
-                        <th>Gaminių</th>
                         <th>Sukūrė</th>
                         <th>Data</th>
                         <th>Veiksmai</th>
@@ -341,7 +340,6 @@ require_once __DIR__ . '/includes/header.php';
                         <tr data-testid="row-order-<?= $o['id'] ?>" data-order-nr="<?= h(mb_strtolower($o['uzsakymo_numeris'] ?? '')) ?>">
                             <td><a href="/uzsakymai.php?id=<?= $o['id'] ?>" style="color: var(--primary); font-weight: 500;" data-testid="link-order-<?= $o['id'] ?>"><?= h($o['uzsakymo_numeris'] ?: 'Be nr.') ?></a></td>
                             <td><?= h($o['uzsakovas'] ?? '-') ?></td>
-                            <td><span class="badge badge-info"><?= $o['gaminiu_sk'] ?></span></td>
                             <td><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
                             <td style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
                             <td>
@@ -357,7 +355,7 @@ require_once __DIR__ . '/includes/header.php';
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="6" class="empty-state"><p>Nėra užsakymų</p></td></tr>
+                        <tr><td colspan="5" class="empty-state"><p>Nėra užsakymų</p></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
