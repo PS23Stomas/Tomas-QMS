@@ -32,7 +32,7 @@ class Komponentas {
         $kiekis = $this->kiekis;
         $aprasymas = htmlspecialchars($this->aprasymas);
         $gamintojas = htmlspecialchars($this->gamintojas);
-        $rowStyle = $this->irasyta ? " style='background-color: #e2e8f0;'" : "";
+        $rowStyle = $this->irasyta ? " style='background-color: #cbd5e1;'" : "";
 
         $kodaiOptions = '<option value="">Pasirinkite arba įveskite</option>';
         foreach ($this->kodai as $k) {
