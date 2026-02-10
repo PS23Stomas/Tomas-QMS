@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/klases/Database.php';
-require_once __DIR__ . '/klases/Gamys1.php';
+require_once __DIR__ . '/klases/Gaminys.php';
 require_once __DIR__ . '/klases/Sesija.php';
 
 Sesija::pradzia();
@@ -14,7 +14,7 @@ $gaminio_id_get   = isset($_GET['gaminio_id']) && ctype_digit((string)$_GET['gam
                     ? (int)$_GET['gaminio_id'] : 0;
 
 $conn    = Database::getConnection();
-$gaminys = new Gamys1($conn);
+$gaminys = new Gaminys($conn);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pilnas_pavadinimas'])) {
     $pavadinimas = trim($_POST['pilnas_pavadinimas']);

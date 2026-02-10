@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/klases/Database.php';
-require_once __DIR__ . '/klases/Gamys1.php';
+require_once __DIR__ . '/klases/Gaminys.php';
 require_once __DIR__ . '/klases/Sesija.php';
 
 Sesija::pradzia();
@@ -40,7 +40,7 @@ $gaminio_id       = (int)($_GET['gaminio_id'] ?? 0);
 $uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
 
 $conn = Database::getConnection();
-$gaminys = new Gamys1($conn);
+$gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
 $stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");

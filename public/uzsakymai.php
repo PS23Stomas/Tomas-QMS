@@ -35,8 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mt_pav = trim($_POST['pilnas_pavadinimas'] ?? '');
         $uzs_nr = trim($_POST['uzsakymo_numeris'] ?? '');
         if ($mt_pav !== '' && $uzs_nr !== '') {
-            require_once __DIR__ . '/klases/Gamys1.php';
-            $gh = new Gamys1($pdo);
+            $gh = new Gaminys($pdo);
             $gh->irasytiPilnaPavadinima($uzs_nr, $mt_pav);
         }
         $message = 'Užsakymas atnaujintas.';
@@ -67,7 +66,7 @@ if ($view_id) {
     $order_products = Gaminys::gautiPagalUzsakyma($pdo, (int)$view_id);
 
     if ($order) {
-        $gaminys_helper = new Gamys1($pdo);
+        $gaminys_helper = new Gaminys($pdo);
         $uzsakymo_nr = $order['uzsakymo_numeris'] ?? '';
         $uzsakovas_name = $order['uzsakovas'] ?? '';
 

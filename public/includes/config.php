@@ -6,9 +6,7 @@ require_once $klases_dir . 'Sesija.php';
 Sesija::pradzia();
 
 require_once $klases_dir . 'DBMigracija.php';
-require_once $klases_dir . 'GaminioTipas.php';
 require_once $klases_dir . 'Gaminys.php';
-require_once $klases_dir . 'Gamys1.php';
 require_once $klases_dir . 'Emailas.php';
 
 $pdo = Database::getConnection();

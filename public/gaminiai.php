@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $orders = $pdo->query('SELECT id, uzsakymo_numeris FROM uzsakymai ORDER BY id DESC')->fetchAll();
-$types = GaminioTipas::gautiVisus($pdo);
+$types = Gaminys::gautiVisusTipus($pdo);
 
 $products = $pdo->query('
     SELECT g.*, gt.gaminio_tipas, gt.grupe, u.uzsakymo_numeris
