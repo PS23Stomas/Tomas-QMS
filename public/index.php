@@ -114,7 +114,13 @@ require_once __DIR__ . '/includes/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutinės 30 dienų (1 mėnuo)</div>
+<div class="dashboard-top-bar">
+  <div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutinės 30 dienų (1 mėnuo)</div>
+  <a href="/mt_statistika.php" class="btn btn-primary btn-sm" data-testid="link-mt-statistika">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+    Išplėstinė statistika su filtrais
+  </a>
+</div>
 
 <div class="kpi-grid" data-testid="kpi-container">
   <div class="kpi-card kpi-green" data-testid="kpi-patikrinta">
