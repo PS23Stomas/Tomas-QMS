@@ -126,14 +126,15 @@ for ($i = 1; $i <= 18; $i++) {
         <input type="hidden" name="uzsakymo_numeris" value="<?= htmlspecialchars($uzsakymo_numeris) ?>">
         <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-dark">
+        <table class="table table-bordered">
+            <thead style="background-color: #0f766e; color: white;">
                 <tr>
                     <th>Nr.</th>
                     <th>Gamintojo kodas</th>
                     <th>Kiekis</th>
                     <th>Aprašymas</th>
                     <th>Gamintojas</th>
+                    <th style="width: 50px;"></th>
                 </tr>
             </thead>
             <tbody id="komponentai_tbody">
@@ -166,6 +167,11 @@ function pridetiEilute() {
             <td>
                 <input type='text' class='form-control' name='gamintojas[]' placeholder='Gamintojas'>
                 <input type='hidden' name='gamintojas_naujas[]' value=''>
+            </td>
+            <td style='vertical-align: middle; text-align: center;'>
+                <button type='submit' name='saugoti[]' value='${index}' class='btn btn-outline-secondary btn-sm' title='Išsaugoti eilutę' style='padding: 4px 8px;'>
+                    <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/><polyline points='17 21 17 13 7 13 7 21'/><polyline points='7 3 7 8 15 8'/></svg>
+                </button>
             </td>
         </tr>
     `;
