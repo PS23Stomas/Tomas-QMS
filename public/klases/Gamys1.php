@@ -7,7 +7,7 @@ class Gamys1 {
     }
 
     public function irasytiPilnaPavadinima(string $uzsakymo_numeris, string $pavadinimas): bool {
-        $sqlUzsak = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
+        $sqlUzsak = "SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)";
         $stmtUzsak = $this->conn->prepare($sqlUzsak);
         $stmtUzsak->execute([$uzsakymo_numeris]);
         $uzsakymas = $stmtUzsak->fetch();
@@ -15,7 +15,19 @@ class Gamys1 {
 
         $uzsakymo_id = $uzsakymas['id'];
 
-        $sqlCheck = "SELECT id FROM gaminio_tipai WHERE gaminio_tipas = ?";
+        $sqlGaminys = "SELECT g.id, g.gaminio_tipas_id FROM gaminiai g WHERE g.uzsakymo_id = ? ORDER BY g.id DESC LIMIT 1";
+        $stmtGaminys = $this->conn->prepare($sqlGaminys);
+        $stmtGaminys->execute([$uzsakymo_id]);
+        $gaminys = $stmtGaminys->fetch();
+
+        if ($gaminys && $gaminys['gaminio_tipas_id']) {
+            $sqlUpd = "UPDATE gaminio_tipai SET gaminio_tipas = ?, grupe = COALESCE(NULLIF(grupe, ''), 'MT') WHERE id = ?";
+            $stmtUpd = $this->conn->prepare($sqlUpd);
+            $stmtUpd->execute([$pavadinimas, $gaminys['gaminio_tipas_id']]);
+            return true;
+        }
+
+        $sqlCheck = "SELECT id FROM gaminio_tipai WHERE gaminio_tipas = ? AND gaminio_tipas != ''";
         $stmtCheck = $this->conn->prepare($sqlCheck);
         $stmtCheck->execute([$pavadinimas]);
         $existing = $stmtCheck->fetch();
@@ -46,7 +58,7 @@ class Gamys1 {
     }
 
     public function gautiPilnaPavadinima($uzsakymo_numeris) {
-        $sql = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
+        $sql = "SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$uzsakymo_numeris]);
         $uzsakymas = $stmt->fetch();
@@ -64,7 +76,8 @@ class Gamys1 {
         $stmt->execute([$uzsakymo_id]);
         $rez = $stmt->fetch();
 
-        return $rez['gaminio_tipas'] ?? '';
+        $pav = $rez['gaminio_tipas'] ?? '';
+        return trim($pav);
     }
 
     public function gautiPaskutiniGamini($uzsakymo_numeris) {
