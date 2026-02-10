@@ -1173,19 +1173,19 @@ textarea.form-control {
     flex-shrink: 0;
 }
 
-.mt-tile-icon-primary {
-    background: var(--primary-light);
-    color: var(--primary);
+.mt-tile-icon-teal {
+    background: #ccfbf1;
+    color: #0d9488;
 }
 
-.mt-tile-icon-warning {
-    background: var(--warning-light);
-    color: var(--warning);
+.mt-tile-icon-cyan {
+    background: #cffafe;
+    color: #0891b2;
 }
 
-.mt-tile-icon-info {
-    background: var(--info-light);
-    color: var(--info);
+.mt-tile-icon-indigo {
+    background: #e0e7ff;
+    color: #4f46e5;
 }
 
 .mt-tile-icon-muted {

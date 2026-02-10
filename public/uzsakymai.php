@@ -124,12 +124,12 @@ require_once __DIR__ . '/includes/header.php';
 <div class="alert alert-success">Gaminio pavadinimas išsaugotas.</div>
 <?php endif; ?>
 
+<?php
+    $first_product = $order_products[0] ?? null;
+?>
 <div class="card" style="margin-bottom: 16px;">
     <div class="card-header">
         <span class="card-title">Užsakymas: <?= h($order['uzsakymo_numeris'] ?: 'Be nr.') ?></span>
-        <div class="actions">
-            <button class="btn btn-primary btn-sm" onclick="openModal('editOrderModal')" data-testid="button-edit-order">Redaguoti</button>
-        </div>
     </div>
     <div class="card-body">
         <div class="grid-2">
@@ -137,11 +137,77 @@ require_once __DIR__ . '/includes/header.php';
                 <p><strong>Užsakymo Nr.:</strong> <?= h($order['uzsakymo_numeris'] ?: '-') ?></p>
                 <p><strong>Užsakovas:</strong> <?= h($order['uzsakovas'] ?? '-') ?></p>
                 <p><strong>Objektas:</strong> <?= h($order['objektas'] ?? '-') ?></p>
+                <p><strong>Kiekis:</strong> <?= h($order['kiekis'] ?? '-') ?></p>
             </div>
             <div>
-                <p><strong>Kiekis:</strong> <?= h($order['kiekis'] ?? '-') ?></p>
+                <p><strong>Gaminio Nr.:</strong> <?= h($first_product['gaminio_numeris'] ?? '-') ?></p>
+                <p><strong>Tipas:</strong> <?= h($first_product['gaminio_tipas'] ?? '-') ?></p>
+                <p><strong>Protokolo Nr.:</strong> <?= h($first_product['protokolo_nr'] ?? '-') ?></p>
+                <p><strong>Atitikties kodas:</strong> <?= h($first_product['atitikmuo_kodas'] ?? '-') ?></p>
                 <p><strong>Sukūrė:</strong> <?= h(($order['vardas'] ?? '') . ' ' . ($order['pavarde'] ?? '')) ?></p>
                 <p><strong>Data:</strong> <?= h($order['sukurtas'] ?? '') ?></p>
+            </div>
+        </div>
+        <?php if (count($order_products) > 1): ?>
+        <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+            <p style="color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 6px;"><strong>Visi gaminiai (<?= count($order_products) ?>):</strong></p>
+            <?php foreach ($order_products as $idx => $p): ?>
+            <p style="font-size: 0.82rem; color: var(--text-secondary);">
+                <?= ($idx + 1) ?>. Nr. <?= h($p['gaminio_numeris'] ?: '-') ?> &mdash; <?= h($p['gaminio_tipas'] ?? '-') ?> &mdash; Prot. <?= h($p['protokolo_nr'] ?: '-') ?> &mdash; Atit. <?= h($p['atitikmuo_kodas'] ?: '-') ?>
+            </p>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 16px;" data-testid="card-redaguoti">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Redaguoti
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/uzsakymai.php?id=<?= $view_id ?>">
+            <input type="hidden" name="action" value="save_mt_pavadinimas">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label"><strong>MT Gaminio pavadinimas:</strong></label>
+                <div class="mt-pavadinimas-row">
+                    <input type="text" name="pilnas_pavadinimas" class="form-control" 
+                           value="<?= h($esamas_pavadinimas ?? '') ?>" 
+                           placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
+                    <button type="submit" class="btn btn-primary" data-testid="button-save-pavadinimas">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Išsaugoti
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+            <div class="grid-2" style="gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">Užsakymo numeris</label>
+                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['uzsakymo_numeris'] ?? '-') ?></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Užsakovas</label>
+                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['uzsakovas'] ?? '-') ?></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Objektas</label>
+                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['objektas'] ?? '-') ?></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kiekis</label>
+                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['kiekis'] ?? '-') ?></div>
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 8px;">
+                <button class="btn btn-secondary btn-sm" onclick="openModal('editOrderModal')" data-testid="button-edit-order">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Keisti užsakymo duomenis
+                </button>
             </div>
         </div>
     </div>
@@ -155,11 +221,18 @@ require_once __DIR__ . '/includes/header.php';
         </span>
     </div>
     <div class="card-body">
+        <?php if ($gaminio_id_mt === 0): ?>
+        <div class="alert alert-warning" style="margin-bottom: 12px;" data-testid="text-no-product-warning">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Nerastas gaminys šiam užsakymui. Pirmiausia įveskite gaminio pavadinimą aukščiau.
+        </div>
+        <?php endif; ?>
+
         <div class="mt-tiles-grid" data-testid="mt-tiles-grid">
             <?php if ($gaminio_id_mt > 0): ?>
             <a href="/mt_funkciniai_bandymai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>" 
                class="mt-tile" data-testid="tile-funkciniai">
-                <div class="mt-tile-icon mt-tile-icon-primary">
+                <div class="mt-tile-icon mt-tile-icon-teal">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 </div>
                 <div class="mt-tile-text">
@@ -169,7 +242,7 @@ require_once __DIR__ . '/includes/header.php';
             </a>
             <a href="/MT/mt_sumontuoti_komponentai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&pavadinimas=<?= urlencode($esamas_pavadinimas) ?>" 
                class="mt-tile" data-testid="tile-komponentai">
-                <div class="mt-tile-icon mt-tile-icon-warning">
+                <div class="mt-tile-icon mt-tile-icon-cyan">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                 </div>
                 <div class="mt-tile-text">
@@ -179,7 +252,7 @@ require_once __DIR__ . '/includes/header.php';
             </a>
             <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>" 
                class="mt-tile" data-testid="tile-dielektriniai">
-                <div class="mt-tile-icon mt-tile-icon-info">
+                <div class="mt-tile-icon mt-tile-icon-indigo">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 </div>
                 <div class="mt-tile-text">
@@ -216,63 +289,6 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             <?php endif; ?>
-        </div>
-
-        <?php if ($gaminio_id_mt === 0): ?>
-        <div class="alert alert-warning" style="margin-top: 12px; margin-bottom: 0;" data-testid="text-no-product-warning">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Nerastas gaminys šiam užsakymui. Pirmiausia įveskite gaminio pavadinimą žemiau.
-        </div>
-        <?php endif; ?>
-
-        <div class="mt-pavadinimas-section" data-testid="mt-pavadinimas-form">
-            <form method="POST" action="/uzsakymai.php?id=<?= $view_id ?>" class="mt-pavadinimas-form">
-                <input type="hidden" name="action" value="save_mt_pavadinimas">
-                <label class="form-label"><strong>MT Gaminio pavadinimas:</strong></label>
-                <div class="mt-pavadinimas-row">
-                    <input type="text" name="pilnas_pavadinimas" class="form-control" 
-                           value="<?= h($esamas_pavadinimas ?? '') ?>" 
-                           placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
-                    <button type="submit" class="btn btn-primary" data-testid="button-save-pavadinimas">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Išsaugoti
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">Gaminiai (<?= count($order_products) ?>)</span>
-    </div>
-    <div class="card-body" style="padding: 0;">
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Gaminio Nr.</th>
-                        <th>Tipas</th>
-                        <th>Protokolo Nr.</th>
-                        <th>Atitikties kodas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($order_products) > 0): ?>
-                        <?php foreach ($order_products as $p): ?>
-                        <tr>
-                            <td style="font-weight: 500;"><?= h($p['gaminio_numeris'] ?: '-') ?></td>
-                            <td><?= h($p['gaminio_tipas'] ?? '-') ?></td>
-                            <td><?= h($p['protokolo_nr'] ?: '-') ?></td>
-                            <td><?= h($p['atitikmuo_kodas'] ?: '-') ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr><td colspan="4" class="empty-state"><p>Šiame užsakyme nėra gaminių</p></td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
