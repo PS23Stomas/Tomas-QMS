@@ -1,0 +1,138 @@
+<?php 
+
+class Gamys1 {
+    private $conn;
+
+    public function __construct($db) {
+        $this->conn = $db;
+    }
+
+    // Įrašo naują pavadinimą kaip gaminio tipą
+    public function irasytiPilnaPavadinima(string $uzsakymo_numeris, string $pavadinimas): bool {
+        $sqlUzsak = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
+        $stmtUzsak = $this->conn->prepare($sqlUzsak);
+        $stmtUzsak->execute([$uzsakymo_numeris]);
+        $uzsakymas = $stmtUzsak->fetch();
+        if (!$uzsakymas) return false;
+
+        $uzsakymo_id = $uzsakymas['id'];
+
+        $sqlCheck = "SELECT id FROM gaminio_tipai WHERE gaminio_tipas = ?";
+        $stmtCheck = $this->conn->prepare($sqlCheck);
+        $stmtCheck->execute([$pavadinimas]);
+        $existing = $stmtCheck->fetch();
+
+        if ($existing) {
+            $tipas_id = $existing['id'];
+        } else {
+            $sqlInsert = "INSERT INTO gaminio_tipai (gaminio_tipas, grupe) VALUES (?, 'MT')";
+            $stmtInsert = $this->conn->prepare($sqlInsert);
+            $stmtInsert->execute([$pavadinimas]);
+            $tipas_id = $this->conn->lastInsertId();
+        }
+
+        $sqlUpdate = "UPDATE gaminiai SET gaminio_tipas_id = ? WHERE uzsakymo_id = ?";
+        $stmtUpdate = $this->conn->prepare($sqlUpdate);
+        return $stmtUpdate->execute([$tipas_id, $uzsakymo_id]);
+    }
+
+    // Grąžina gaminio pavadinimą pagal konkretų gaminio ID
+    public function gautiPavadinimaPagalGaminioId($gaminio_id) {
+        $sql = "SELECT gt.gaminio_tipas 
+                FROM gaminiai g 
+                JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id 
+                WHERE g.id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$gaminio_id]);
+        $rez = $stmt->fetch();
+        return $rez['gaminio_tipas'] ?? 'Nežinomas';
+    }
+
+    // Grąžina paskutinio gaminio pavadinimą pagal užsakymo numerį
+    public function gautiPilnaPavadinima($uzsakymo_numeris) {
+        $sql = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$uzsakymo_numeris]);
+        $uzsakymas = $stmt->fetch();
+        if (!$uzsakymas) return '';
+
+        $uzsakymo_id = $uzsakymas['id'];
+
+        $sql = "SELECT gt.gaminio_tipas 
+                FROM gaminiai g 
+                JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id 
+                WHERE g.uzsakymo_id = ?
+                ORDER BY g.id DESC
+                LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$uzsakymo_id]);
+        $rez = $stmt->fetch();
+
+        return $rez['gaminio_tipas'] ?? '';
+    }
+
+    // Grąžina paskutinį gaminį pagal užsakymo numerį
+    public function gautiPaskutiniGamini($uzsakymo_numeris) {
+        $sql = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$uzsakymo_numeris]);
+        $uzsakymas = $stmt->fetch();
+
+        if (!$uzsakymas) return null;
+        $uzsakymo_id = $uzsakymas['id'];
+
+        $sql = "SELECT * FROM gaminiai WHERE uzsakymo_id = ? ORDER BY id DESC LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$uzsakymo_id]);
+        $rez = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $rez ?: null;
+    }
+
+    // Grąžina gaminį pagal ID
+    public function gautiPagalId($id) {
+        if (!$id) return null;
+        $sql = "SELECT * FROM gaminiai WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$id]);
+        $rez = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $rez ?: null;
+    }
+
+    // Sukuria naują gaminį
+    public function sukurti($uzsakymo_id, $gaminio_numeris, $gaminio_tipas_id) {
+        try {
+            $sql = "INSERT INTO gaminiai (uzsakymo_id, gaminio_numeris, gaminio_tipas_id)
+                    VALUES (?, ?, ?)";
+            $stmt = $this->conn->prepare($sql);
+            return $stmt->execute([$uzsakymo_id, $gaminio_numeris, $gaminio_tipas_id]);
+        } catch (PDOException $e) {
+            error_log("Klaida kuriant gaminį: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Atnaujina gaminio duomenis
+    public function updateGamini($id, $laukeliai = []) {
+        if (empty($laukeliai)) return false;
+
+        $dalys = [];
+        $reiksmes = [];
+
+        foreach ($laukeliai as $laukas => $reiksme) {
+            $dalys[] = "$laukas = ?";
+            $reiksmes[] = $reiksme;
+        }
+
+        $reiksmes[] = $id;
+        $sql = "UPDATE gaminiai SET " . implode(', ', $dalys) . " WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute($reiksmes);
+    }
+
+    // Ištrina gaminį pagal ID
+    public function istrintiGamini($id) {
+        $sql = "DELETE FROM gaminiai WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$id]);
+    }
+}
