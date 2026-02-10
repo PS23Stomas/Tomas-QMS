@@ -32,12 +32,7 @@ class Komponentas {
         $kiekis = $this->kiekis;
         $aprasymas = htmlspecialchars($this->aprasymas);
         $gamintojas = htmlspecialchars($this->gamintojas);
-        $rowStyle = $this->irasyta ? " style='background-color: #d1fae5;'" : "";
-
-        $parinkta_html = '';
-        if ($this->irasyta) {
-            $parinkta_html = "<div style='margin-top:3px;'><span style='color:#047857; font-size:11px;'>&#10004; Parinkta pagal projektą</span></div>";
-        }
+        $rowStyle = $this->irasyta ? " style='background-color: #e2e8f0;'" : "";
 
         $kodaiOptions = '<option value="">Pasirinkite arba įveskite</option>';
         foreach ($this->kodai as $k) {
@@ -79,7 +74,6 @@ class Komponentas {
             <td style='padding: 5px 4px; vertical-align: top;'>
                 <select class='form-select form-select-sm' name='gamintojas[]' style='font-size: 12px;'>{$gamintojaiOptions}</select>
                 <input type='text' class='form-control form-control-sm mt-1' name='gamintojas_naujas[]' placeholder='Naujas gamintojas' style='font-size: 12px;'>
-                {$parinkta_html}
             </td>
             <td style='padding: 5px 2px; vertical-align: middle; text-align: center;'>
                 <button type='submit' name='saugoti[]' value='{$id}' class='btn btn-outline-secondary btn-sm' title='Išsaugoti eilutę' style='padding: 3px 6px;'>
