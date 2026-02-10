@@ -58,12 +58,14 @@ try {
 
     $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? '';
     $gaminio_numeris     = $_POST['gaminio_numeris'] ?? '';
+    $uzsakymo_id_val     = $_POST['uzsakymo_id'] ?? '';
 
     header("Location: /MT/mt_dielektriniai.php?gaminys_id=" . $gaminio_id .
            "&gaminio_numeris=" . urlencode($gaminio_numeris) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .
            "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) .
+           "&uzsakymo_id=" . urlencode($uzsakymo_id_val) .
            "&issaugota=taip");
     exit;
 

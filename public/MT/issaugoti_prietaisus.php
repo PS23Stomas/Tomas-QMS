@@ -14,6 +14,7 @@ $conn = Database::getConnection();
 $gaminio_id       = (int)($_POST['gaminio_id'] ?? 0);
 $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
+$uzsakymo_id_val  = $_POST['uzsakymo_id'] ?? '';
 $prietaiso_id     = (int)($_POST['prietaiso_id'] ?? 0);
 
 if ($gaminio_id <= 0) {
@@ -51,6 +52,7 @@ try {
     header("Location: /MT/mt_dielektriniai.php?gaminys_id=" . $gaminio_id .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .
+           "&uzsakymo_id=" . urlencode($uzsakymo_id_val) .
            "&issaugota=taip");
     exit;
 

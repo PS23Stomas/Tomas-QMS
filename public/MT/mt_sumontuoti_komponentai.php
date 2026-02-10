@@ -14,6 +14,7 @@ $pavarde = $_SESSION['pavarde'] ?? '';
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas = $_GET['uzsakovas'] ?? '';
 $gaminio_id = $_GET['gaminio_id'] ?? '';
+$uzsakymo_id = $_GET['uzsakymo_id'] ?? '';
 
 $stmt = $conn->prepare("SELECT gt.gaminio_tipas FROM gaminiai g JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id WHERE g.id = :id");
 $stmt->execute([':id' => $gaminio_id]);
@@ -125,6 +126,7 @@ for ($i = 1; $i <= 18; $i++) {
         <input type="hidden" name="gaminio_id" value="<?= htmlspecialchars($gaminio_id) ?>">
         <input type="hidden" name="uzsakymo_numeris" value="<?= htmlspecialchars($uzsakymo_numeris) ?>">
         <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
+        <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
 
         <table class="table table-bordered">
             <thead style="background-color: #0f766e; color: white;">
@@ -148,7 +150,7 @@ for ($i = 1; $i <= 18; $i++) {
         </div>
     </form>
 
-    <a href="/gaminiu_langai_mt.php?gaminio_id=<?= htmlspecialchars($gaminio_id) ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_numeris) ?>&uzsakovas=<?= urlencode($uzsakovas) ?>" class="btn btn-dark mt-3">← Grįžti</a>
+    <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>" class="btn btn-dark mt-3">← Grįžti</a>
 </div>
 
 <script>

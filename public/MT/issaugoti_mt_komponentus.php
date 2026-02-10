@@ -10,6 +10,7 @@ $conn = Database::getConnection();
 $gaminio_id       = $_POST['gaminio_id'] ?? '';
 $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
+$uzsakymo_id      = $_POST['uzsakymo_id'] ?? '';
 
 $eile_ids     = $_POST['eile_id'] ?? [];
 $kodai        = $_POST['kodas'] ?? [];
@@ -48,6 +49,7 @@ if ($saugoti_eile_id !== null) {
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .
+           "&uzsakymo_id=" . urlencode($uzsakymo_id) .
            "&issaugota=taip&parinkta_eile=" . urlencode($eile_id));
     exit;
 } else {
@@ -73,6 +75,7 @@ if ($saugoti_eile_id !== null) {
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .
+           "&uzsakymo_id=" . urlencode($uzsakymo_id) .
            "&issaugota=taip");
     exit;
 }

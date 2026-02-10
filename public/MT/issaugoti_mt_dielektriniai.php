@@ -12,6 +12,7 @@ $gaminio_numeris   = $_POST['gaminio_numeris'] ?? '';
 $uzsakymo_numeris  = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas         = $_POST['uzsakovas'] ?? '';
 $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? '';
+$uzsakymo_id       = $_POST['uzsakymo_id'] ?? '';
 
 if ($gaminys_id <= 0) die('Klaida: nėra gaminio ID');
 
@@ -99,5 +100,6 @@ header("Location: /MT/mt_dielektriniai.php?gaminys_id=$gaminys_id" .
     "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
     "&uzsakovas=" . urlencode($uzsakovas) .
     "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) .
+    "&uzsakymo_id=" . urlencode($uzsakymo_id) .
     "&issaugota=taip");
 exit;

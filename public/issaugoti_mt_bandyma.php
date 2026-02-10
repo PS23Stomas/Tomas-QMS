@@ -19,6 +19,7 @@ $darba_atliko_in  = $_POST['darba_atliko'] ?? [];
 
 $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
+$uzsakymo_id      = $_POST['uzsakymo_id'] ?? '';
 
 $pilnas_vardas = (isset($_SESSION['vardas'], $_SESSION['pavarde']))
     ? ($_SESSION['vardas'] . ' ' . $_SESSION['pavarde'])
@@ -138,6 +139,7 @@ try {
         'uzsakymo_numeris' => $uzsakymo_numeris,
         'uzsakovas'        => $uzsakovas,
         'gaminio_id'       => $gaminio_id,
+        'uzsakymo_id'      => $uzsakymo_id,
         'issaugota'        => 'taip'
     ]);
     header("Location: /mt_funkciniai_bandymai.php?{$qs}");

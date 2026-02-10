@@ -37,6 +37,7 @@ $reikalavimai = [
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_GET['uzsakovas'] ?? '';
 $gaminio_id       = (int)($_GET['gaminio_id'] ?? 0);
+$uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
 
 $conn = Database::getConnection();
 $gaminys = new Gamys1($conn);
@@ -152,9 +153,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         <input type="hidden" name="uzsakymo_numeris" value="<?= htmlspecialchars($uzsakymo_numeris) ?>">
         <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
 
+        <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
         <div class="d-flex justify-content-between mt-4">
             <a class="btn btn-secondary"
-               href="/gaminiu_langai_mt.php?uzsakymo_numeris=<?= urlencode($uzsakymo_numeris) ?>&uzsakovas=<?= urlencode($uzsakovas) ?>">
+               href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>">
                ← Grįžti
             </a>
             <button type="submit" class="btn btn-success">Išsaugoti</button>
