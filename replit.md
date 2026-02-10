@@ -36,8 +36,18 @@ public/                     # Web root served by PHP
 │   └── style.css           # All application styles
 ├── js/
 │   └── app.js              # Sidebar toggle, modal, delete confirmation
-├── login.php               # Login page
+├── klases/
+│   ├── Database.php        # Singleton DB connection (parses DATABASE_URL)
+│   ├── DBMigracija.php     # Auto-migration on page load (idempotent)
+│   ├── Emailas.php         # Resend API email sending (password reset)
+│   ├── GaminioTipas.php    # Product type queries
+│   ├── Gaminys.php         # Product queries and validation
+│   └── Gamys1.php          # Extended product CRUD
+├── login.php               # Login page with "Pamiršau slaptažodį" link
 ├── logout.php              # Session destroy and redirect
+├── slaptazodis_atstatymas.php  # Password reset request (enter email)
+├── slaptazodis_keitimas.php    # Password change via token from email
+├── profilis.php            # User profile - email update, password change
 ├── index.php               # Dashboard - Kokybiniai rodikliai (quality indicators)
 ├── uzsakymai.php           # Orders - list, view, create, edit, delete
 ├── pretenzijos.php         # Claims - list, view, create, edit, delete
@@ -77,10 +87,16 @@ public/                     # Web root served by PHP
 - **PostgreSQL**: Primary database, connected via `DATABASE_URL` environment variable
 - **Google Fonts**: Inter font loaded via CDN
 - **PHP Extensions**: pgsql, pdo_pgsql, mbstring, session
+- **Resend API**: Email sending for password reset (requires `RESEND_API_KEY` secret)
 - **No external auth providers**: Authentication is self-contained with local email/password
 
 ## Recent Changes
 
+- 2026-02-10: Added password reset via email (slaptazodis_atstatymas.php, slaptazodis_keitimas.php)
+- 2026-02-10: Added user profile page (profilis.php) with email update and password change
+- 2026-02-10: Added Emailas.php class for Resend API email integration
+- 2026-02-10: Added "Pamiršau slaptažodį" link to login page and "Profilis" to sidebar
+- 2026-02-10: Refactored to class-based architecture (Database, DBMigracija, GaminioTipas, Gaminys, Gamys1)
 - 2026-02-09: Added Pretenzijos (claims), Prietaisų patikra (device calibration), Vartotojų valdymas (user management) pages
 - 2026-02-09: Updated sidebar navigation with section labels (Gamyba, Administravimas)
 - 2026-02-09: Rebuilt entire application from TypeScript/React to PHP/CSS/JavaScript/HTML
