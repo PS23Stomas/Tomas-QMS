@@ -58,9 +58,13 @@ public/                     # Web root served by PHP
 ├── issaugoti_mt_bandyma.php    # Save handler for functional tests
 ├── MT/
 │   ├── mt_sumontuoti_komponentai.php  # MT mounted components list (18 default items)
-│   ├── issaugoti_mt_komponentus.php   # Save handler for components
+│   ├── issaugoti_mt_komponentus.php   # Save handler for components (single row or bulk)
 │   ├── mt_dielektriniai.php           # Dielectric tests (instruments, voltage tests, grounding)
-│   └── issaugoti_mt_dielektriniai.php # Save handler for dielectric tests
+│   ├── issaugoti_mt_dielektriniai.php # Save handler for dielectric tests (with transactions)
+│   ├── issaugoti_mt_saugiklius.php    # Save handler for fuse holders (transactional)
+│   ├── issaugoti_prietaisus.php       # Save handler for test instruments
+│   ├── issaugoti_protokolo_nr.php     # Save handler for protocol number
+│   └── issaugoti_mt_pasa_teksta.php   # AJAX endpoint for passport text corrections
 ├── mt_statistika.php       # MT statistics page with filtering
 ├── grafiko_duomenys.php    # Chart data API endpoint
 └── router.php              # URL router for PHP built-in server
@@ -86,6 +90,8 @@ public/                     # Web root served by PHP
   - `gaminiu_rusys` - Product categories
   - `bandymai_prietaisai` - Test instruments/devices for dielectric tests
   - `antriniu_grandiniu_bandymai` - Secondary circuit (medium voltage) test results
+  - `gvx_dokumentai` - Generated documents (PDF storage)
+  - `mt_paso_teksto_korekcijos` - Passport text corrections (multilingual)
 
 ### Build & Development
 - **Dev**: `npm run dev` runs `tsx server/index.ts` which launches PHP built-in server
@@ -102,6 +108,10 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-10: Integrated all save handlers: functional tests (with transactions, original user preservation), dielectric tests, components, fuse holders, test instruments, protocol number, passport text corrections
+- 2026-02-10: Created gvx_dokumentai table for PDF document storage
+- 2026-02-10: Added rezultatas column to antriniu_grandiniu_bandymai table
+- 2026-02-10: Embedded MT Gaminių Langas tiles directly into order detail view (uzsakymai.php) with QMS-matching design
 - 2026-02-10: Added MT gaminių langas with navigation tiles to functional tests, components, dielectric tests
 - 2026-02-10: Added MT functional tests form (21 manufacturing requirements with save)
 - 2026-02-10: Added MT components management (18 default components with CRUD)
