@@ -21,10 +21,15 @@ class Gamys1 {
         $gaminys = $stmtGaminys->fetch();
 
         if ($gaminys && $gaminys['gaminio_tipas_id']) {
-            $sqlUpd = "UPDATE gaminio_tipai SET gaminio_tipas = ?, grupe = COALESCE(NULLIF(grupe, ''), 'MT') WHERE id = ?";
-            $stmtUpd = $this->conn->prepare($sqlUpd);
-            $stmtUpd->execute([$pavadinimas, $gaminys['gaminio_tipas_id']]);
-            return true;
+            $sqlExists = "SELECT id FROM gaminio_tipai WHERE id = ?";
+            $stmtExists = $this->conn->prepare($sqlExists);
+            $stmtExists->execute([$gaminys['gaminio_tipas_id']]);
+            if ($stmtExists->fetch()) {
+                $sqlUpd = "UPDATE gaminio_tipai SET gaminio_tipas = ?, grupe = COALESCE(NULLIF(grupe, ''), 'MT') WHERE id = ?";
+                $stmtUpd = $this->conn->prepare($sqlUpd);
+                $stmtUpd->execute([$pavadinimas, $gaminys['gaminio_tipas_id']]);
+                return true;
+            }
         }
 
         $sqlCheck = "SELECT id FROM gaminio_tipai WHERE gaminio_tipas = ? AND gaminio_tipas != ''";
