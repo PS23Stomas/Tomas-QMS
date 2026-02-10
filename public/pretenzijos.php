@@ -208,645 +208,589 @@ foreach ($pretenzijos as &$p) {
     $p['nuotraukos'] = $nuotraukos_map[$p['id']] ?? [];
 }
 unset($p);
-?>
-<!DOCTYPE html>
-<html lang="lt">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pretenzijos - MT Modulis</title>
-  <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #e74c3c;
-      --primary-dark: #c0392b;
-    }
-    
-    body {
-      background: #f5f7fa;
-      min-height: 100vh;
-    }
-    
-    .page-header {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-      padding: 1.5rem 0;
-      margin-bottom: 2rem;
-    }
-    
-    .page-header h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 0;
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.25rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      border-left: 4px solid;
-    }
-    
-    .stat-card.viso { border-color: #3498db; }
-    .stat-card.naujos { border-color: #e74c3c; }
-    .stat-card.aktyvios { border-color: #f39c12; }
-    .stat-card.uzbaigtos { border-color: #27ae60; }
-    
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-    
-    .stat-card.viso .stat-value { color: #3498db; }
-    .stat-card.naujos .stat-value { color: #e74c3c; }
-    .stat-card.aktyvios .stat-value { color: #f39c12; }
-    .stat-card.uzbaigtos .stat-value { color: #27ae60; }
-    
-    .stat-label {
-      font-size: 0.85rem;
-      color: #7f8c8d;
-      margin-top: 0.5rem;
-    }
-    
-    .card-main {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-      overflow: hidden;
-    }
-    
-    .card-header-custom {
-      background: #f8f9fa;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid #e9ecef;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    
-    .filters {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    
-    .filters select {
-      border-radius: 8px;
-      border: 1px solid #dee2e6;
-      padding: 0.4rem 0.75rem;
-      font-size: 0.9rem;
-    }
-    
-    .btn-add {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 0.5rem 1.25rem;
-      border-radius: 8px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-    }
-    
-    .btn-add:hover {
-      background: var(--primary-dark);
-      color: white;
-    }
-    
-    .pretenzija-item {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f0f0f0;
-      transition: background 0.2s;
-    }
-    
-    .pretenzija-item:hover {
-      background: #fafbfc;
-    }
-    
-    .pretenzija-item:last-child {
-      border-bottom: none;
-    }
-    
-    .pretenzija-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 0.75rem;
-    }
-    
-    .pretenzija-id {
-      font-weight: 700;
-      color: var(--primary);
-      font-size: 1rem;
-    }
-    
-    .pretenzija-meta {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    
-    .badge-tipas {
-      padding: 0.25rem 0.6rem;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .badge-tipas.vidine { background: #ebf5fb; color: #2980b9; }
-    .badge-tipas.kliento { background: #fef9e7; color: #b7950b; }
-    .badge-tipas.tiekejo { background: #f5eef8; color: #8e44ad; }
-    
-    .badge-statusas {
-      padding: 0.25rem 0.6rem;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .pretenzija-desc {
-      color: #2c3e50;
-      margin-bottom: 0.75rem;
-      line-height: 1.5;
-    }
-    
-    .pretenzija-info {
-      display: flex;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-      font-size: 0.85rem;
-      color: #7f8c8d;
-    }
-    
-    .pretenzija-info i {
-      margin-right: 0.25rem;
-    }
-    
-    .pretenzija-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .btn-action {
-      padding: 0.35rem 0.6rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .btn-action.view { background: #ebf5fb; color: #2980b9; }
-    .btn-action.pdf { background: #fdedec; color: #c0392b; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
-    .btn-action.edit { background: #fef9e7; color: #b7950b; }
-    .btn-action.delete { background: #fdedec; color: #c0392b; }
-    
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: #7f8c8d;
-    }
-    
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      opacity: 0.5;
-    }
-    
-    .modal-header-custom {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-    }
-    
-    .modal-header-custom .btn-close {
-      filter: brightness(0) invert(1);
-    }
-    
-    .photo-upload-area {
-      border: 2px dashed #dee2e6;
-      border-radius: 8px;
-      padding: 1rem;
-      background: #fafbfc;
-    }
-    
-    .upload-placeholder {
-      text-align: center;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .upload-placeholder:hover {
-      background: #f0f4f8;
-    }
-    
-    .photo-preview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 0.75rem;
-      margin-top: 1rem;
-    }
-    
-    .photo-preview-item {
-      position: relative;
-      border-radius: 8px;
-      overflow: hidden;
-      aspect-ratio: 1;
-    }
-    
-    .photo-preview-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .photo-preview-item .remove-btn {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 24px;
-      height: 24px;
-      background: rgba(220,53,69,0.9);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .photo-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.5rem;
-    }
-    
-    .photo-gallery img {
-      width: 100%;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    
-    .photo-gallery img:hover {
-      transform: scale(1.05);
-    }
-    
-    @media (max-width: 768px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      
-      .pretenzija-header {
-        flex-direction: column;
-      }
-      
-      .card-header-custom {
-        flex-direction: column;
-        align-items: stretch;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
 
-<div class="page-header">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <h1><i class="bi bi-exclamation-triangle-fill me-2"></i>Pretenzijos</h1>
-      <a href="/" class="btn btn-light btn-sm" data-testid="button-back-home">
-        <i class="bi bi-arrow-left me-1"></i>Grįžti
-      </a>
-    </div>
+include __DIR__ . '/includes/header.php';
+?>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-left: 4px solid;
+  }
+  
+  .stat-card.viso { border-color: #3498db; }
+  .stat-card.naujos { border-color: #e74c3c; }
+  .stat-card.aktyvios { border-color: #f39c12; }
+  .stat-card.uzbaigtos { border-color: #27ae60; }
+  
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  
+  .stat-card.viso .stat-value { color: #3498db; }
+  .stat-card.naujos .stat-value { color: #e74c3c; }
+  .stat-card.aktyvios .stat-value { color: #f39c12; }
+  .stat-card.uzbaigtos .stat-value { color: #27ae60; }
+  
+  .stat-label {
+    font-size: 0.82rem;
+    color: #7f8c8d;
+    margin-top: 0.4rem;
+  }
+  
+  .card-main {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  
+  .card-header-custom {
+    background: #f8f9fa;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  .filters select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.88rem;
+  }
+  
+  .btn-add {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .btn-add:hover {
+    background: #c0392b;
+    color: white;
+  }
+  
+  .pretenzija-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s;
+  }
+  
+  .pretenzija-item:hover {
+    background: #fafbfc;
+  }
+  
+  .pretenzija-item:last-child {
+    border-bottom: none;
+  }
+  
+  .pretenzija-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .pretenzija-id {
+    font-weight: 700;
+    color: #e74c3c;
+    font-size: 0.95rem;
+  }
+  
+  .pretenzija-meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  .badge-tipas {
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  
+  .badge-tipas.vidine { background: #ebf5fb; color: #2980b9; }
+  .badge-tipas.kliento { background: #fef9e7; color: #b7950b; }
+  .badge-tipas.tiekejo { background: #f5eef8; color: #8e44ad; }
+  
+  .badge-statusas {
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  
+  .pretenzija-desc {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+    font-size: 0.92rem;
+  }
+  
+  .pretenzija-info {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: #7f8c8d;
+  }
+  
+  .pretenzija-info i {
+    margin-right: 0.2rem;
+  }
+  
+  .pretenzija-actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+  
+  .btn-action {
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn-action.view { background: #ebf5fb; color: #2980b9; }
+  .btn-action.pdf { background: #fdedec; color: #c0392b; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-action.edit { background: #fef9e7; color: #b7950b; }
+  .btn-action.delete { background: #fdedec; color: #c0392b; }
+  
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #7f8c8d;
+  }
+  
+  .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+  
+  .modal-header-custom {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+  }
+  
+  .modal-header-custom .btn-close {
+    filter: brightness(0) invert(1);
+  }
+  
+  .photo-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fafbfc;
+  }
+  
+  .upload-placeholder {
+    text-align: center;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .upload-placeholder:hover {
+    background: #f0f4f8;
+  }
+  
+  .photo-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .photo-preview-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 1;
+  }
+  
+  .photo-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .photo-preview-item .remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: rgba(220,53,69,0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .photo-gallery img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .photo-gallery img:hover {
+    transform: scale(1.05);
+  }
+  
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .pretenzija-header {
+      flex-direction: column;
+    }
+    .card-header-custom {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<?php if ($klaida): ?>
+  <div class="alert alert-danger alert-dismissible fade show mb-3" style="background:#fdedec;border-color:#f5c6cb;color:#721c24;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-error">
+    <i class="bi bi-exclamation-circle me-2"></i><?= h($klaida) ?>
+    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#721c24;" onclick="this.parentElement.remove()">&times;</button>
+  </div>
+<?php endif; ?>
+
+<?php if ($sekminga): ?>
+  <div class="alert alert-success alert-dismissible fade show mb-3" style="background:#d4edda;border-color:#c3e6cb;color:#155724;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-success">
+    <i class="bi bi-check-circle me-2"></i><?= h($sekminga) ?>
+    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#155724;" onclick="this.parentElement.remove()">&times;</button>
+  </div>
+<?php endif; ?>
+
+<div class="stats-grid">
+  <div class="stat-card viso">
+    <div class="stat-value" data-testid="text-stats-total"><?= $stats['viso'] ?></div>
+    <div class="stat-label">Viso pretenzijų</div>
+  </div>
+  <div class="stat-card naujos">
+    <div class="stat-value" data-testid="text-stats-new"><?= $stats['naujos'] ?></div>
+    <div class="stat-label">Naujos</div>
+  </div>
+  <div class="stat-card aktyvios">
+    <div class="stat-value" data-testid="text-stats-active"><?= $stats['aktyvios'] ?></div>
+    <div class="stat-label">Aktyvios</div>
+  </div>
+  <div class="stat-card uzbaigtos">
+    <div class="stat-value" data-testid="text-stats-completed"><?= $stats['uzbaigtos'] ?></div>
+    <div class="stat-label">Užbaigtos</div>
   </div>
 </div>
 
-<div class="container">
-  
-  <?php if ($klaida): ?>
-    <div class="alert alert-danger alert-dismissible fade show mb-3" data-testid="alert-error">
-      <i class="bi bi-exclamation-circle me-2"></i><?= h($klaida) ?>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="card-main">
+  <div class="card-header-custom">
+    <div class="filters">
+      <select onchange="applyFilter('tipas', this.value)" data-testid="select-filter-type">
+        <option value="">Visi tipai</option>
+        <?php foreach ($tipai as $k => $v): ?>
+          <option value="<?= $k ?>" <?= $filtras_tipas === $k ? 'selected' : '' ?>><?= $v ?></option>
+        <?php endforeach; ?>
+      </select>
+      <select onchange="applyFilter('statusas', this.value)" data-testid="select-filter-status">
+        <option value="">Visi statusai</option>
+        <?php foreach ($statusai as $k => $s): ?>
+          <option value="<?= $k ?>" <?= $filtras_statusas === $k ? 'selected' : '' ?>><?= $s['label'] ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
-  <?php endif; ?>
-  
-  <?php if ($sekminga): ?>
-    <div class="alert alert-success alert-dismissible fade show mb-3" data-testid="alert-success">
-      <i class="bi bi-check-circle me-2"></i><?= h($sekminga) ?>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  <?php endif; ?>
-
-  <div class="stats-grid">
-    <div class="stat-card viso">
-      <div class="stat-value" data-testid="text-stats-total"><?= $stats['viso'] ?></div>
-      <div class="stat-label">Viso pretenzijų</div>
-    </div>
-    <div class="stat-card naujos">
-      <div class="stat-value" data-testid="text-stats-new"><?= $stats['naujos'] ?></div>
-      <div class="stat-label">Naujos</div>
-    </div>
-    <div class="stat-card aktyvios">
-      <div class="stat-value" data-testid="text-stats-active"><?= $stats['aktyvios'] ?></div>
-      <div class="stat-label">Aktyvios</div>
-    </div>
-    <div class="stat-card uzbaigtos">
-      <div class="stat-value" data-testid="text-stats-completed"><?= $stats['uzbaigtos'] ?></div>
-      <div class="stat-label">Užbaigtos</div>
-    </div>
-  </div>
-
-  <div class="card-main">
-    <div class="card-header-custom">
-      <div class="filters">
-        <select onchange="applyFilter('tipas', this.value)" data-testid="select-filter-type">
-          <option value="">Visi tipai</option>
-          <?php foreach ($tipai as $k => $v): ?>
-            <option value="<?= $k ?>" <?= $filtras_tipas === $k ? 'selected' : '' ?>><?= $v ?></option>
-          <?php endforeach; ?>
-        </select>
-        <select onchange="applyFilter('statusas', this.value)" data-testid="select-filter-status">
-          <option value="">Visi statusai</option>
-          <?php foreach ($statusai as $k => $s): ?>
-            <option value="<?= $k ?>" <?= $filtras_statusas === $k ? 'selected' : '' ?>><?= $s['label'] ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <?php if (!$arSkaitytojas): ?>
-      <button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalKurti" data-testid="button-new-claim">
-        <i class="bi bi-plus-lg"></i>Nauja pretenzija
-      </button>
-      <?php endif; ?>
-    </div>
-    
-    <?php if (empty($pretenzijos)): ?>
-      <div class="empty-state">
-        <i class="bi bi-inbox"></i>
-        <h5>Pretenzijų nerasta</h5>
-        <p>Sukurkite naują pretenziją paspaudę mygtuką viršuje</p>
-      </div>
-    <?php else: ?>
-      <?php foreach ($pretenzijos as $p): 
-        $st = $statusai[$p['statusas']] ?? $statusai['nauja'];
-      ?>
-        <div class="pretenzija-item" data-testid="row-claim-<?= $p['id'] ?>">
-          <div class="pretenzija-header">
-            <div>
-              <span class="pretenzija-id">#<?= $p['id'] ?></span>
-              <span class="badge-tipas <?= h($p['tipas']) ?>"><?= $tipai[$p['tipas']] ?? h($p['tipas']) ?></span>
-              <span class="badge-statusas" style="background:<?= $st['bg'] ?>;color:<?= $st['color'] ?>"><?= $st['label'] ?></span>
-            </div>
-            <div class="pretenzija-actions">
-              <button class="btn-action view" onclick="viewPretenzija(<?= $p['id'] ?>)" title="Peržiūrėti" data-testid="button-view-<?= $p['id'] ?>">
-                <i class="bi bi-eye"></i>
-              </button>
-              <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" data-testid="button-edit-<?= $p['id'] ?>">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <?php if (!$arSkaitytojas): ?>
-              <form method="post" style="display:inline" onsubmit="return confirm('Ar tikrai norite ištrinti?')">
-                <input type="hidden" name="veiksmas" value="trinti">
-                <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                <button type="submit" class="btn-action delete" title="Trinti" data-testid="button-delete-<?= $p['id'] ?>">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
-              <?php endif; ?>
-            </div>
-          </div>
-          
-          <div class="pretenzija-desc">
-            <?= nl2br(h(mb_substr($p['aprasymas'], 0, 200))) ?><?= mb_strlen($p['aprasymas'] ?? '') > 200 ? '...' : '' ?>
-            <?php if (!empty($p['nuotraukos'])): ?>
-              <span class="badge bg-secondary ms-2"><i class="bi bi-camera-fill me-1"></i><?= count($p['nuotraukos']) ?></span>
-            <?php endif; ?>
-          </div>
-          
-          <div class="pretenzija-info">
-            <span><i class="bi bi-calendar3"></i><?= $p['gavimo_data'] ? date('Y-m-d', strtotime($p['gavimo_data'])) : ($p['data'] ? date('Y-m-d', strtotime($p['data'])) : '-') ?></span>
-            <?php if (!empty($p['aptikimo_vieta'])): ?>
-              <span><i class="bi bi-geo-alt"></i><?= h($p['aptikimo_vieta']) ?></span>
-            <?php endif; ?>
-            <?php 
-            $uzsakymo_nr_display = $p['uzsakymo_numeris'] ?? $p['uzsakymo_numeris_ranka'] ?? null;
-            if ($uzsakymo_nr_display): ?>
-              <span><i class="bi bi-box"></i>Užs. <?= h($uzsakymo_nr_display) ?></span>
-            <?php endif; ?>
-            <?php if (!empty($p['gaminys_info'])): ?>
-              <span><i class="bi bi-cpu"></i><?= h($p['gaminys_info']) ?></span>
-            <?php endif; ?>
-            <?php if (!empty($p['atsakingas_padalinys'])): ?>
-              <span><i class="bi bi-building"></i><?= h($p['atsakingas_padalinys']) ?></span>
-            <?php endif; ?>
-            <?php if ($p['terminas']): ?>
-              <span><i class="bi bi-clock"></i>Terminas: <?= date('Y-m-d', strtotime($p['terminas'])) ?></span>
-            <?php endif; ?>
-          </div>
-        </div>
-      <?php endforeach; ?>
+    <?php if (!$arSkaitytojas): ?>
+    <button class="btn-add" onclick="document.getElementById('modalKurti').style.display='flex'" data-testid="button-new-claim">
+      <i class="bi bi-plus-lg"></i>Nauja pretenzija
+    </button>
     <?php endif; ?>
   </div>
+  
+  <?php if (empty($pretenzijos)): ?>
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <h5>Pretenzijų nerasta</h5>
+      <p>Sukurkite naują pretenziją paspaudę mygtuką viršuje</p>
+    </div>
+  <?php else: ?>
+    <?php foreach ($pretenzijos as $p): 
+      $st = $statusai[$p['statusas']] ?? $statusai['nauja'];
+    ?>
+      <div class="pretenzija-item" data-testid="row-claim-<?= $p['id'] ?>">
+        <div class="pretenzija-header">
+          <div>
+            <span class="pretenzija-id">#<?= $p['id'] ?></span>
+            <span class="badge-tipas <?= h($p['tipas']) ?>"><?= $tipai[$p['tipas']] ?? h($p['tipas']) ?></span>
+            <span class="badge-statusas" style="background:<?= $st['bg'] ?>;color:<?= $st['color'] ?>"><?= $st['label'] ?></span>
+          </div>
+          <div class="pretenzija-actions">
+            <button class="btn-action view" onclick="viewPretenzija(<?= $p['id'] ?>)" title="Peržiūrėti" data-testid="button-view-<?= $p['id'] ?>">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" data-testid="button-edit-<?= $p['id'] ?>">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <?php if (!$arSkaitytojas): ?>
+            <form method="post" style="display:inline" onsubmit="return confirm('Ar tikrai norite ištrinti?')">
+              <input type="hidden" name="veiksmas" value="trinti">
+              <input type="hidden" name="id" value="<?= $p['id'] ?>">
+              <button type="submit" class="btn-action delete" title="Trinti" data-testid="button-delete-<?= $p['id'] ?>">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+            <?php endif; ?>
+          </div>
+        </div>
+        
+        <div class="pretenzija-desc">
+          <?= nl2br(h(mb_substr($p['aprasymas'], 0, 200))) ?><?= mb_strlen($p['aprasymas'] ?? '') > 200 ? '...' : '' ?>
+          <?php if (!empty($p['nuotraukos'])): ?>
+            <span style="display:inline-block;background:#6c757d;color:white;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;margin-left:0.5rem;"><i class="bi bi-camera-fill me-1"></i><?= count($p['nuotraukos']) ?></span>
+          <?php endif; ?>
+        </div>
+        
+        <div class="pretenzija-info">
+          <span><i class="bi bi-calendar3"></i><?= $p['gavimo_data'] ? date('Y-m-d', strtotime($p['gavimo_data'])) : ($p['data'] ? date('Y-m-d', strtotime($p['data'])) : '-') ?></span>
+          <?php if (!empty($p['aptikimo_vieta'])): ?>
+            <span><i class="bi bi-geo-alt"></i><?= h($p['aptikimo_vieta']) ?></span>
+          <?php endif; ?>
+          <?php 
+          $uzsakymo_nr_display = $p['uzsakymo_numeris'] ?? $p['uzsakymo_numeris_ranka'] ?? null;
+          if ($uzsakymo_nr_display): ?>
+            <span><i class="bi bi-box"></i>Užs. <?= h($uzsakymo_nr_display) ?></span>
+          <?php endif; ?>
+          <?php if (!empty($p['gaminys_info'])): ?>
+            <span><i class="bi bi-cpu"></i><?= h($p['gaminys_info']) ?></span>
+          <?php endif; ?>
+          <?php if (!empty($p['atsakingas_padalinys'])): ?>
+            <span><i class="bi bi-building"></i><?= h($p['atsakingas_padalinys']) ?></span>
+          <?php endif; ?>
+          <?php if ($p['terminas']): ?>
+            <span><i class="bi bi-clock"></i>Terminas: <?= date('Y-m-d', strtotime($p['terminas'])) ?></span>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 </div>
 
-<div class="modal fade" id="modalKurti" tabindex="-1">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header modal-header-custom">
-        <h5 class="modal-title"><i class="bi bi-file-earmark-text me-2"></i>PRETENZIJA (PR 28/2 forma)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="post" enctype="multipart/form-data">
-        <div class="modal-body">
-          <input type="hidden" name="veiksmas" value="kurti">
-          
-          <div class="form-section mb-4">
-            <div class="row">
-              <div class="col-md-5">
-                <label class="form-label fw-bold">Problemos pastebėjimo (aptikimo) vieta</label>
-                <select name="aptikimo_vieta_select" class="form-select mb-2" onchange="toggleCustomField(this, 'aptikimo_vieta_custom')" data-testid="select-aptikimo-vieta">
-                  <option value="">-- Pasirinkti --</option>
-                  <option value="USN baras">USN baras</option>
-                  <option value="Dėžių baras">Dėžių baras</option>
-                  <option value="MT baras">MT baras</option>
-                  <option value="KAMP baras">KAMP baras</option>
-                  <option value="Paruošimas">Paruošimas</option>
-                  <option value="Objekte">Objekte</option>
-                  <option value="__kita__">Kita (įvesti)...</option>
-                </select>
-                <input type="text" name="aptikimo_vieta_custom" id="aptikimo_vieta_custom" class="form-control d-none" placeholder="Įveskite kitą vietą..." data-testid="input-aptikimo-vieta-custom">
-                <input type="hidden" name="aptikimo_vieta" id="aptikimo_vieta_final">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label fw-bold">Gaminys</label>
-                <select name="gaminys_info_select" class="form-select mb-2" onchange="toggleCustomField(this, 'gaminys_info_custom')" data-testid="select-gaminys-info">
-                  <option value="">-- Pasirinkti --</option>
-                  <option value="USN">USN</option>
-                  <option value="GVX">GVX</option>
-                  <option value="MT">MT</option>
-                  <option value="SI-04">SI-04</option>
-                  <option value="KAMP">KAMP</option>
-                  <option value="LPS">LPS</option>
-                  <option value="Dėžės">Dėžės</option>
-                  <option value="__kita__">Kita (įvesti)...</option>
-                </select>
-                <input type="text" name="gaminys_info_custom" id="gaminys_info_custom" class="form-control d-none" placeholder="Įveskite kitą gaminį..." data-testid="input-gaminys-info-custom">
-                <input type="hidden" name="gaminys_info" id="gaminys_info_final">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold">Užsakymo Nr.</label>
-                <select name="uzsakymo_id_select" class="form-select mb-2" onchange="toggleUzsakymoField(this)" data-testid="select-uzsakymo-id">
-                  <option value="">-- Pasirinkti --</option>
-                  <?php foreach ($uzsakymai_opts as $u): ?>
-                    <option value="<?= $u['id'] ?>"><?= h($u['uzsakymo_numeris']) ?></option>
-                  <?php endforeach; ?>
-                  <option value="__kita__">Kita (įvesti rankiniu būdu)...</option>
-                </select>
-                <input type="text" name="uzsakymo_numeris_ranka" id="uzsakymo_numeris_ranka" class="form-control d-none" placeholder="Įveskite užsakymo numerį..." data-testid="input-uzsakymo-nr-ranka">
-                <input type="hidden" name="uzsakymo_id" id="uzsakymo_id_final">
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-section mb-4">
-            <label class="form-label fw-bold text-uppercase">Problemos aprašymas <span class="text-danger">*</span></label>
-            <textarea name="aprasymas" class="form-control" rows="4" required placeholder="Išsamiai aprašykite nustatytą problemą..." data-testid="input-aprasymas"></textarea>
-            
-            <div class="mt-3">
-              <label class="form-label fw-bold"><i class="bi bi-camera me-1"></i>Nuotraukos (neprivaloma)</label>
-              <div class="photo-upload-area" id="photoUploadArea">
-                <input type="file" name="nuotraukos[]" id="photoInput" multiple accept="image/*" capture="environment" class="d-none" data-testid="input-photos">
-                <div class="upload-placeholder" onclick="document.getElementById('photoInput').click()">
-                  <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#6c757d;"></i>
-                  <div class="mt-2">Paspauskite norėdami įkelti nuotraukas</div>
-                  <small class="text-muted">arba nufotografuokite telefonu</small>
-                </div>
-                <div id="photoPreview" class="photo-preview-grid"></div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-section mb-4">
-            <label class="form-label fw-bold text-uppercase">Padalinys atsakingas už sprendimą</label>
-            <input type="text" name="atsakingas_padalinys" class="form-control" placeholder="Pvz.: Gamybos padalinys, Kokybės skyrius..." data-testid="input-atsakingas-padalinys">
-          </div>
-          
-          <div class="form-section mb-4">
-            <div class="row">
-              <div class="col-md-8">
-                <label class="form-label fw-bold text-uppercase">Siūlomas sprendimo būdas (jeigu žinoma)</label>
-                <textarea name="siulomas_sprendimas" class="form-control" rows="3" placeholder="Aprašykite siūlomą sprendimą..." data-testid="input-siulomas-sprendimas"></textarea>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label fw-bold text-uppercase">Terminas</label>
-                <input type="date" name="terminas" class="form-control" data-testid="input-terminas">
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-section mb-3" style="background:#f8f9fa; padding:1rem; border-radius:8px; border:1px solid #dee2e6;">
-            <label class="form-label fw-bold text-uppercase mb-3">Problemą užfiksavo</label>
-            <div class="row">
-              <div class="col-md-4">
-                <label class="form-label small text-muted">Padalinys</label>
-                <input type="text" name="uzfiksavo_padalinys" class="form-control" placeholder="Padalinio pavadinimas" data-testid="input-uzfiksavo-padalinys">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small text-muted">Pavardė, vardas</label>
-                <input type="text" name="uzfiksavo_asmuo" class="form-control" value="<?= h($prisijunges) ?>" placeholder="Vardas Pavardė" data-testid="input-uzfiksavo-asmuo">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small text-muted">Data</label>
-                <input type="date" name="gavimo_data" class="form-control" value="<?= date('Y-m-d') ?>" data-testid="input-gavimo-data">
-              </div>
-            </div>
-          </div>
-          
-          <div class="row">
-            <div class="col-md-6">
-              <label class="form-label">Pretenzijos tipas</label>
-              <select name="tipas" class="form-select" data-testid="select-tipas">
-                <?php foreach ($tipai as $k => $v): ?>
-                  <option value="<?= $k ?>"><?= $v ?></option>
-                <?php endforeach; ?>
+<div id="modalKurti" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;width:95%;max-width:900px;margin-bottom:2rem;">
+    <div style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-file-earmark-text me-2"></i>PRETENZIJA (PR 28/2 forma)</h5>
+      <button type="button" onclick="document.getElementById('modalKurti').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="post" enctype="multipart/form-data">
+      <div style="padding:1.5rem;">
+        <input type="hidden" name="veiksmas" value="kurti">
+        
+        <div style="margin-bottom:1.5rem;">
+          <div style="display:grid;grid-template-columns:5fr 4fr 3fr;gap:1rem;">
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;">Problemos pastebėjimo (aptikimo) vieta</label>
+              <select name="aptikimo_vieta_select" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;margin-bottom:0.4rem;" onchange="toggleCustomField(this, 'aptikimo_vieta_custom')" data-testid="select-aptikimo-vieta">
+                <option value="">-- Pasirinkti --</option>
+                <option value="USN baras">USN baras</option>
+                <option value="Dėžių baras">Dėžių baras</option>
+                <option value="MT baras">MT baras</option>
+                <option value="KAMP baras">KAMP baras</option>
+                <option value="Paruošimas">Paruošimas</option>
+                <option value="Objekte">Objekte</option>
+                <option value="__kita__">Kita (įvesti)...</option>
               </select>
+              <input type="text" name="aptikimo_vieta_custom" id="aptikimo_vieta_custom" style="display:none;width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="Įveskite kitą vietą..." data-testid="input-aptikimo-vieta-custom">
+              <input type="hidden" name="aptikimo_vieta" id="aptikimo_vieta_final">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;">Gaminys</label>
+              <select name="gaminys_info_select" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;margin-bottom:0.4rem;" onchange="toggleCustomField(this, 'gaminys_info_custom')" data-testid="select-gaminys-info">
+                <option value="">-- Pasirinkti --</option>
+                <option value="USN">USN</option>
+                <option value="GVX">GVX</option>
+                <option value="MT">MT</option>
+                <option value="SI-04">SI-04</option>
+                <option value="KAMP">KAMP</option>
+                <option value="LPS">LPS</option>
+                <option value="Dėžės">Dėžės</option>
+                <option value="__kita__">Kita (įvesti)...</option>
+              </select>
+              <input type="text" name="gaminys_info_custom" id="gaminys_info_custom" style="display:none;width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="Įveskite kitą gaminį..." data-testid="input-gaminys-info-custom">
+              <input type="hidden" name="gaminys_info" id="gaminys_info_final">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;">Užsakymo Nr.</label>
+              <select name="uzsakymo_id_select" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;margin-bottom:0.4rem;" onchange="toggleUzsakymoField(this)" data-testid="select-uzsakymo-id">
+                <option value="">-- Pasirinkti --</option>
+                <?php foreach ($uzsakymai_opts as $u): ?>
+                  <option value="<?= $u['id'] ?>"><?= h($u['uzsakymo_numeris']) ?></option>
+                <?php endforeach; ?>
+                <option value="__kita__">Kita (įvesti rankiniu būdu)...</option>
+              </select>
+              <input type="text" name="uzsakymo_numeris_ranka" id="uzsakymo_numeris_ranka" style="display:none;width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="Įveskite užsakymo numerį..." data-testid="input-uzsakymo-nr-ranka">
+              <input type="hidden" name="uzsakymo_id" id="uzsakymo_id_final">
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-          <button type="submit" class="btn btn-danger" data-testid="button-submit-claim">
-            <i class="bi bi-plus-lg me-1"></i>Registruoti pretenziją
-          </button>
+        
+        <div style="margin-bottom:1.5rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;text-transform:uppercase;">Problemos aprašymas <span style="color:#e74c3c;">*</span></label>
+          <textarea name="aprasymas" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="4" required placeholder="Išsamiai aprašykite nustatytą problemą..." data-testid="input-aprasymas"></textarea>
+          
+          <div style="margin-top:0.75rem;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;"><i class="bi bi-camera me-1"></i>Nuotraukos (neprivaloma)</label>
+            <div class="photo-upload-area" id="photoUploadArea">
+              <input type="file" name="nuotraukos[]" id="photoInput" multiple accept="image/*" capture="environment" style="display:none;" data-testid="input-photos">
+              <div class="upload-placeholder" onclick="document.getElementById('photoInput').click()">
+                <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#6c757d;"></i>
+                <div style="margin-top:0.5rem;">Paspauskite norėdami įkelti nuotraukas</div>
+                <small style="color:#6c757d;">arba nufotografuokite telefonu</small>
+              </div>
+              <div id="photoPreview" class="photo-preview-grid"></div>
+            </div>
+          </div>
         </div>
-      </form>
+        
+        <div style="margin-bottom:1.5rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;text-transform:uppercase;">Padalinys atsakingas už sprendimą</label>
+          <input type="text" name="atsakingas_padalinys" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="Pvz.: Gamybos padalinys, Kokybės skyrius..." data-testid="input-atsakingas-padalinys">
+        </div>
+        
+        <div style="margin-bottom:1.5rem;">
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;text-transform:uppercase;">Siūlomas sprendimo būdas (jeigu žinoma)</label>
+              <textarea name="siulomas_sprendimas" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="3" placeholder="Aprašykite siūlomą sprendimą..." data-testid="input-siulomas-sprendimas"></textarea>
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;text-transform:uppercase;">Terminas</label>
+              <input type="date" name="terminas" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" data-testid="input-terminas">
+            </div>
+          </div>
+        </div>
+        
+        <div style="background:#f8f9fa;padding:1rem;border-radius:8px;border:1px solid #dee2e6;margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.75rem;font-size:0.88rem;text-transform:uppercase;">Problemą užfiksavo</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+            <div>
+              <label style="display:block;font-size:0.8rem;color:#6c757d;margin-bottom:0.25rem;">Padalinys</label>
+              <input type="text" name="uzfiksavo_padalinys" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="Padalinio pavadinimas" data-testid="input-uzfiksavo-padalinys">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.8rem;color:#6c757d;margin-bottom:0.25rem;">Pavardė, vardas</label>
+              <input type="text" name="uzfiksavo_asmuo" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" value="<?= h($prisijunges) ?>" placeholder="Vardas Pavardė" data-testid="input-uzfiksavo-asmuo">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.8rem;color:#6c757d;margin-bottom:0.25rem;">Data</label>
+              <input type="date" name="gavimo_data" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" value="<?= date('Y-m-d') ?>" data-testid="input-gavimo-data">
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;margin-bottom:0.4rem;font-size:0.88rem;">Pretenzijos tipas</label>
+          <select name="tipas" style="width:50%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" data-testid="select-tipas">
+            <?php foreach ($tipai as $k => $v): ?>
+              <option value="<?= $k ?>"><?= $v ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div style="padding:1rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" onclick="document.getElementById('modalKurti').style.display='none'" style="padding:0.5rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
+        <button type="submit" style="padding:0.5rem 1rem;border:none;border-radius:6px;background:#e74c3c;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-submit-claim">
+          <i class="bi bi-plus-lg me-1"></i>Registruoti pretenziją
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modalView" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;width:95%;max-width:800px;margin-bottom:2rem;">
+    <div style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-eye me-2"></i>Pretenzijos peržiūra</h5>
+      <button type="button" onclick="document.getElementById('modalView').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <div id="viewContent" style="padding:1.5rem;"></div>
+    <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;text-align:right;">
+      <button type="button" onclick="document.getElementById('modalView').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Uždaryti</button>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="modalView" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header modal-header-custom">
-        <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Pretenzijos peržiūra</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="viewContent">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Uždaryti</button>
-      </div>
+<div id="modalEdit" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;width:95%;max-width:800px;margin-bottom:2rem;">
+    <div style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-pencil me-2"></i>Redaguoti pretenziją</h5>
+      <button type="button" onclick="document.getElementById('modalEdit').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
     </div>
+    <form method="post">
+      <div id="editContent" style="padding:1.5rem;"></div>
+      <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" onclick="document.getElementById('modalEdit').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
+        <button type="submit" style="padding:0.4rem 1rem;border:none;border-radius:6px;background:#f39c12;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-save-edit">
+          <i class="bi bi-check-lg me-1"></i>Išsaugoti
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
-<div class="modal fade" id="modalEdit" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header modal-header-custom">
-        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Redaguoti pretenziją</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="post">
-        <div class="modal-body" id="editContent">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-          <button type="submit" class="btn btn-warning" data-testid="button-save-edit">
-            <i class="bi bi-check-lg me-1"></i>Išsaugoti
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const pretenzijosData = <?= json_encode($pretenzijos) ?>;
 const statusai = <?= json_encode($statusai) ?>;
@@ -869,61 +813,61 @@ function viewPretenzija(id) {
   const st = statusai[p.statusas] || statusai['nauja'];
   
   let html = `
-    <div class="mb-3">
+    <div style="margin-bottom:1rem;">
       <span class="badge-tipas ${p.tipas}" style="font-size:0.85rem;padding:0.4rem 0.8rem;">${tipai[p.tipas] || p.tipas}</span>
       <span class="badge-statusas" style="background:${st.bg};color:${st.color};font-size:0.85rem;padding:0.4rem 0.8rem;">${st.label}</span>
     </div>
     
-    <table class="table table-bordered mb-3">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:1rem;">
       <tr>
-        <td style="width:40%;"><strong>Problemos pastebėjimo vieta</strong></td>
-        <td style="width:30%;"><strong>Gaminys</strong></td>
-        <td style="width:30%;"><strong>Užsakymo Nr.</strong></td>
+        <td style="width:40%;padding:0.5rem;border:1px solid #dee2e6;font-weight:600;">Problemos pastebėjimo vieta</td>
+        <td style="width:30%;padding:0.5rem;border:1px solid #dee2e6;font-weight:600;">Gaminys</td>
+        <td style="width:30%;padding:0.5rem;border:1px solid #dee2e6;font-weight:600;">Užsakymo Nr.</td>
       </tr>
       <tr>
-        <td>${p.aptikimo_vieta || '-'}</td>
-        <td>${p.gaminys_info || '-'}</td>
-        <td>${p.uzsakymo_numeris || p.uzsakymo_numeris_ranka || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.aptikimo_vieta || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.gaminys_info || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.uzsakymo_numeris || p.uzsakymo_numeris_ranka || '-'}</td>
       </tr>
     </table>
     
-    <div class="mb-3">
-      <strong class="text-uppercase">Problemos aprašymas</strong>
-      <div class="bg-light p-3 rounded mt-1">${p.aprasymas ? p.aprasymas.replace(/\\n/g, '<br>') : '-'}</div>
+    <div style="margin-bottom:1rem;">
+      <strong style="text-transform:uppercase;font-size:0.88rem;">Problemos aprašymas</strong>
+      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.aprasymas ? p.aprasymas.replace(/\\n/g, '<br>') : '-'}</div>
     </div>
     
-    <div class="mb-3">
-      <strong class="text-uppercase">Padalinys atsakingas už sprendimą</strong>
-      <div class="bg-light p-3 rounded mt-1">${p.atsakingas_padalinys || '-'}</div>
+    <div style="margin-bottom:1rem;">
+      <strong style="text-transform:uppercase;font-size:0.88rem;">Padalinys atsakingas už sprendimą</strong>
+      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.atsakingas_padalinys || '-'}</div>
     </div>
     
-    <div class="row mb-3">
-      <div class="col-md-8">
-        <strong class="text-uppercase">Siūlomas sprendimo būdas</strong>
-        <div class="bg-light p-3 rounded mt-1">${p.siulomas_sprendimas ? p.siulomas_sprendimas.replace(/\\n/g, '<br>') : '-'}</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <strong style="text-transform:uppercase;font-size:0.88rem;">Siūlomas sprendimo būdas</strong>
+        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.siulomas_sprendimas ? p.siulomas_sprendimas.replace(/\\n/g, '<br>') : '-'}</div>
       </div>
-      <div class="col-md-4">
-        <strong class="text-uppercase">Terminas</strong>
-        <div class="bg-light p-3 rounded mt-1">${p.terminas || '-'}</div>
-      </div>
-    </div>
-    
-    <div class="p-3 rounded mb-3" style="background:#f8f9fa; border:1px solid #dee2e6;">
-      <strong class="text-uppercase d-block mb-2">Problemą užfiksavo</strong>
-      <div class="row text-muted" style="font-size:0.9rem;">
-        <div class="col-md-4"><strong>Padalinys:</strong> ${p.uzfiksavo_padalinys || '-'}</div>
-        <div class="col-md-4"><strong>Asmuo:</strong> ${p.uzfiksavo_asmuo || '-'}</div>
-        <div class="col-md-4"><strong>Data:</strong> ${p.gavimo_data || '-'}</div>
+      <div>
+        <strong style="text-transform:uppercase;font-size:0.88rem;">Terminas</strong>
+        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.terminas || '-'}</div>
       </div>
     </div>
     
-    ${p.priezastis ? `<div class="mb-3"><strong>Nustatyta priežastis</strong><div class="bg-light p-3 rounded mt-1">${p.priezastis.replace(/\\n/g, '<br>')}</div></div>` : ''}
-    ${p.veiksmai ? `<div class="mb-3"><strong>Korekciniai veiksmai</strong><div class="bg-light p-3 rounded mt-1">${p.veiksmai.replace(/\\n/g, '<br>')}</div></div>` : ''}
+    <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;border:1px solid #dee2e6;margin-bottom:1rem;">
+      <strong style="text-transform:uppercase;display:block;margin-bottom:0.5rem;font-size:0.88rem;">Problemą užfiksavo</strong>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;font-size:0.85rem;color:#6c757d;">
+        <div><strong>Padalinys:</strong> ${p.uzfiksavo_padalinys || '-'}</div>
+        <div><strong>Asmuo:</strong> ${p.uzfiksavo_asmuo || '-'}</div>
+        <div><strong>Data:</strong> ${p.gavimo_data || '-'}</div>
+      </div>
+    </div>
+    
+    ${p.priezastis ? `<div style="margin-bottom:1rem;"><strong>Nustatyta priežastis</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.priezastis.replace(/\\n/g, '<br>')}</div></div>` : ''}
+    ${p.veiksmai ? `<div style="margin-bottom:1rem;"><strong>Korekciniai veiksmai</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.veiksmai.replace(/\\n/g, '<br>')}</div></div>` : ''}
     
     ${p.nuotraukos && p.nuotraukos.length > 0 ? `
-      <div class="mb-3">
-        <strong class="text-uppercase"><i class="bi bi-images me-1"></i>Nuotraukos (${p.nuotraukos.length})</strong>
-        <div class="photo-gallery mt-2">
+      <div style="margin-bottom:1rem;">
+        <strong style="text-transform:uppercase;"><i class="bi bi-images me-1"></i>Nuotraukos (${p.nuotraukos.length})</strong>
+        <div class="photo-gallery" style="margin-top:0.5rem;">
           ${p.nuotraukos.map(n => `<img src="pretenzijos_nuotrauka.php?id=${n.id}" alt="${n.pavadinimas || 'Nuotrauka'}" onclick="window.open(this.src, '_blank')">`).join('')}
         </div>
       </div>
@@ -931,7 +875,7 @@ function viewPretenzija(id) {
   `;
   
   document.getElementById('viewContent').innerHTML = html;
-  new bootstrap.Modal(document.getElementById('modalView')).show();
+  document.getElementById('modalView').style.display = 'flex';
 }
 
 function editPretenzija(id) {
@@ -947,32 +891,32 @@ function editPretenzija(id) {
     <input type="hidden" name="veiksmas" value="atnaujinti">
     <input type="hidden" name="id" value="${id}">
     
-    <div class="mb-3">
-      <label class="form-label fw-bold">Statusas</label>
-      <select name="statusas" class="form-select" onchange="this.form.querySelector('[name=veiksmas]').value='atnaujinti_statusa';this.form.submit();" data-testid="select-edit-status">
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Statusas</label>
+      <select name="statusas" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" onchange="this.form.querySelector('[name=veiksmas]').value='atnaujinti_statusa';this.form.submit();" data-testid="select-edit-status">
         ${statusOptions}
       </select>
-      <small class="text-muted">Pakeitus statusą forma bus automatiškai išsaugota</small>
+      <small style="color:#6c757d;font-size:0.8rem;">Pakeitus statusą forma bus automatiškai išsaugota</small>
     </div>
     
-    <div class="mb-3">
-      <label class="form-label fw-bold">Priežastis</label>
-      <textarea name="priezastis" class="form-control" rows="3" placeholder="Nustatyta priežastis..." data-testid="input-edit-priezastis">${p.priezastis || ''}</textarea>
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Priežastis</label>
+      <textarea name="priezastis" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="3" placeholder="Nustatyta priežastis..." data-testid="input-edit-priezastis">${p.priezastis || ''}</textarea>
     </div>
     
-    <div class="mb-3">
-      <label class="form-label fw-bold">Korekciniai veiksmai</label>
-      <textarea name="veiksmai" class="form-control" rows="3" placeholder="Kokie veiksmai bus/buvo atlikti..." data-testid="input-edit-veiksmai">${p.veiksmai || ''}</textarea>
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Korekciniai veiksmai</label>
+      <textarea name="veiksmai" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="3" placeholder="Kokie veiksmai bus/buvo atlikti..." data-testid="input-edit-veiksmai">${p.veiksmai || ''}</textarea>
     </div>
     
-    <div class="mb-3">
-      <label class="form-label fw-bold">Atsakingas asmuo</label>
-      <input type="text" name="atsakingas_asmuo" class="form-control" value="${p.atsakingas_asmuo || ''}" data-testid="input-edit-atsakingas">
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Atsakingas asmuo</label>
+      <input type="text" name="atsakingas_asmuo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" value="${p.atsakingas_asmuo || ''}" data-testid="input-edit-atsakingas">
     </div>
   `;
   
   document.getElementById('editContent').innerHTML = html;
-  new bootstrap.Modal(document.getElementById('modalEdit')).show();
+  document.getElementById('modalEdit').style.display = 'flex';
 }
 
 let compressedFiles = [];
@@ -983,8 +927,6 @@ document.getElementById('photoInput').addEventListener('change', async function(
   
   if (this.files.length > 0) {
     placeholder.style.display = 'none';
-    placeholder.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Apdorojama...';
-    placeholder.style.display = 'block';
     
     compressedFiles = [];
     preview.innerHTML = '';
@@ -1009,8 +951,6 @@ document.getElementById('photoInput').addEventListener('change', async function(
       }
     }
     
-    placeholder.style.display = 'none';
-    placeholder.innerHTML = '<i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#6c757d;"></i><div class="mt-2">Paspauskite norėdami įkelti nuotraukas</div><small class="text-muted">arba nufotografuokite telefonu</small>';
     updateFileInput();
   }
 });
@@ -1084,20 +1024,13 @@ function updateFileInput() {
   document.getElementById('photoInput').files = dt.files;
 }
 
-document.getElementById('modalKurti').addEventListener('hidden.bs.modal', function() {
-  document.getElementById('photoInput').value = '';
-  document.getElementById('photoPreview').innerHTML = '';
-  document.querySelector('.upload-placeholder').style.display = 'block';
-  compressedFiles = [];
-});
-
 function toggleCustomField(selectEl, customFieldId) {
   const customField = document.getElementById(customFieldId);
   if (selectEl.value === '__kita__') {
-    customField.classList.remove('d-none');
+    customField.style.display = 'block';
     customField.focus();
   } else {
-    customField.classList.add('d-none');
+    customField.style.display = 'none';
     customField.value = '';
   }
 }
@@ -1106,11 +1039,11 @@ function toggleUzsakymoField(selectEl) {
   const customField = document.getElementById('uzsakymo_numeris_ranka');
   const hiddenField = document.getElementById('uzsakymo_id_final');
   if (selectEl.value === '__kita__') {
-    customField.classList.remove('d-none');
+    customField.style.display = 'block';
     customField.focus();
     hiddenField.value = '';
   } else {
-    customField.classList.add('d-none');
+    customField.style.display = 'none';
     customField.value = '';
     hiddenField.value = selectEl.value;
   }
@@ -1146,6 +1079,12 @@ document.querySelector('#modalKurti form').addEventListener('submit', function(e
     uzsakymoFinal.value = '';
   }
 });
+
+document.querySelectorAll('#modalKurti, #modalView, #modalEdit').forEach(modal => {
+  modal.addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+});
 </script>
-</body>
-</html>
+
+<?php include __DIR__ . '/includes/footer.php'; ?>
