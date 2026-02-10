@@ -57,15 +57,7 @@ if ($view_id) {
     $stmt->execute(['id' => $view_id]);
     $order = $stmt->fetch();
 
-    $products_stmt = $pdo->prepare('
-        SELECT g.*, gt.gaminio_tipas
-        FROM gaminiai g
-        LEFT JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id
-        WHERE g.uzsakymo_id = :id
-        ORDER BY g.id
-    ');
-    $products_stmt->execute(['id' => $view_id]);
-    $order_products = $products_stmt->fetchAll();
+    $order_products = Gaminys::gautiPagalUzsakyma($pdo, (int)$view_id);
 }
 
 $orders = $pdo->query('

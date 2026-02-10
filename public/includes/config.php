@@ -10,27 +10,17 @@ ini_set('session.gc_maxlifetime', 28800);
 
 session_start();
 
-$database_url = getenv('DATABASE_URL');
-if (!$database_url) {
-    die('DATABASE_URL not set');
-}
+$klases_dir = __DIR__ . '/../klases/';
+require_once $klases_dir . 'Database.php';
+require_once $klases_dir . 'DBMigracija.php';
+require_once $klases_dir . 'GaminioTipas.php';
+require_once $klases_dir . 'Gaminys.php';
+require_once $klases_dir . 'Gamys1.php';
 
-$parsed = parse_url($database_url);
-$host = $parsed['host'];
-$port = $parsed['port'] ?? 5432;
-$dbname = ltrim($parsed['path'], '/');
-$user = $parsed['user'];
-$pass = $parsed['pass'];
+$pdo = Database::getConnection();
 
-try {
-    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-} catch (PDOException $e) {
-    die('DB connection failed: ' . $e->getMessage());
-}
+$migracija = new DBMigracija($pdo);
+$migracija->paleisti();
 
 function isLoggedIn() {
     return isset($_SESSION['vartotojas_id']);
