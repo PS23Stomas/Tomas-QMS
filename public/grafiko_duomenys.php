@@ -1,19 +1,30 @@
 <?php
+/**
+ * Grafiko duomenų API - savaitiniai defektų/gaminių skaičiai JSON formatu
+ *
+ * Šis failas yra API galinis taškas (endpoint), grąžinantis JSON duomenis
+ * su savaitiniais defektų ir patikrintų gaminių skaičiais Chart.js diagramai.
+ * Palaiko tuos pačius filtrus kaip ir mt_statistika.php puslapis.
+ */
+
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 header('Content-Type: application/json');
 
+/* --- Filtrų parametrų nuskaitymas iš GET užklausos --- */
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $periodas         = $_GET['periodas'] ?? 'visi';
 $menuo            = $_GET['menuo'] ?? '';
 $nuo              = $_GET['nuo'] ?? '';
 $iki              = $_GET['iki'] ?? '';
 
+/* --- WHERE sąlygos sudarymas (analogiškai kaip mt_statistika.php) --- */
 $where_uzsakymas = '';
 $where_laikotarpis = '';
 $params = [];
 
+/* Užsakymo numerio filtras */
 if ($uzsakymo_numeris !== '') {
     $where_uzsakymas = "u.uzsakymo_numeris = ?";
     $params[] = $uzsakymo_numeris;
@@ -21,6 +32,7 @@ if ($uzsakymo_numeris !== '') {
     $where_uzsakymas = "1=1";
 }
 
+/* Laikotarpio filtras: pagal mėnesį, datų intervalą arba periodą */
 if ($menuo !== '') {
     $where_laikotarpis = " AND TO_CHAR(u.sukurtas::timestamp, 'YYYY-MM') = ?";
     $params[] = $menuo;
@@ -38,6 +50,8 @@ if ($menuo !== '') {
 
 $where_sql = "WHERE $where_uzsakymas $where_laikotarpis";
 
+/* --- Savaitinė agregavimo SQL užklausa --- */
+/* Grupuojame pagal savaitės numerį, skaičiuojame unikalius gaminius ir defektus */
 $stmt = $pdo->prepare("
     SELECT 
         EXTRACT(WEEK FROM u.sukurtas::timestamp) AS savaite,
@@ -55,6 +69,8 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+/* --- JSON išvesties formavimas --- */
+/* Kiekviena eilutė konvertuojama į sveikuosius skaičius ir grąžinama kaip JSON masyvas */
 $result = [];
 foreach ($data as $row) {
     $result[] = [

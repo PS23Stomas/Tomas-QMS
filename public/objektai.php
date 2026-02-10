@@ -1,12 +1,18 @@
 <?php
+/**
+ * Objektų (statybos aikštelių) valdymo puslapis - CRUD operacijos.
+ * Rodo visus objektus su susijusių užsakymų skaičiumi.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Objektai';
 $message = '';
 
+// POST užklausų apdorojimas: kūrimas, redagavimas, šalinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    // Naujo objekto sukūrimas
     if ($action === 'create') {
         $stmt = $pdo->prepare('INSERT INTO objektai (pavadinimas) VALUES (:pavadinimas)');
         $stmt->execute(['pavadinimas' => $_POST['pavadinimas'] ?? '']);
@@ -24,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Objektų sąrašas su susijusių užsakymų skaičiumi
 $objects = $pdo->query('
     SELECT o.*, (SELECT COUNT(*) FROM uzsakymai u WHERE u.objektas_id = o.id) as uzsakymu_sk
     FROM objektai o

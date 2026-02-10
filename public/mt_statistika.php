@@ -1,15 +1,25 @@
 <?php
+/**
+ * MT statistikos puslapis su filtrais - defektų analizė pagal užsakymą, laikotarpį, mėnesį
+ *
+ * Šis failas atvaizduoja MT statistikos puslapį su filtrais pagal užsakymo numerį,
+ * laikotarpį (1 mėn./6 mėn./1 metai/pasirinktinis) ir mėnesį. Rodomi defektų duomenys
+ * su diagramomis (Chart.js), TOP 5 dažniausi defektų punktai ir aktyvūs nepataisyti defektai.
+ */
+
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Pastebėtų gedimų statistika (MT)';
 
+/* --- Filtrų parametrų nuskaitymas iš GET užklausos --- */
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $periodas         = $_GET['periodas'] ?? 'visi';
 $menuo            = $_GET['menuo'] ?? '';
 $nuo              = $_GET['nuo'] ?? '';
 $iki              = $_GET['iki'] ?? '';
 
+/* Visų MT užsakymų numerių sąrašo gavimas filtrų išskleidžiamajam meniu */
 $uzsakymai = $pdo->query("
     SELECT DISTINCT u.uzsakymo_numeris
     FROM uzsakymai u
@@ -19,16 +29,19 @@ $uzsakymai = $pdo->query("
     ORDER BY u.uzsakymo_numeris DESC
 ")->fetchAll(PDO::FETCH_COLUMN);
 
+/* Pradinės statistikos kintamųjų reikšmės */
 $patikrinti = 0;
 $klaidos = 0;
 $top_defektai = [];
 $defektu_gaminiai = [];
 $aktyvus_defektai = [];
 
+/* --- WHERE sąlygos sudarymas pagal pasirinktus filtrus --- */
 $where_uzsakymas = '';
 $where_laikotarpis = '';
 $params = [];
 
+/* Užsakymo numerio filtras */
 if ($uzsakymo_numeris !== '') {
     $where_uzsakymas = "u.uzsakymo_numeris = ?";
     $params[] = $uzsakymo_numeris;
@@ -36,6 +49,7 @@ if ($uzsakymo_numeris !== '') {
     $where_uzsakymas = "1=1";
 }
 
+/* Laikotarpio filtras: pagal mėnesį, datų intervalą arba iš anksto nustatytą periodą */
 if ($menuo !== '') {
     $where_laikotarpis = " AND TO_CHAR(u.sukurtas::timestamp, 'YYYY-MM') = ?";
     $params[] = $menuo;
@@ -62,6 +76,9 @@ $where_sql = "WHERE $where_uzsakymas $where_laikotarpis";
 
 if ($rodyti_duomenis) {
 
+    /* --- Defektų agregavimo užklausos --- */
+
+    /* Patikrintų gaminių skaičiaus gavimas (unikalūs gaminio ID su funkciniais bandymais) */
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT fb.gaminio_id)
         FROM mt_funkciniai_bandymai fb
@@ -74,6 +91,7 @@ if ($rodyti_duomenis) {
     $stmt->execute($params);
     $patikrinti = (int)$stmt->fetchColumn();
 
+    /* Užsakymų su defektais ir be defektų sąrašo gavimas (UNION ALL) */
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
         FROM mt_funkciniai_bandymai fb
@@ -111,6 +129,7 @@ if ($rodyti_duomenis) {
         }
     }
 
+    /* TOP 5 dažniausių defektų punktų gavimas pagal pasikartojimų skaičių */
     $stmt = $pdo->prepare("
         SELECT 
             MIN(fb.eil_nr) as eil_nr,
@@ -133,6 +152,7 @@ if ($rodyti_duomenis) {
     $stmt->execute($params);
     $top_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    /* Aktyvių nepataisytų defektų sąrašo gavimas (isvada = neatitinka/nepadaryta) */
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
         FROM mt_funkciniai_bandymai f

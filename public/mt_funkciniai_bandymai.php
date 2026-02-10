@@ -1,8 +1,17 @@
 <?php
+/**
+ * MT funkcinių bandymų forma - 21 gamybos reikalavimas su defektų sekimu
+ *
+ * Šis failas atvaizduoja MT funkcinių bandymų pildymo formą su 21 gamybos reikalavimu.
+ * Kiekvienas reikalavimas turi išvadą (atitinka/nepadaryta/nėra), defekto aprašymą
+ * ir darbuotojo, kuris atliko darbus, vardą.
+ */
+
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Gaminys.php';
 require_once __DIR__ . '/klases/Sesija.php';
 
+/* Sesijos pradžia ir prisijungimo tikrinimas */
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 
@@ -10,6 +19,8 @@ $vardas = htmlspecialchars($_SESSION['vardas']);
 $pavarde = htmlspecialchars($_SESSION['pavarde']);
 $pilnas_vardas = $vardas . ' ' . $pavarde;
 
+/* --- 21 gamybos reikalavimų sąrašas --- */
+/* Kiekvienas elementas atitinka vieną eilutę funkcinių bandymų formoje */
 $reikalavimai = [
     "MT korpuso surinkimas",
     "MT sienų surinkimas",
@@ -34,6 +45,7 @@ $reikalavimai = [
     "Išvalymas"
 ];
 
+/* GET parametrų nuskaitymas */
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_GET['uzsakovas'] ?? '';
 $gaminio_id       = (int)($_GET['gaminio_id'] ?? 0);
@@ -43,6 +55,8 @@ $conn = Database::getConnection();
 $gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
+/* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
+/* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
 $stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
@@ -108,6 +122,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                     </tr>
                 </thead>
                 <tbody>
+                <!-- Formos atvaizdavimas: kiekvienas reikalavimas su pasirinkimu (select) ir įvesties laukais -->
                 <?php foreach ($reikalavimai as $i => $reik):
                     $eil_nr   = $i + 1;
                     $row      = $duomenys_map[$eil_nr] ?? [];

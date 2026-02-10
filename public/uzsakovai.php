@@ -1,12 +1,18 @@
 <?php
+/**
+ * Užsakovų (klientų) valdymo puslapis - CRUD operacijos.
+ * Rodo visus užsakovus su susijusių užsakymų skaičiumi.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Užsakovai';
 $message = '';
 
+// POST užklausų apdorojimas: kūrimas, redagavimas, šalinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    // Naujo užsakovo sukūrimas
     if ($action === 'create') {
         $stmt = $pdo->prepare('INSERT INTO uzsakovai (uzsakovas) VALUES (:uzsakovas)');
         $stmt->execute(['uzsakovas' => $_POST['uzsakovas'] ?? '']);
@@ -24,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Užsakovų sąrašas su susijusių užsakymų skaičiumi
 $clients = $pdo->query('
     SELECT uz.*, (SELECT COUNT(*) FROM uzsakymai u WHERE u.uzsakovas_id = uz.id) as uzsakymu_sk
     FROM uzsakovai uz

@@ -1,4 +1,13 @@
 <?php
+/**
+ * MT gaminio paso generavimo puslapis - komponentų susiejimas, teksto korekcijos, spausdinimas
+ *
+ * Šis puslapis generuoja MT gaminio pasą, kuriame:
+ *   - Komponentai susiejami su paso sekcijomis (1.1-3.11)
+ *   - Rodomi redaguojami teksto laukai su korekcijų palaikymu
+ *   - ESO atitikties tipo pasirinkimas ir protokolo numerio išsaugojimas
+ *   - Spausdinimo palaikymas su atskiru spausdinimo stiliumi
+ */
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../klases/MTPasasKomponentai.php';
 
@@ -7,6 +16,7 @@ requireLogin();
 $conn = Database::getConnection();
 $gaminys_obj = new Gaminys();
 
+// Puslapio parametrų gavimas iš GET/POST užklausų
 $gaminio_id = $_GET['gaminio_id'] ?? $_POST['gaminio_id'] ?? null;
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas = $_GET['uzsakovas'] ?? $_POST['uzsakovas'] ?? '';
@@ -26,6 +36,7 @@ $gaminio_info = $gaminys_obj->gautiPagalId($gaminio_id);
 $protokolo_nr = $gaminio_info['protokolo_nr'] ?? '';
 $atitikmuo_kodas = $gaminio_info['atitikmuo_kodas'] ?? '15.6.2';
 
+// === ESO atitikties tipo pasirinkimo išsaugojimas ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_atitikmuo'])) {
     $naujas_kodas = $_POST['atitikmuo_kodas'] ?? '15.6.2';
     $stmt = $conn->prepare("UPDATE gaminiai SET atitikmuo_kodas = ? WHERE id = ?");
@@ -45,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_atitikmuo']
     exit;
 }
 
+// === Protokolo numerio išsaugojimas ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_protokola'])) {
     $naujas_nr = trim($_POST['protokolo_nr'] ?? '');
     if ($naujas_nr !== '') {
@@ -65,6 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_protokola']
     exit;
 }
 
+// === Komponentų susiejimas su paso sekcijomis ===
+// MTPasasKomponentai klasė grąžina komponentus pagal paso punktų numerius
 $mt_pasas = new MTPasasKomponentai($conn, $gaminio_id);
 
 $komp_11 = $mt_pasas->punktas1_1();
@@ -83,6 +97,7 @@ $komp_39 = $mt_pasas->punktas3_9();
 $komp_310 = $mt_pasas->punktas3_10();
 $komp_311 = $mt_pasas->punktas3_11();
 
+// Transformatorių skaičiaus ir galingumo ištraukimas iš gaminio pavadinimo
 preg_match('/(\d+)x(\d+)/', $gaminio_pavadinimas, $match_kva);
 $transformatoriai_kva = $match_kva[0] ?? '';
 
@@ -90,10 +105,12 @@ preg_match('/(\d+x\d+)\((\d+)\)/', $gaminio_pavadinimas, $match_full);
 $transformatoriu_aprasas = $match_full[1] ?? $transformatoriai_kva;
 $galingumas_kva = $match_full[2] ?? ($match_kva[2] ?? '');
 
+// Saugiklių idėklų duomenų gavimas 3.5 sekcijai
 $stmt = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
 $stmt->execute([$gaminio_id]);
 $mt_saugikliai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// === Teksto korekcijų krovimas iš duomenų bazės ===
 $korekcijos_data = [];
 $stmt = $conn->prepare("SELECT field_key, tekstas FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ? AND lang = ?");
 $stmt->execute([$gaminio_id, $lang]);
@@ -102,14 +119,17 @@ foreach ($kor_rows as $kr) {
     $korekcijos_data[$kr['field_key']] = $kr['tekstas'];
 }
 
+// Pagalbinė funkcija: grąžina koreguotą tekstą arba numatytąjį
 function gautiTeksta($key, $default, &$korekcijos_data) {
     return $korekcijos_data[$key] ?? $default;
 }
 
+// Pagalbinė funkcija: tikrina ar yra teksto korekcija
 function turiKorekcija($key, &$korekcijos_data) {
     return isset($korekcijos_data[$key]);
 }
 
+// Pagalbinė funkcija: formatuoja komponento tekstą (kodas, gamintojas, kiekis)
 function formatuotiKomponenta($komp, $su_kiekiu = true) {
     $kodas = $komp['gamintojo_kodas'] ?? '';
     $gamintojas = $komp['gamintojas'] ?? '';
@@ -124,6 +144,7 @@ function formatuotiKomponenta($komp, $su_kiekiu = true) {
     return $tekstas;
 }
 
+// ESO atitikties tipų aprašymai pagal kodus
 $tipu_aprasai = [
     '15.6.1' => 'Mažoji transformatorinė pastotė su SF6 skirstykla ir variklinėmis pavaromis 10 kV',
     '15.6.2' => 'Mažoji transformatorinė pastotė su vakuuminiais jungikliais 10 kV',
@@ -135,6 +156,7 @@ $tipu_aprasai = [
 
 $tipas_aprasas = $tipu_aprasai[$atitikmuo_kodas] ?? 'Nenurodytas';
 
+// Paso metaduomenys: serijos numeris, data, inžinierius
 $serijos_nr = $uzsakymo_numeris;
 $data = date("Y-m-d");
 $gaminio_pasas = "MT/" . $uzsakymo_numeris;
@@ -787,6 +809,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<!-- Teksto redagavimo modalinis langas -->
 <div class="edit-modal-overlay" id="editModalOverlay">
     <div class="edit-modal">
         <h4 id="editModalLabel">Redaguoti tekstą</h4>
@@ -799,6 +822,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<!-- JavaScript funkcijos modaliniam teksto redagavimui ir AJAX išsaugojimui -->
 <script>
 function openEditModal(btn) {
     var field = btn.getAttribute('data-field');

@@ -1,4 +1,11 @@
 <?php
+/**
+ * MT dielektrinių bandymų išsaugojimo tvarkyklė - žemos įtampos bandymai ir įžeminimas
+ *
+ * Apdoroja dielektrinių bandymų formos duomenis iš mt_dielektriniai.php.
+ * Naudojamas trynimo + pakartotinio įrašymo šablonas su duomenų bazės transakcija.
+ * Išsaugomi: žemos įtampos bandymai ir įžeminimo tikrinimo duomenys.
+ */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
 
@@ -7,6 +14,7 @@ Sesija::tikrintiPrisijungima();
 
 $conn = Database::getConnection();
 
+// POST duomenų gavimas
 $gaminys_id        = (int)($_POST['gaminys_id'] ?? 0);
 $gaminio_numeris   = $_POST['gaminio_numeris'] ?? '';
 $uzsakymo_numeris  = $_POST['uzsakymo_numeris'] ?? '';
@@ -17,10 +25,13 @@ $uzsakymo_id       = $_POST['uzsakymo_id'] ?? '';
 if ($gaminys_id <= 0) die('Klaida: nėra gaminio ID');
 
 try {
+    // Transakcijos pradžia – užtikrinamas duomenų vientisumas
     $conn->beginTransaction();
 
+    // Esamų žemos įtampos bandymų trynimas prieš pakartotinį įrašymą
     $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
+    // Žemos įtampos bandymų duomenų pakartotinis įrašymas
     if (!empty($_POST['maz_itampa']['aprasymas'])) {
         $stmt2 = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai 
             (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada) 
@@ -43,8 +54,10 @@ try {
         }
     }
 
+    // Esamų įžeminimo tikrinimo duomenų trynimas prieš pakartotinį įrašymą
     $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
+    // Įžeminimo tikrinimo duomenų pakartotinis įrašymas
     if (!empty($_POST['izeminimo']['taskas'])) {
         $stmt3 = $conn->prepare("INSERT INTO mt_izeminimo_tikrinimas 
             (gaminys_id, eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle) 
@@ -63,9 +76,11 @@ try {
         }
     }
 
+    // Transakcijos patvirtinimas – visi duomenys sėkmingai išsaugoti
     $conn->commit();
 
 } catch (Throwable $e) {
+    // Klaidos atveju – transakcijos atšaukimas (rollback)
     if ($conn->inTransaction()) $conn->rollBack();
     http_response_code(500);
     echo "Klaida saugant dielektrinius: " . htmlspecialchars($e->getMessage());

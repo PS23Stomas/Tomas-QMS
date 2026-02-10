@@ -1,4 +1,8 @@
 <?php
+/**
+ * Gaminių valdymo puslapis - produktų sąrašas, kūrimas ir šalinimas.
+ * Rodo visus gaminius su užsakymo numeriu, tipu ir grupe.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
@@ -6,8 +10,10 @@ $page_title = 'Gaminiai';
 
 $message = '';
 
+// POST užklausų apdorojimas: kūrimas arba šalinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    // Naujo gaminio sukūrimas
     if ($action === 'create') {
         $stmt = $pdo->prepare('INSERT INTO gaminiai (uzsakymo_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr, atitikmuo_kodas) VALUES (:uzsakymo_id, :gaminio_numeris, :gaminio_tipas_id, :protokolo_nr, :atitikmuo_kodas)');
         $stmt->execute([
@@ -18,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'atitikmuo_kodas' => $_POST['atitikmuo_kodas'] ?? '',
         ]);
         $message = 'Gaminys sukurtas sėkmingai.';
+    // Gaminio šalinimas kartu su susijusiais komponentais
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
         if ($id) {
@@ -28,9 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Užsakymų ir tipų sąrašai formos pasirinkimams
 $orders = $pdo->query('SELECT id, uzsakymo_numeris FROM uzsakymai ORDER BY id DESC')->fetchAll();
 $types = Gaminys::gautiVisusTipus($pdo);
 
+// Visų gaminių sąrašas su tipais ir užsakymų numeriais
 $products = $pdo->query('
     SELECT g.*, gt.gaminio_tipas, gt.grupe, u.uzsakymo_numeris
     FROM gaminiai g

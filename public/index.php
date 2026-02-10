@@ -1,14 +1,28 @@
 <?php
+/**
+ * Pagrindinis puslapis - kokybės rodiklių skydelis (paskutinės 30 dienų)
+ *
+ * Šis puslapis rodo MT gaminių kokybės rodiklius (KPI):
+ * - Patikrintų gaminių skaičius
+ * - Bendras neatitikimų kiekis
+ * - Neatitikimų procentas
+ * - Aktyvūs nepataisyti defektai
+ * - Savaitinė suvestinė (grafikas)
+ * - TOP 5 dažniausios klaidos
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Kokybės rodikliai';
 
+// Filtravimo sąlyga: tik MT grupės gaminiai per paskutines 30 dienų
 $where_sql = "WHERE gt.grupe = 'MT'
   AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
 
+// Defekto buvimo sąlyga (naudojama keliuose užklausose)
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
+// SQL užklausa: unikalių patikrintų gaminių skaičius
 $sql = "
   SELECT COUNT(DISTINCT fb.gaminio_id)
   FROM mt_funkciniai_bandymai fb
@@ -19,6 +33,7 @@ $sql = "
 ";
 $patikrinti = (int)$pdo->query($sql)->fetchColumn();
 
+// SQL užklausa: bendras neatitikimų (defektų) skaičius
 $sql = "
   SELECT COUNT(*)
   FROM mt_funkciniai_bandymai fb
@@ -30,6 +45,7 @@ $sql = "
 ";
 $viso_defektu = (int)$pdo->query($sql)->fetchColumn();
 
+// SQL užklausa: visų bandymo punktų skaičius (neatitikimų procento skaičiavimui)
 $sql = "
   SELECT COUNT(*)
   FROM mt_funkciniai_bandymai fb
@@ -40,8 +56,10 @@ $sql = "
 ";
 $viso_punktu = (int)$pdo->query($sql)->fetchColumn();
 
+// Neatitikimų procentas: defektai / visi punktai * 100
 $vid_proc = ($viso_punktu > 0) ? round($viso_defektu / $viso_punktu * 100, 1) : 0.0;
 
+// SQL užklausa: aktyvūs nepataisyti defektai (iki 50 įrašų)
 $sql_aktyvus = "
   SELECT 
     u.uzsakymo_numeris AS uzsakymo_nr,
@@ -63,6 +81,7 @@ $sql_aktyvus = "
 $aktyvus_defektai = $pdo->query($sql_aktyvus)->fetchAll(PDO::FETCH_ASSOC);
 $aktyvus_count = count($aktyvus_defektai);
 
+// SQL užklausa: TOP 5 dažniausiai pasikartojančios klaidos pagal reikalavimą
 $sql = "
   SELECT 
     MIN(fb.eil_nr) as eil_nr,
@@ -83,6 +102,7 @@ $sql = "
 $top_klaidos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $max_kiekis = !empty($top_klaidos) ? (int)$top_klaidos[0]['kiekis'] : 1;
 
+// SQL užklausa: savaitiniai duomenys grafikui (patikrinti gaminiai ir klaidos pagal savaitę)
 $sql = "
   SELECT 
     TO_CHAR(u.sukurtas::timestamp, 'IYYYIW') AS yw,
@@ -98,6 +118,7 @@ $sql = "
 ";
 $weeks = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
+// Paruošiami masyvai Chart.js savaitiniam grafikui
 $wLabels=[]; $wGaminiai=[]; $wKlaidos=[];
 foreach ($weeks as $w) {
   $yw=(string)$w['yw']; 
@@ -221,9 +242,12 @@ require_once __DIR__ . '/includes/header.php';
   Duomenys atnaujinami automatiškai kas 5 minutes
 </div>
 
+<!-- Chart.js savaitinio grafiko atvaizdavimas -->
 <script>
+// Automatinis puslapio atnaujinimas kas 5 minutes (300000 ms)
 setTimeout(() => location.reload(), 300000);
 
+// Savaitinio stulpelinio grafiko inicializavimas su Chart.js biblioteka
 const ctx = document.getElementById('weeklyChart');
 if (ctx) {
   new Chart(ctx.getContext('2d'), {

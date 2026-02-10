@@ -1,18 +1,31 @@
 <?php
+/**
+ * Užsakymų valdymo puslapis - kūrimas, peržiūra, redagavimas, šalinimas
+ *
+ * Funkcionalumas:
+ * - Užsakymų sąrašo atvaizdavimas su paieška
+ * - Naujo užsakymo kūrimas (create)
+ * - Užsakymo redagavimas ir MT gaminio pavadinimo atnaujinimas (update)
+ * - Užsakymo trynimas kartu su susijusiais gaminiais (delete)
+ * - Detalus užsakymo peržiūros rodinys su MT gaminių navigacijos kortelėmis
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Užsakymai';
 
+// Gaunami užsakovų ir objektų sąrašai formų išskleidžiamiesiems meniu
 $clients = $pdo->query('SELECT id, uzsakovas FROM uzsakovai ORDER BY uzsakovas')->fetchAll();
 $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinimas')->fetchAll();
 
 $message = '';
 $error = '';
 
+// POST veiksmų apdorojimas: kūrimas, atnaujinimas arba trynimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // Naujo užsakymo kūrimas
     if ($action === 'create') {
         $stmt = $pdo->prepare('INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzsakovas_id, :objektas_id, :vartotojas_id, 1)');
         $stmt->execute([
@@ -23,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'vartotojas_id' => $_SESSION['vartotojas_id'],
         ]);
         $message = 'Užsakymas sukurtas sėkmingai.';
+    // Užsakymo duomenų atnaujinimas ir MT gaminio pavadinimo įrašymas
     } elseif ($action === 'update') {
         $stmt = $pdo->prepare('UPDATE uzsakymai SET uzsakymo_numeris = :nr, kiekis = :kiekis, uzsakovas_id = :uzsakovas_id, objektas_id = :objektas_id WHERE id = :id');
         $stmt->execute([
@@ -32,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'id' => $_POST['id'],
         ]);
+        // MT gaminio pilno pavadinimo atnaujinimas (jei nurodytas)
         $mt_pav = trim($_POST['pilnas_pavadinimas'] ?? '');
         $uzs_nr = trim($_POST['uzsakymo_numeris'] ?? '');
         if ($mt_pav !== '' && $uzs_nr !== '') {
@@ -39,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $gh->irasytiPilnaPavadinima($uzs_nr, $mt_pav);
         }
         $message = 'Užsakymas atnaujintas.';
+    // Užsakymo trynimas kartu su visais susijusiais gaminiais
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? $_GET['id'] ?? null;
         if ($id) {
@@ -49,9 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Užsakymo detalios peržiūros režimas (kai perduodamas ?id= parametras)
 $view_id = $_GET['id'] ?? null;
 
 if ($view_id) {
+    // Užklausa: užsakymo informacija su užsakovu, objektu ir kūrėju
     $stmt = $pdo->prepare('
         SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde
         FROM uzsakymai u
@@ -63,6 +81,7 @@ if ($view_id) {
     $stmt->execute(['id' => $view_id]);
     $order = $stmt->fetch();
 
+    // Gaunami visi gaminiai, priklausantys šiam užsakymui
     $order_products = Gaminys::gautiPagalUzsakyma($pdo, (int)$view_id);
 
     if ($order) {
@@ -70,8 +89,10 @@ if ($view_id) {
         $uzsakymo_nr = $order['uzsakymo_numeris'] ?? '';
         $uzsakovas_name = $order['uzsakovas'] ?? '';
 
+        // Gaunamas esamas MT gaminio pilnas pavadinimas
         $esamas_pavadinimas = $gaminys_helper->gautiPilnaPavadinima($uzsakymo_nr);
 
+        // MT gaminio ID nustatymas navigacijos kortelėms (pirmiausia ieškoma gaminiai lentelėje)
         $gaminio_id_mt = 0;
         if ($uzsakymo_nr !== '') {
             $st = $pdo->prepare("SELECT g.id FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY g.id DESC LIMIT 1");
@@ -80,6 +101,7 @@ if ($view_id) {
                 $gaminio_id_mt = (int)$row['id'];
             }
         }
+        // Antrinis bandymas: ieškoma per mt_funkciniai_bandymai lentelę
         if ($gaminio_id_mt === 0 && $uzsakymo_nr !== '') {
             $st = $pdo->prepare("SELECT m.gaminio_id FROM mt_funkciniai_bandymai m JOIN gaminiai g ON g.id = m.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY m.id DESC LIMIT 1");
             $st->execute([':nr' => $uzsakymo_nr]);
@@ -90,6 +112,7 @@ if ($view_id) {
     }
 }
 
+// Visų užsakymų sąrašo užklausa (su gaminių skaičiumi)
 $orders = $pdo->query('
     SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk

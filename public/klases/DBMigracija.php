@@ -1,4 +1,7 @@
 <?php
+/**
+ * Duomenų bazės migracijos klasė - automatinis lentelių kūrimas ir laukų taisymas
+ */
 class DBMigracija {
     private $conn;
 
@@ -6,11 +9,13 @@ class DBMigracija {
         $this->conn = $conn;
     }
 
+    /** Paleidžia visas migracijas: sukuria trūkstamas lenteles ir pataiso varchar laukus */
     public function paleisti(): void {
         $this->sukurtiTrukstamasLenteles();
         $this->pataisytiVarcharLaukus();
     }
 
+    /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai, antriniu_grandiniu_bandymai) */
     private function sukurtiTrukstamasLenteles(): void {
         try {
             $this->conn->exec("
@@ -41,6 +46,7 @@ class DBMigracija {
         }
     }
 
+    /** Pataiso nurodytus varchar laukus, pakeisdama juos į TEXT tipą */
     private function pataisytiVarcharLaukus(): void {
         $laukai = [
             ['lentele' => 'gaminio_kirtikliai', 'laukas' => 'linijos_10kv_nr'],
@@ -54,6 +60,7 @@ class DBMigracija {
         }
     }
 
+    /** Pakeičia nurodyto lauko tipą į TEXT, jei dabartinis tipas nėra TEXT */
     private function pakeistiIText(string $lentele, string $laukas): void {
         try {
             $sql = "SELECT data_type FROM information_schema.columns 

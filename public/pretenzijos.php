@@ -1,4 +1,12 @@
 <?php
+/**
+ * Pretenzijų valdymo puslapis - vidinių, kliento ir tiekėjo pretenzijų CRUD
+ *
+ * Šis puslapis leidžia kurti, peržiūrėti, redaguoti ir šalinti pretenzijas.
+ * Palaikomi tipai: vidinė, kliento, tiekėjo.
+ * Palaikomi statusai: nauja, tyrimas (tiriama), vykdoma, užbaigta, atmesta.
+ */
+
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
@@ -7,12 +15,14 @@ $user = currentUser();
 $prisijunges = trim(($user['vardas'] ?? '') . ' ' . ($user['pavarde'] ?? ''));
 $arSkaitytojas = ($user['role'] === 'skaitytojas');
 
+// Pretenzijų tipų apibrėžimai
 $tipai = [
     'vidine' => 'Vidinė pretenzija',
     'kliento' => 'Kliento pretenzija',
     'tiekejo' => 'Tiekėjo pretenzija'
 ];
 
+// Pretenzijų statusų apibrėžimai su spalvomis atvaizdavimui
 $statusai = [
     'nauja' => ['label' => 'Nauja', 'color' => '#3498db', 'bg' => '#ebf5fb'],
     'tyrimas' => ['label' => 'Tiriama', 'color' => '#f39c12', 'bg' => '#fef9e7'],
@@ -21,12 +31,15 @@ $statusai = [
     'atmesta' => ['label' => 'Atmesta', 'color' => '#95a5a6', 'bg' => '#f4f6f6']
 ];
 
+// Pranešimų kintamieji klaidoms ir sėkmės žinutėms
 $klaida = '';
 $sekminga = '';
 
+// POST užklausų apdorojimas (kūrimas, redagavimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $veiksmas = $_POST['veiksmas'] ?? '';
 
+    // Naujos pretenzijos kūrimas
     if ($veiksmas === 'kurti') {
         $tipas = $_POST['tipas'] ?? 'vidine';
         $aprasymas = trim($_POST['aprasymas'] ?? '');
@@ -76,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pretenzijaId = $pdo->lastInsertId();
 
+                // Nuotraukų įkėlimas ir išsaugojimas duomenų bazėje
                 if (!empty($_FILES['nuotraukos']['name'][0])) {
                     $stmtPhoto = $pdo->prepare("
                         INSERT INTO pretenzijos_nuotraukos (pretenzija_id, pavadinimas, tipas, turinys)
@@ -104,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Pretenzijos statuso atnaujinimas
     if ($veiksmas === 'atnaujinti_statusa') {
         $id = (int)($_POST['id'] ?? 0);
         $statusas = $_POST['statusas'] ?? '';
@@ -116,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Pretenzijos detalių redagavimas (priežastis, veiksmai, atsakingas asmuo)
     if ($veiksmas === 'atnaujinti') {
         $id = (int)($_POST['id'] ?? 0);
         $priezastis = trim($_POST['priezastis'] ?? '');
@@ -138,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Pretenzijos šalinimas (tik ne skaitytojams)
     if ($veiksmas === 'trinti') {
         if ($arSkaitytojas) {
             $klaida = 'Neturite teisių trinti pretenzijų';
@@ -152,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Filtravimo parametrai iš GET užklausos
 $filtras_tipas = $_GET['tipas'] ?? '';
 $filtras_statusas = $_GET['statusas'] ?? '';
 
@@ -169,6 +187,7 @@ if ($filtras_statusas && isset($statusai[$filtras_statusas])) {
 
 $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
+// Pretenzijų sąrašo užklausa su rikiavimo pagal statusą ir sukūrimo datą
 $sql = "
     SELECT p.*, u.uzsakymo_numeris
     FROM pretenzijos p
@@ -187,6 +206,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $pretenzijos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Statistikos skaičiavimas atvaizdavimui
 $stats = ['viso' => count($pretenzijos), 'naujos' => 0, 'aktyvios' => 0, 'uzbaigtos' => 0];
 foreach ($pretenzijos as $p) {
     if ($p['statusas'] === 'nauja') $stats['naujos']++;
@@ -194,8 +214,10 @@ foreach ($pretenzijos as $p) {
     if ($p['statusas'] === 'uzbaigta') $stats['uzbaigtos']++;
 }
 
+// Užsakymų sąrašas pasirinkimui formoje
 $uzsakymai_opts = $pdo->query("SELECT id, uzsakymo_numeris FROM uzsakymai ORDER BY uzsakymo_numeris DESC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
 
+// Nuotraukų susiejimas su pretenzijomis atvaizdavimui sąraše
 $nuotraukos_map = [];
 $nuotraukosStmt = $pdo->query("SELECT id, pretenzija_id, pavadinimas FROM pretenzijos_nuotraukos ORDER BY id");
 while ($row = $nuotraukosStmt->fetch(PDO::FETCH_ASSOC)) {

@@ -1,4 +1,7 @@
 <?php
+/**
+ * Komponento atvaizdavimo klasė - MT sumontuotų komponentų lentelės eilutės generavimas
+ */
 class Komponentas {
     private int $id;
     private string $kodas;
@@ -10,6 +13,7 @@ class Komponentas {
     private array $kodai;
     private array $visiGamintojai;
 
+    /** Inicializuoja komponento duomenis iš masyvo, su pasirenkamais kodų ir gamintojų sąrašais */
     public function __construct(array $data, array $kodai = [], array $visiGamintojai = []) {
         $this->id = (int)($data['id'] ?? 0);
         $this->kodas = $data['kodas'] ?? '';
@@ -22,10 +26,12 @@ class Komponentas {
         $this->visiGamintojai = $visiGamintojai;
     }
 
+    /** Grąžina, ar komponentas yra parinktas projektui */
     public function isParinkta(): bool {
         return $this->parinkta;
     }
 
+    /** Sugeneruoja HTML lentelės eilutę su komponento redagavimo laukais */
     public function render(): string {
         $id = $this->id;
         $kodas = htmlspecialchars($this->kodas);

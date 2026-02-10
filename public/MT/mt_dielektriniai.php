@@ -1,10 +1,21 @@
 <?php
+/**
+ * MT dielektrinių bandymų puslapis - prietaisai, įtampos bandymai, įžeminimo tikrinimas
+ *
+ * Šis puslapis apima:
+ *   - Bandymų prietaisų CRUD (pridėjimas, redagavimas, šalinimas)
+ *   - Vidutinės įtampos (6-24 kV) kabelių bandymo lentelę
+ *   - Žemos įtampos (0,4 kV) grandinių bandymo lentelę
+ *   - Įžeminimo grandinių tikrinimo lentelę
+ */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
 
+// Sesijos inicializavimas ir prisijungimo tikrinimas
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 
+// Prisijungusio vartotojo duomenys
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
 $pareigos = "Kokybės inžinierius";
@@ -12,6 +23,7 @@ $data = date("Y-m-d");
 
 $conn = Database::getConnection();
 
+// Gaminio ID gavimas (palaikomi abu parametrų pavadinimai: gaminys_id ir gaminio_id)
 $gaminys_id = isset($_REQUEST['gaminys_id']) ? (int)$_REQUEST['gaminys_id'] :
              (isset($_REQUEST['gaminio_id']) ? (int)$_REQUEST['gaminio_id'] : 0);
 
@@ -30,6 +42,8 @@ $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_numeris = $gaminys['protokolo_nr'] ?? '';
 
+// === Prietaisų CRUD operacijos ===
+// Naujo prietaiso pridėjimas
 if (isset($_POST['prideti'])) {
     $stmt = $conn->prepare("INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([$gaminys_id, $_POST['prietaiso_tipas'], $_POST['prietaiso_nr'], $_POST['patikra_data'], $_POST['galioja_iki'], $_POST['sertifikato_nr']]);
@@ -37,6 +51,7 @@ if (isset($_POST['prideti'])) {
     exit;
 }
 
+// Esamo prietaiso redagavimas
 if (isset($_POST['redaguoti'])) {
     $stmt = $conn->prepare("UPDATE bandymai_prietaisai SET prietaiso_tipas=?, prietaiso_nr=?, patikra_data=?, galioja_iki=?, sertifikato_nr=? WHERE id=? AND gaminys_id=?");
     $stmt->execute([$_POST['prietaiso_tipas'], $_POST['prietaiso_nr'], $_POST['patikra_data'], $_POST['galioja_iki'], $_POST['sertifikato_nr'], $_POST['id'], $gaminys_id]);
@@ -44,6 +59,7 @@ if (isset($_POST['redaguoti'])) {
     exit;
 }
 
+// Prietaiso šalinimas pagal ID
 if (isset($_GET['salinti'])) {
     $id = (int)$_GET['salinti'];
     $gaminio_numeris = $_GET['gaminio_numeris'] ?? $gaminio_numeris;
@@ -57,12 +73,15 @@ if (isset($_GET['salinti'])) {
     exit;
 }
 
+// Visų galimų prietaisų sąrašo gavimas iš prietaisų lentelės
 $db_prietaisai = $conn->query("SELECT id, pavadinimas, modelis, serijos_nr, kalibravimo_data, galiojimo_pabaiga, kalibracijos_sertifikato_nr FROM prietaisai ORDER BY pavadinimas")->fetchAll(PDO::FETCH_ASSOC);
 
+// Tikrinama ar gaminiui jau priskirti bandymų prietaisai
 $stmt = $conn->prepare("SELECT COUNT(*) FROM bandymai_prietaisai WHERE gaminys_id=?");
 $stmt->execute([$gaminys_id]);
 $prietaisu_sk = $stmt->fetchColumn();
 
+// Numatytųjų prietaisų automatinis įterpimas, jei dar nėra priskirtų
 if ($prietaisu_sk == 0) {
     $default_modeliai = ['AID-70M', 'EUROTEST 61557', 'MI2077'];
     $sql = "INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)";
@@ -75,16 +94,20 @@ if ($prietaisu_sk == 0) {
     }
 }
 
+// Priskirtų prietaisų sąrašo gavimas atvaizdavimui
 $stmt = $conn->prepare("SELECT * FROM bandymai_prietaisai WHERE gaminys_id=? ORDER BY prietaiso_tipas");
 $stmt->execute([$gaminys_id]);
 $prietaisai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Vidutinės įtampos bandymų duomenys (šiuo metu tuščias masyvas – pildomas vėliau)
 $vid_itampa = [];
 
+// Žemos įtampos (0,4 kV) dielektrinių bandymų duomenų gavimas
 $stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
 $stmt->execute([$gaminys_id]);
 $maz_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Įžeminimo tikrinimo duomenų gavimas
 $stmt = $conn->prepare("SELECT * FROM mt_izeminimo_tikrinimas WHERE gaminys_id=? ORDER BY eil_nr");
 $stmt->execute([$gaminys_id]);
 $izem = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -249,6 +272,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
    <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
 
+<!-- Vidutinės įtampos kabelių bandymo lentelė -->
 <h5 class="mt-5 text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
 <table class="table table-bordered">
 <thead class="table-secondary">
@@ -288,6 +312,7 @@ if (empty($vid_itampa)) {
 </table>
 <input type="hidden" name="vid_itampa[isvada]" value="10kV kabeliai bandymus išlaikė, izoliacija gera.">
 
+<!-- Žemos įtampos (0,4 kV) grandinių bandymo lentelė -->
 <h5 class="mt-5 text-uppercase fw-bold">0,4kV GRANDINIŲ BANDYMAS PAAUKŠTINTA ĮTAMPA</h5>
 <table class="table table-bordered" id="mazItampaTable">
 <thead class="table-secondary">
@@ -295,6 +320,7 @@ if (empty($vid_itampa)) {
 </thead>
 <tbody>
 <?php
+// Numatytosios žemos įtampos bandymų eilutės (jei dar nėra duomenų)
 $default_maz = [
     ['0,4kV skirstomojo įrenginio grandinės(šynos)','400 V'], 
     ['Kontrolinės elektros apskaitos įtampos grandinės','400 V'], 
@@ -362,6 +388,7 @@ function removeRow(btn) {
 </script>
 <input type="hidden" name="maz_itampa[isvada]" value="0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.">
 
+<!-- Įžeminimo grandinių tikrinimo lentelė -->
 <h5 class="mt-5 text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
 <table class="table table-bordered">
   <thead class="table-secondary text-center">
@@ -388,6 +415,7 @@ if (!empty($izem)) {
         </tr>";
     }
 } else {
+    // Numatytieji įžeminimo tikrinimo taškai (jei dar nėra duomenų)
     $izem_data = [
         ['1.1','Įžeminimo šyna PE',1],
         ['1.2','Komutacinių aparatų korpusai',1],

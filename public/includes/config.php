@@ -1,27 +1,51 @@
 <?php
+/**
+ * Pagrindinė konfigūracijos rinkmena - klasių įkėlimas, sesijos pradžia, migracijos paleidimas
+ *
+ * Ši rinkmena įkelia visas reikalingas klases, inicializuoja sesiją,
+ * paleidžia duomenų bazės migracijas ir apibrėžia pagalbines funkcijas.
+ */
+
+// Klasių direktorijos nustatymas ir pagrindinių klasių įkėlimas
 $klases_dir = __DIR__ . '/../klases/';
 require_once $klases_dir . 'Database.php';
 require_once $klases_dir . 'Sesija.php';
 
+// Sesijos pradžia - inicializuojama vartotojo sesija
 Sesija::pradzia();
 
+// Papildomų klasių įkėlimas
 require_once $klases_dir . 'DBMigracija.php';
 require_once $klases_dir . 'Gaminys.php';
 require_once $klases_dir . 'Emailas.php';
 
+// Duomenų bazės prisijungimo gavimas
 $pdo = Database::getConnection();
 
+// Migracijos paleidimas - automatiškai atnaujina duomenų bazės struktūrą
 $migracija = new DBMigracija($pdo);
 $migracija->paleisti();
 
+/**
+ * Tikrina, ar vartotojas yra prisijungęs prie sistemos
+ * @return bool Grąžina true, jei vartotojas prisijungęs
+ */
 function isLoggedIn() {
     return Sesija::arPrisijunges();
 }
 
+/**
+ * Reikalauja, kad vartotojas būtų prisijungęs.
+ * Jei neprisijungęs - nukreipia į prisijungimo puslapį.
+ */
 function requireLogin() {
     Sesija::tikrintiPrisijungima();
 }
 
+/**
+ * Grąžina dabartinio prisijungusio vartotojo duomenis iš sesijos
+ * @return array Vartotojo duomenų masyvas (id, vardas, pavardė, rolė)
+ */
 function currentUser() {
     return [
         'id' => Sesija::get('vartotojas_id'),
@@ -31,6 +55,11 @@ function currentUser() {
     ];
 }
 
+/**
+ * HTML specialiųjų simbolių apsaugos funkcija (XSS prevencija)
+ * @param string|null $str Tekstas, kurį reikia apsaugoti
+ * @return string Apsaugotas tekstas, saugus naudoti HTML išvedime
+ */
 function h($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }

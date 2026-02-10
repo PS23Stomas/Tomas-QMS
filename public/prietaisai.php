@@ -1,4 +1,11 @@
 <?php
+/**
+ * Prietaisų patikros puslapis - matavimo įrenginių ir kalibravimo sekimas
+ *
+ * Šis puslapis leidžia valdyti matavimo prietaisus: kurti, redaguoti, šalinti,
+ * peržiūrėti detalią informaciją bei sekti kalibravimo galiojimo terminus.
+ */
+
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
@@ -8,9 +15,11 @@ $user = currentUser();
 $message = '';
 $error = '';
 
+// POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // Naujo prietaiso kūrimas su visais kalibravimo duomenimis
     if ($action === 'create') {
         $stmt = $pdo->prepare("INSERT INTO prietaisai (vidinis_kodas, pavadinimas, gamintojas, modelis, serijos_nr, matavimo_tipas, matavimo_ribos, tikslumo_klase, busena, vieta, atsakingas_asmuo, kalibracijos_sertifikato_nr, kalibravimo_istaiga, kalibravimo_data, galiojimo_pabaiga, kita_kalibracija, standartas_metodika, pastabos, sukurta) VALUES (:vidinis_kodas, :pavadinimas, :gamintojas, :modelis, :serijos_nr, :matavimo_tipas, :matavimo_ribos, :tikslumo_klase, :busena, :vieta, :atsakingas_asmuo, :kalibracijos_sertifikato_nr, :kalibravimo_istaiga, :kalibravimo_data, :galiojimo_pabaiga, :kita_kalibracija, :standartas_metodika, :pastabos, CURRENT_TIMESTAMP)");
         $stmt->execute([
@@ -34,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'pastabos' => $_POST['pastabos'] ?? '',
         ]);
         $message = 'Prietaisas pridėtas sėkmingai.';
+    // Esamo prietaiso duomenų atnaujinimas
     } elseif ($action === 'update') {
         $stmt = $pdo->prepare("UPDATE prietaisai SET vidinis_kodas = :vidinis_kodas, pavadinimas = :pavadinimas, gamintojas = :gamintojas, modelis = :modelis, serijos_nr = :serijos_nr, matavimo_tipas = :matavimo_tipas, matavimo_ribos = :matavimo_ribos, tikslumo_klase = :tikslumo_klase, busena = :busena, vieta = :vieta, atsakingas_asmuo = :atsakingas_asmuo, kalibracijos_sertifikato_nr = :kalibracijos_sertifikato_nr, kalibravimo_istaiga = :kalibravimo_istaiga, kalibravimo_data = :kalibravimo_data, galiojimo_pabaiga = :galiojimo_pabaiga, kita_kalibracija = :kita_kalibracija, standartas_metodika = :standartas_metodika, pastabos = :pastabos, atnaujinta = CURRENT_TIMESTAMP WHERE id = :id");
         $stmt->execute([
@@ -58,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'id' => $_POST['id'],
         ]);
         $message = 'Prietaisas atnaujintas.';
+    // Prietaiso šalinimas iš sistemos
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
         if ($id) {
@@ -67,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Prietaiso detalios peržiūros režimas (pagal ID iš GET parametro)
 $view_id = $_GET['id'] ?? null;
 $view_device = null;
 
@@ -76,6 +88,7 @@ if ($view_id) {
     $view_device = $stmt->fetch();
 }
 
+// Filtravimas pagal prietaiso būseną
 $filter_busena = $_GET['busena'] ?? '';
 $where = '';
 $params = [];
@@ -88,6 +101,7 @@ $devices_stmt = $pdo->prepare("SELECT * FROM prietaisai $where ORDER BY vidinis_
 $devices_stmt->execute($params);
 $devices = $devices_stmt->fetchAll();
 
+// Kalibravimo galiojimo statistikos skaičiavimas (galioja, baigiasi, pasibaigę)
 $today = date('Y-m-d');
 $soon_date = date('Y-m-d', strtotime('+30 days'));
 $expired_count = 0;

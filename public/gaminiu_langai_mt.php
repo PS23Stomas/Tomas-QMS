@@ -1,13 +1,23 @@
 <?php
+/**
+ * MT gaminių navigacijos langas - plytelės funkcinių bandymų, komponentų, dielektrinių bandymų prieigai
+ *
+ * Šis failas atvaizduoja MT gaminio navigacijos puslapį su plytelėmis (tiles),
+ * leidžiančiomis pasiekti funkcinių bandymų formą, komponentų langą ir dielektrinių
+ * bandymų langą. Taip pat rodo gaminio informaciją ir leidžia nustatyti pilną gaminio pavadinimą.
+ */
+
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Gaminys.php';
 require_once __DIR__ . '/klases/Sesija.php';
 
+/* Sesijos pradžia ir prisijungimo tikrinimas */
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 $vardas  = htmlspecialchars($_SESSION['vardas']);
 $pavarde = htmlspecialchars($_SESSION['pavarde']);
 
+/* GET parametrų nuskaitymas: užsakymo numeris, užsakovas, gaminio ID */
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_GET['uzsakovas']        ?? '';
 $gaminio_id_get   = isset($_GET['gaminio_id']) && ctype_digit((string)$_GET['gaminio_id'])
@@ -16,6 +26,8 @@ $gaminio_id_get   = isset($_GET['gaminio_id']) && ctype_digit((string)$_GET['gam
 $conn    = Database::getConnection();
 $gaminys = new Gaminys($conn);
 
+/* --- Gaminio pavadinimo atnaujinimo POST apdorojimas --- */
+/* Jei forma pateikta su pilnu pavadinimu, įrašomas naujas pavadinimas ir nukreipiama atgal */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pilnas_pavadinimas'])) {
     $pavadinimas = trim($_POST['pilnas_pavadinimas']);
     if ($pavadinimas !== '' && $uzsakymo_numeris !== '') {
@@ -26,10 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pilnas_pavadinimas'])
     exit;
 }
 
+/* Esamo gaminio pavadinimo gavimas iš duomenų bazės */
 $esamas_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
+/* --- Gaminio ID nustatymas iš skirtingų lentelių --- */
 $gaminio_id_mt = $gaminio_id_get;
 
+/* 1 bandymas: ieškome gaminio ID iš uzsakymai/gaminiai lentelių pagal užsakymo numerį */
 if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
     $sql = "SELECT g.id FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY g.id DESC LIMIT 1";
     $st = $conn->prepare($sql);
@@ -39,6 +54,7 @@ if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
     }
 }
 
+/* 2 bandymas: ieškome gaminio ID iš mt_funkciniai_bandymai lentelės, jei pirmasis nerado */
 if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
     $sql = "SELECT m.gaminio_id FROM mt_funkciniai_bandymai m JOIN gaminiai g ON g.id = m.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY m.id DESC LIMIT 1";
     $st = $conn->prepare($sql);
@@ -48,6 +64,7 @@ if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
     }
 }
 
+/* PDF generavimo rezultato vėliavėlės (sėkmė/nesėkmė) */
 $pdfOk   = isset($_GET['mt_pdf_ok'])   && $_GET['mt_pdf_ok'] === '1';
 $pdfFail = isset($_GET['mt_pdf_fail']) && $_GET['mt_pdf_fail'] === '1';
 ?>
@@ -143,12 +160,14 @@ $pdfFail = isset($_GET['mt_pdf_fail']) && $_GET['mt_pdf_fail'] === '1';
       </span>
     </div>
     
+    <!-- Navigacijos plytelių tinklelis: grįžimo, funkcinių bandymų, komponentų, dielektrinių bandymų prieiga -->
     <div class="tiles-grid">
       <a href="/uzsakymai.php" class="tile tile-full-color tile-back">
         <div class="tile-icon"><i class="bi bi-arrow-left"></i></div>
         <span class="tile-title">Grįžti</span>
       </a>
       
+      <!-- Jei gaminio ID rastas, rodome aktyvias plyteles; kitaip - išjungtas (disabled) plyteles -->
       <?php if ($gaminio_id_mt > 0): ?>
         <a href="/mt_funkciniai_bandymai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_numeris) ?>&uzsakovas=<?= urlencode($uzsakovas) ?>" 
            class="tile tile-full-color tile-form">

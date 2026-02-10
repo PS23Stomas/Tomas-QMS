@@ -1,4 +1,11 @@
 <?php
+/**
+ * Bandymų prietaisų išsaugojimo tvarkyklė - naujo pridėjimas arba esamo atnaujinimas
+ *
+ * Apdoroja prietaisų formos duomenis.
+ * Jei pateiktas prietaiso ID (prietaiso_id > 0) – atnaujinamas esamas įrašas (UPDATE).
+ * Jei prietaiso ID nėra – sukuriamas naujas įrašas (INSERT).
+ */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
 
@@ -11,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $conn = Database::getConnection();
 
+// POST duomenų gavimas
 $gaminio_id       = (int)($_POST['gaminio_id'] ?? 0);
 $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
@@ -23,6 +31,7 @@ if ($gaminio_id <= 0) {
 
 try {
     if ($prietaiso_id > 0) {
+        // Esamo prietaiso atnaujinimas pagal ID
         $stmt = $conn->prepare("UPDATE bandymai_prietaisai 
             SET prietaiso_tipas = ?, prietaiso_nr = ?, patikra_data = ?, galioja_iki = ?, sertifikato_nr = ?
             WHERE id = ? AND gaminys_id = ?");
@@ -36,6 +45,7 @@ try {
             $gaminio_id
         ]);
     } else {
+        // Naujo prietaiso įterpimas
         $stmt = $conn->prepare("INSERT INTO bandymai_prietaisai 
             (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) 
             VALUES (?, ?, ?, ?, ?, ?)");
@@ -49,6 +59,7 @@ try {
         ]);
     }
 
+    // Sėkmingas nukreipimas atgal į dielektrinių bandymų puslapį
     header("Location: /MT/mt_dielektriniai.php?gaminys_id=" . $gaminio_id .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .

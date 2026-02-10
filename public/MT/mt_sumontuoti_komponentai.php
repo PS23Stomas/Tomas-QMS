@@ -1,25 +1,37 @@
 <?php
+/**
+ * MT sumontuotų komponentų puslapis - 18 numatytųjų komponentų valdymas
+ *
+ * Šis puslapis rodo 18 numatytųjų MT komponentų su CRUD galimybėmis.
+ * Vartotojas gali pasirinkti gamintojo kodus, gamintojus ir kiekius.
+ * Komponentų atvaizdavimui naudojama Komponentas klasė.
+ */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
 require_once __DIR__ . '/../klases/Komponentas.php';
 
+// Sesijos inicializavimas ir prisijungimo tikrinimas
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 
 $conn = Database::getConnection();
 
+// Prisijungusio vartotojo duomenys iš sesijos
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
 
+// Užsakymo ir gaminio parametrai iš GET užklausos
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas = $_GET['uzsakovas'] ?? '';
 $gaminio_id = $_GET['gaminio_id'] ?? '';
 $uzsakymo_id = $_GET['uzsakymo_id'] ?? '';
 
+// Gaminio pavadinimo gavimas pagal gaminio ID (jungiama su gaminio_tipai lentele)
 $stmt = $conn->prepare("SELECT gt.gaminio_tipas FROM gaminiai g JOIN gaminio_tipai gt ON g.gaminio_tipas_id = gt.id WHERE g.id = :id");
 $stmt->execute([':id' => $gaminio_id]);
 $gaminio_pavadinimas = $stmt->fetchColumn() ?: '';
 
+// Gamintojų kodų sąrašo krovimas pagal eilės numerį (naudojama pasirinkimo laukuose)
 $kodai_per_eile = [];
 $stmt = $conn->prepare("SELECT eiles_numeris, gamintojo_kodas FROM mt_komponentai WHERE gamintojo_kodas IS NOT NULL AND gamintojo_kodas != ''");
 $stmt->execute();
@@ -30,6 +42,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     if (!in_array($val, $kodai_per_eile[$nr])) $kodai_per_eile[$nr][] = $val;
 }
 
+// Visų unikalių gamintojų sąrašo krovimas (naudojama gamintojo pasirinkimo laukuose)
 $visi_gamintojai = [];
 $stmt2 = $conn->prepare("SELECT DISTINCT gamintojas FROM mt_komponentai WHERE gamintojas IS NOT NULL AND gamintojas != '' ORDER BY gamintojas ASC");
 $stmt2->execute();
@@ -37,10 +50,12 @@ while ($row = $stmt2->fetch(PDO::FETCH_ASSOC)) {
     $visi_gamintojai[] = $row['gamintojas'];
 }
 
+// Esamų komponentų duomenų gavimas pagal gaminio ID
 $stmt = $conn->prepare("SELECT * FROM mt_komponentai WHERE gaminio_id = :gaminio_id ORDER BY eiles_numeris ASC");
 $stmt->execute([':gaminio_id' => $gaminio_id]);
 $rez = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Įrašytų ir parinktų eilučių grupavimas pagal eilės numerį
 $irasytos_eilutes = [];
 $parinktos_eilutes = [];
 foreach ($rez as $eil) {
@@ -51,6 +66,7 @@ foreach ($rez as $eil) {
     }
 }
 
+// Numatytųjų 18 komponentų masyvas: [gamintojo_kodas, kiekis, aprašymas, gamintojas]
 $default = [
     ['gTr 400V 630kVA', 3, 'Saugiklis gTr Įvadas ', 'Jean Muller'],
     ['SL3-3x3/910+/2G/HA/V0/black', 2, 'Vertikalus kirtiklis Įvadas ', 'Jean Muller'],
@@ -72,6 +88,7 @@ $default = [
     ['N2XSY 1x35/16mm2', 26, '10kV kabelis', 'Nexans']
 ];
 
+// Komponentų objektų masyvo formavimas – naudojami esami duomenys arba numatytosios reikšmės
 $komponentai = [];
 for ($i = 1; $i <= 18; $i++) {
     if (isset($irasytos_eilutes[$i])) {
@@ -131,6 +148,7 @@ for ($i = 1; $i <= 18; $i++) {
         <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
         <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
 
+        <!-- Komponentų lentelės atvaizdavimas su stulpeliais: Nr., Kodas, Kiekis, Aprašymas, Gamintojas -->
         <table class="table table-bordered" style="table-layout: fixed; width: 100%;">
             <colgroup>
                 <col style="width: 45px;">
@@ -164,6 +182,7 @@ for ($i = 1; $i <= 18; $i++) {
     <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>" class="btn btn-dark mt-3">← Grįžti</a>
 </div>
 
+<!-- JavaScript funkcija naujos eilutės pridėjimui į komponentų lentelę -->
 <script>
 function pridetiEilute() {
     const tbody = document.getElementById('komponentai_tbody');

@@ -1,4 +1,12 @@
 <?php
+/**
+ * Slaptažodžio atstatymo užklausos puslapis - el. laiško siuntimas su atstatymo nuoroda
+ *
+ * Šis puslapis leidžia vartotojui įvesti el. pašto adresą ir gauti
+ * slaptažodžio atstatymo nuorodą el. paštu naudojant Emailas klasę.
+ */
+
+// Sesijos konfigūracija su saugumo parametrais
 session_set_cookie_params([
     'lifetime' => 28800, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax'
 ]);
@@ -12,9 +20,11 @@ $pdo = Database::getConnection();
 $pranesimas = '';
 $klaida = '';
 
+// POST užklausos apdorojimas - atstatymo nuorodos siuntimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $el_pastas = trim($_POST['el_pastas'] ?? '');
 
+    // El. pašto adreso validacija
     if (empty($el_pastas)) {
         $klaida = 'Įveskite savo el. pašto adresą.';
     } elseif (!filter_var($el_pastas, FILTER_VALIDATE_EMAIL)) {
@@ -25,12 +35,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $vartotojas = $stmt->fetch();
 
         if ($vartotojas) {
+            // Atsitiktinio žetono generavimas ir galiojimo laiko nustatymas (1 valanda)
             $token = bin2hex(random_bytes(32));
             $galiojimas = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
+            // Žetono išsaugojimas duomenų bazėje
             $stmt = $pdo->prepare("UPDATE vartotojai SET login_token = ?, token_galiojimas = ? WHERE id = ?");
             $stmt->execute([$token, $galiojimas, $vartotojas['id']]);
 
+            // El. laiško siuntimas per Emailas klasę (naudoja Resend API)
             try {
                 $vardas = $vartotojas['vardas'] . ' ' . $vartotojas['pavarde'];
                 $issiusta = Emailas::siustiAtstatymoNuoroda($vartotojas['el_pastas'], $vardas, $token);

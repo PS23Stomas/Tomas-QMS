@@ -1,6 +1,10 @@
 <?php
+/**
+ * Sesijos valdymo klasė - autentifikacija, veiklos sekimas, neaktyvių vartotojų valymas
+ */
 class Sesija {
 
+    /** Pradeda sesiją su 8 val. galiojimo laiku, atnaujina veiklą ir kartais išvalo neaktyvius */
     public static function pradzia(): void {
         if (session_status() === PHP_SESSION_NONE) {
             ini_set('session.gc_maxlifetime', 28800);
@@ -23,10 +27,12 @@ class Sesija {
         }
     }
 
+    /** Grąžina sesijos reikšmę pagal raktą arba tuščią eilutę */
     public static function get($raktas) {
         return $_SESSION[$raktas] ?? '';
     }
 
+    /** Tikrina, ar vartotojas prisijungęs; jei ne - nukreipia į prisijungimo puslapį */
     public static function tikrintiPrisijungima(): void {
         if (!isset($_SESSION['vartotojas_id'])) {
             header('Location: /login.php');
@@ -34,14 +40,17 @@ class Sesija {
         }
     }
 
+    /** Grąžina true, jei vartotojas yra prisijungęs */
     public static function arPrisijunges(): bool {
         return isset($_SESSION['vartotojas_id']);
     }
 
+    /** Grąžina true, jei vartotojo rolė yra „skaitytojas" (tik skaitymo teisės) */
     public static function arSkaitytojas(): bool {
         return ($_SESSION['role'] ?? '') === 'skaitytojas';
     }
 
+    /** Blokuoja skaitytojo veiksmus ir nukreipia į nurodytą puslapį su klaidos pranešimu */
     public static function blokuotiSkaitytojaVeiksma($redirect = '/index.php'): void {
         if (self::arSkaitytojas()) {
             header("Location: $redirect?klaida=skaitytojas");
@@ -49,6 +58,7 @@ class Sesija {
         }
     }
 
+    /** Atnaujina prisijungusio vartotojo paskutinės veiklos laiką duomenų bazėje */
     public static function atnaujintiVeikla(): void {
         if (isset($_SESSION['vartotojas_id'])) {
             try {
@@ -63,6 +73,7 @@ class Sesija {
         }
     }
 
+    /** Išvalo neaktyvius vartotojus, kurių paskutinė veikla senesnė nei 8 valandos */
     public static function isvalytiNeaktyvius(): void {
         try {
             $pdo = Database::getConnection();
@@ -73,6 +84,7 @@ class Sesija {
         }
     }
 
+    /** Gauna šiuo metu aktyvių vartotojų sąrašą (aktyvumas per paskutines 15 min.) */
     public static function gautiAktyvius(): array {
         try {
             $pdo = Database::getConnection();
@@ -86,6 +98,7 @@ class Sesija {
         }
     }
 
+    /** Gauna vartotojų prisijungimo istoriją per paskutines 24 valandas su aktyvumo statusu */
     public static function gautiIstorija24h(): array {
         try {
             $pdo = Database::getConnection();

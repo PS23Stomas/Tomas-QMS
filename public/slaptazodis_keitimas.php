@@ -1,4 +1,12 @@
 <?php
+/**
+ * Slaptažodžio keitimo puslapis - naujo slaptažodžio nustatymas per atstatymo žetoną
+ *
+ * Šis puslapis leidžia vartotojui nustatyti naują slaptažodį naudojant
+ * atstatymo žetoną, gautą el. paštu iš slaptažodžio atstatymo puslapio.
+ */
+
+// Sesijos konfigūracija su saugumo parametrais
 session_set_cookie_params([
     'lifetime' => 28800, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax'
 ]);
@@ -13,9 +21,11 @@ $klaida = '';
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
 $galiojantis = false;
 
+// Žetono tikrinimas ir galiojimo laiko patikra
 if (empty($token)) {
     $klaida = 'Netinkama arba trūkstama atstatymo nuoroda.';
 } else {
+    // Tikrinama ar žetonas galioja (nepasibaigęs galiojimo laikas)
     $stmt = $pdo->prepare("SELECT id, vardas, pavarde FROM vartotojai WHERE login_token = ? AND token_galiojimas > NOW()");
     $stmt->execute([$token]);
     $vartotojas = $stmt->fetch();
@@ -23,6 +33,7 @@ if (empty($token)) {
     if ($vartotojas) {
         $galiojantis = true;
     } else {
+        // Tikrinama ar žetonas egzistuoja, bet jau pasibaigęs
         $stmt2 = $pdo->prepare("SELECT id FROM vartotojai WHERE login_token = ?");
         $stmt2->execute([$token]);
         if ($stmt2->fetch()) {
@@ -33,10 +44,12 @@ if (empty($token)) {
     }
 }
 
+// Naujo slaptažodžio išsaugojimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
     $naujas = $_POST['slaptazodis'] ?? '';
     $pakartoti = $_POST['slaptazodis2'] ?? '';
 
+    // Slaptažodžio validacija (ilgis ir sutapimas)
     if (empty($naujas)) {
         $klaida = 'Įveskite naują slaptažodį.';
     } elseif (mb_strlen($naujas) < 4) {
@@ -44,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
     } elseif ($naujas !== $pakartoti) {
         $klaida = 'Slaptažodžiai nesutampa.';
     } else {
+        // Slaptažodžio maišos (hash) kūrimas ir išsaugojimas, žetono pašalinimas
         $hash = password_hash($naujas, PASSWORD_BCRYPT);
         $stmt = $pdo->prepare("UPDATE vartotojai SET slaptazodis = ?, login_token = NULL, token_galiojimas = NULL WHERE id = ?");
         $stmt->execute([$hash, $vartotojas['id']]);

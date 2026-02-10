@@ -1,15 +1,25 @@
 <?php
+/**
+ * MT funkcinių bandymų išsaugojimo tvarkyklė - transakcija, originalaus vartotojo išsaugojimas
+ *
+ * Šis failas apdoroja funkcinių bandymų formos pateikimą. Naudoja duomenų bazės transakciją,
+ * išsaugo originalų vartotoją (irase_vartotojas), atnaujina arba įterpia eilutes,
+ * ir pašalina eilutes, kurios nebuvo pateiktos formoje.
+ */
+
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Sesija.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 
+/* Tikrinama, ar užklausa yra POST ir ar yra būtini duomenys */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['gaminio_id'], $_POST['isvada'], $_POST['defektas'])) {
     echo "Duomenų nepavyko išsaugoti – netinkamas užklausos metodas arba trūksta duomenų.";
     exit;
 }
 
+/* POST duomenų nuskaitymas iš formos */
 $gaminio_id       = (int)$_POST['gaminio_id'];
 $isvados          = $_POST['isvada'];
 $defektai         = $_POST['defektas'];
@@ -21,6 +31,7 @@ $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
 $uzsakymo_id      = $_POST['uzsakymo_id'] ?? '';
 
+/* Dabartinio prisijungusio vartotojo pilnas vardas */
 $pilnas_vardas = (isset($_SESSION['vardas'], $_SESSION['pavarde']))
     ? ($_SESSION['vardas'] . ' ' . $_SESSION['pavarde'])
     : '';
@@ -28,8 +39,11 @@ $pilnas_vardas = (isset($_SESSION['vardas'], $_SESSION['pavarde']))
 $conn = Database::getConnection();
 
 try {
+    /* Transakcijos pradžia - visi pakeitimai bus atlikti arba atšaukti kartu */
     $conn->beginTransaction();
 
+    /* --- Esamų duomenų užkrovimas iš duomenų bazės --- */
+    /* Užkraunami visi esami bandymų įrašai šiam gaminiui, indeksuoti pagal eilės numerį */
     $stmt = $conn->prepare("
         SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas
         FROM mt_funkciniai_bandymai
@@ -47,6 +61,7 @@ try {
         ];
     }
 
+    /* Paruošiami SQL sakiniai: atnaujinimui (UPDATE) ir įterpimui (INSERT) */
     $upd = $conn->prepare("
         UPDATE mt_funkciniai_bandymai
            SET reikalavimas     = :reikalavimas,
@@ -65,6 +80,7 @@ try {
 
     $pateikti_eil_nriai = [];
 
+    /* --- Atnaujinimo ir įterpimo logika kiekvienai eilutei --- */
     foreach ($isvados as $i => $isv) {
         $eil_nr       = isset($eil_nrs[$i]) ? (int)$eil_nrs[$i] : ($i + 1);
         $reik         = trim((string)($reikalavimai[$i]    ?? ''));
@@ -74,18 +90,22 @@ try {
         $pateikti_eil_nriai[] = $eil_nr;
         $buvo = $esami[$eil_nr] ?? null;
 
+        /* Jei darbuotojas neįvestas, bet buvo anksčiau - išsaugomas ankstesnis */
         if ($darba_atliko === '' && $buvo && $buvo['darba_atliko'] !== '') {
             $darba_atliko = $buvo['darba_atliko'];
         }
 
+        /* 14-asis punktas: darbuotojo vardas nekeičiamas, jei jau buvo įvestas */
         if ($eil_nr === 14 && $buvo && $buvo['darba_atliko'] !== '') {
             $darba_atliko = $buvo['darba_atliko'];
         }
 
+        /* Praleidžiame tuščias naujas eilutes (nepadaryta, be defekto, be darbuotojo) */
         if (!$buvo && $isv === 'nepadaryta' && $def === '' && $darba_atliko === '') {
             continue;
         }
 
+        /* Tikriname ar reikia atnaujinti - praleidžiame, jei duomenys nepasikeitė */
         if ($buvo) {
             $reikia_atnaujinti = (
                 $buvo['isvada']       !== (string)$isv  ||
@@ -99,12 +119,15 @@ try {
             }
         }
 
+        /* --- Originalaus vartotojo išsaugojimas --- */
+        /* Jei įrašas jau egzistavo su vartotoju, išsaugomas originalus autorius */
         if ($buvo && $buvo['irase_vartotojas'] !== '') {
             $irase_vartotojas = $buvo['irase_vartotojas'];
         } else {
             $irase_vartotojas = $pilnas_vardas;
         }
 
+        /* Vykdome UPDATE (jei eilutė egzistavo) arba INSERT (jei nauja) */
         if ($buvo) {
             $upd->execute([
                 ':gaminio_id'   => $gaminio_id,
@@ -127,12 +150,15 @@ try {
         }
     }
 
+    /* --- Pašalinamų eilučių valymas --- */
+    /* Ištrinamos eilutės, kurių eilės numeriai nebuvo pateikti formoje */
     if (!empty($pateikti_eil_nriai)) {
         $placeholders = implode(',', array_fill(0, count($pateikti_eil_nriai), '?'));
         $del = $conn->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr NOT IN ($placeholders)");
         $del->execute(array_merge([$gaminio_id], $pateikti_eil_nriai));
     }
 
+    /* Transakcijos patvirtinimas - visi pakeitimai įrašomi */
     $conn->commit();
 
     $qs = http_build_query([

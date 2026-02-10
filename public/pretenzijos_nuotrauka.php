@@ -1,6 +1,12 @@
 <?php
+/**
+ * Pretenzijos nuotraukos atvaizdavimo tvarkyklė.
+ * Grąžina nuotraukos binarinį turinį pagal ID iš pretenzijos_nuotraukos lentelės.
+ * Naudojamas kaip <img src="/pretenzijos_nuotrauka.php?id=X"> šaltinis.
+ */
 require_once __DIR__ . '/includes/config.php';
 
+// Nuotraukos ID gavimas iš GET parametro
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($id <= 0) {
@@ -18,11 +24,13 @@ try {
         exit('Photo not found');
     }
 
+    // Nustatyti turinio tipą (numatytasis: image/jpeg)
     $contentType = $photo['tipas'] ?: 'image/jpeg';
 
     header('Content-Type: ' . $contentType);
     header('Cache-Control: public, max-age=86400');
 
+    // Išvesti nuotraukos turinį (resursas arba eilutė)
     if (is_resource($photo['turinys'])) {
         echo stream_get_contents($photo['turinys']);
     } else {

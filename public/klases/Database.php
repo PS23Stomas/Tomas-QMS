@@ -1,7 +1,15 @@
 <?php
+/**
+ * Duomenų bazės prisijungimo klasė (Singleton šablonas)
+ * Naudoja PDO su PostgreSQL. Analizuoja DATABASE_URL aplinkos kintamąjį.
+ */
 class Database {
     private static ?PDO $instance = null;
 
+    /**
+     * Grąžina PDO prisijungimą prie duomenų bazės.
+     * Jei prisijungimas dar nesukurtas, išanalizuoja DATABASE_URL ir sukuria naują PDO instanciją.
+     */
     public static function getConnection(): PDO {
         if (self::$instance !== null) {
             return self::$instance;

@@ -1,4 +1,11 @@
 <?php
+/**
+ * Vartotojo profilio puslapis - el. pašto atnaujinimas ir slaptažodžio keitimas
+ *
+ * Funkcionalumas:
+ * - El. pašto adreso peržiūra ir atnaujinimas
+ * - Slaptažodžio keitimas su dabartinio slaptažodžio patvirtinimu
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
@@ -6,13 +13,16 @@ $user = currentUser();
 $pranesimas = '';
 $klaida = '';
 
+// Gaunamas dabartinis vartotojo el. pašto adresas
 $stmt = $pdo->prepare("SELECT el_pastas FROM vartotojai WHERE id = ?");
 $stmt->execute([$user['id']]);
 $vartotojas = $stmt->fetch();
 
+// POST užklausos apdorojimas: el. pašto arba slaptažodžio keitimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $veiksmas = $_POST['veiksmas'] ?? '';
 
+    // El. pašto adreso atnaujinimo logika
     if ($veiksmas === 'el_pastas') {
         $naujas_el = trim($_POST['el_pastas'] ?? '');
         if (empty($naujas_el)) {
@@ -20,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($naujas_el, FILTER_VALIDATE_EMAIL)) {
             $klaida = 'Neteisingas el. pašto formatas.';
         } else {
+            // Atnaujinamas el. paštas duomenų bazėje
             $stmt = $pdo->prepare("UPDATE vartotojai SET el_pastas = ? WHERE id = ?");
             $stmt->execute([$naujas_el, $user['id']]);
             $vartotojas['el_pastas'] = $naujas_el;
@@ -27,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Slaptažodžio keitimo logika su dabartiniu slaptažodžiu patvirtinimu
     if ($veiksmas === 'slaptazodis') {
         $dabartinis = $_POST['dabartinis_slaptazodis'] ?? '';
         $naujas = $_POST['naujas_slaptazodis'] ?? '';
@@ -39,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($naujas !== $pakartoti) {
             $klaida = 'Nauji slaptažodžiai nesutampa.';
         } else {
+            // Tikrinamas dabartinis slaptažodis prieš leidžiant keisti
             $stmt = $pdo->prepare("SELECT slaptazodis FROM vartotojai WHERE id = ?");
             $stmt->execute([$user['id']]);
             $row = $stmt->fetch();
@@ -46,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!password_verify($dabartinis, $row['slaptazodis'])) {
                 $klaida = 'Neteisingas dabartinis slaptažodis.';
             } else {
+                // Naujo slaptažodžio užšifravimas ir įrašymas
                 $hash = password_hash($naujas, PASSWORD_BCRYPT);
                 $stmt = $pdo->prepare("UPDATE vartotojai SET slaptazodis = ? WHERE id = ?");
                 $stmt->execute([$hash, $user['id']]);

@@ -1,5 +1,14 @@
 <?php
+/**
+ * Bendras puslapio antraštės šablonas su šonine navigacija
+ *
+ * Šis šablonas generuoja HTML antraštę, šoninę navigacijos juostą,
+ * vartotojo informacijos rodymą ir pagrindinę turinio sritį.
+ */
+
+// Dabartinio puslapio nustatymas - naudojamas aktyvios nuorodos paryškinimui
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
+// Gauti prisijungusio vartotojo duomenis
 $user = currentUser();
 ?>
 <!DOCTYPE html>
@@ -8,20 +17,26 @@ $user = currentUser();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MT Modulis - Gamybos valdymo sistema</title>
+    <!-- Favicon piktogramų nuorodos -->
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png?v=2">
+    <!-- Stilių ir šriftų įkėlimas -->
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-layout">
+        <!-- Šoninė navigacijos juosta -->
         <aside class="sidebar" id="sidebar">
+            <!-- Šoninės juostos antraštė su logotipu ir uždarymo mygtuku -->
             <div class="sidebar-header">
                 <div class="sidebar-logo">MT Modulis</div>
                 <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
             </div>
+            <!-- Navigacijos meniu -->
             <nav class="sidebar-nav">
+                <!-- Gamybos skyriaus navigacijos nuorodos -->
                 <div class="nav-section-label">Gamyba</div>
                 <a href="/index.php" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -35,11 +50,13 @@ $user = currentUser();
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span>Pretenzijos</span>
                 </a>
+                <!-- Administravimo skyriaus navigacijos nuorodos -->
                 <div class="nav-section-label">Administravimas</div>
                 <a href="/prietaisai.php" class="nav-item <?= $current_page === 'prietaisai' ? 'active' : '' ?>" data-testid="link-devices">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     <span>Prietaisų patikra</span>
                 </a>
+                <!-- Administratoriaus nuorodos - matomos tik admin rolės vartotojams -->
                 <?php if (($user['role'] ?? '') === 'admin'): ?>
                 <a href="/vartotojai.php" class="nav-item <?= $current_page === 'vartotojai' ? 'active' : '' ?>" data-testid="link-users">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -47,7 +64,9 @@ $user = currentUser();
                 </a>
                 <?php endif; ?>
             </nav>
+            <!-- Šoninės juostos apatinė dalis - vartotojo informacija ir veiksmai -->
             <div class="sidebar-footer">
+                <!-- Prisijungusio vartotojo informacijos rodymas -->
                 <div class="user-info">
                     <div class="user-avatar"><?= h(mb_substr($user['vardas'] ?? 'V', 0, 1)) ?></div>
                     <div class="user-details">
@@ -55,6 +74,7 @@ $user = currentUser();
                         <div class="user-role"><?= h($user['role'] ?? 'user') ?></div>
                     </div>
                 </div>
+                <!-- Profilio ir atsijungimo nuorodos -->
                 <a href="/profilis.php" class="nav-item <?= $current_page === 'profilis' ? 'active' : '' ?>" data-testid="link-profile">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span>Profilis</span>
@@ -65,11 +85,14 @@ $user = currentUser();
                 </a>
             </div>
         </aside>
+        <!-- Pagrindinis turinio blokas -->
         <div class="main-content">
+            <!-- Viršutinė antraštės juosta su meniu mygtuku -->
             <header class="top-header">
                 <button class="menu-toggle" id="menuToggle" data-testid="button-menu-toggle">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
                 <h1 class="page-title" data-testid="text-page-title"><?= h($page_title ?? 'MT Modulis') ?></h1>
             </header>
+            <!-- Pagrindinė turinio sritis -->
             <main class="content-area">

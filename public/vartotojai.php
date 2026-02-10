@@ -1,10 +1,18 @@
 <?php
+/**
+ * Vartotojų valdymo puslapis (tik administratoriams) - vartotojų CRUD ir rolių valdymas
+ *
+ * Šis puslapis leidžia administratoriams kurti, redaguoti, šalinti vartotojus,
+ * priskirti roles (admin, user, skaitytojas) ir valdyti patvirtinimo būseną.
+ */
+
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Vartotojų valdymas';
 $user = currentUser();
 
+// Prieigos tikrinimas - tik administratoriai gali pasiekti šį puslapį
 if (($user['role'] ?? '') !== 'admin') {
     header('Location: /index.php');
     exit;
@@ -13,9 +21,11 @@ if (($user['role'] ?? '') !== 'admin') {
 $message = '';
 $error = '';
 
+// POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas, patvirtinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // Naujo vartotojo kūrimas su el. pašto unikalumo tikrinimu
     if ($action === 'create') {
         $el_pastas = trim($_POST['el_pastas'] ?? '');
         $existing = $pdo->prepare("SELECT id FROM vartotojai WHERE el_pastas = :el");
@@ -35,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $message = 'Vartotojas sukurtas sėkmingai.';
         }
+    // Vartotojo duomenų atnaujinimas (su galimybe pakeisti slaptažodį)
     } elseif ($action === 'update') {
         $fields = "vardas = :vardas, pavarde = :pavarde, el_pastas = :el_pastas, role = :role";
         $params = [
@@ -53,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("UPDATE vartotojai SET $fields WHERE id = :id");
         $stmt->execute($params);
         $message = 'Vartotojas atnaujintas.';
+    // Vartotojo šalinimas (negalima šalinti savęs)
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
         if ($id && $id != $_SESSION['vartotojas_id']) {
@@ -61,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = 'Negalite ištrinti savo paskyros.';
         }
+    // Vartotojo patvirtinimo būsenos perjungimas
     } elseif ($action === 'toggle_confirm') {
         $id = $_POST['id'] ?? null;
         $confirmed = $_POST['patvirtintas'] === '1' ? true : false;
@@ -76,8 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Vartotojų sąrašo gavimas su patvirtintojo informacija
 $users = $pdo->query("SELECT v.*, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
 
+// Vartotojų skaičius pagal roles statistikai
 $role_counts = $pdo->query("SELECT role, COUNT(*) as cnt FROM vartotojai GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
 
 require_once __DIR__ . '/includes/header.php';

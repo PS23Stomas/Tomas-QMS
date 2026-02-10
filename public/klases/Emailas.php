@@ -1,16 +1,22 @@
 <?php
+/**
+ * El. pašto siuntimo klasė per Resend API
+ */
 class Emailas {
     private static $apiKey = null;
     private static $fromEmail = 'MT Modulis <onboarding@resend.dev>';
 
+    /** Nustato Resend API raktą */
     public static function setApiKey(string $key): void {
         self::$apiKey = $key;
     }
 
+    /** Nustato siuntėjo el. pašto adresą */
     public static function setFromEmail(string $email): void {
         self::$fromEmail = $email;
     }
 
+    /** Grąžina API raktą iš nustatymo arba aplinkos kintamojo RESEND_API_KEY */
     private static function getApiKey(): string {
         if (self::$apiKey) return self::$apiKey;
         $key = getenv('RESEND_API_KEY');
@@ -18,6 +24,7 @@ class Emailas {
         return $key;
     }
 
+    /** Išsiunčia el. laišką per Resend API nurodytam gavėjui su tema ir HTML turiniu */
     public static function siusti(string $kam, string $tema, string $html): bool {
         $apiKey = self::getApiKey();
 
@@ -47,6 +54,7 @@ class Emailas {
         return $httpCode >= 200 && $httpCode < 300;
     }
 
+    /** Išsiunčia slaptažodžio atstatymo el. laišką su unikalia nuoroda vartotojui */
     public static function siustiAtstatymoNuoroda(string $kam, string $vardas, string $token): bool {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5000';

@@ -1,3 +1,10 @@
+/**
+ * MT Modulis - pagrindinė stilių rinkmena.
+ * Apima kintamuosius (spalvos, šriftai), maketo stilius,
+ * šoninės navigacijos, kortelių, lentelių, formų, mygtukų,
+ * modalinių langų, KPI rodiklių ir defektų skydelio stilius.
+ */
+
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;

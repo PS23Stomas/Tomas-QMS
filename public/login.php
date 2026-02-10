@@ -1,4 +1,15 @@
 <?php
+/**
+ * Prisijungimo puslapis - autentifikacija pagal vardą, pavardę ir slaptažodį
+ *
+ * Funkcionalumas:
+ * - Automatinis prisijungimas per „prisiminti mane" (remember_token) slapuką
+ * - Sesijos tikrinimas ir nukreipimas jei jau prisijungta
+ * - POST autentifikacija: vardo, pavardės ir slaptažodžio patikra
+ * - Aktyvių vartotojų (aktyvus_vartotojai) sekimas
+ */
+
+// Sesijos slapuko parametrų nustatymas (8 val. galiojimas, saugūs parametrai)
 session_set_cookie_params([
     'lifetime' => 28800,
     'path' => '/',
@@ -9,6 +20,7 @@ session_set_cookie_params([
 ini_set('session.gc_maxlifetime', 28800);
 session_start();
 
+// Duomenų bazės prisijungimas per DATABASE_URL aplinkos kintamąjį
 $database_url = getenv('DATABASE_URL');
 $parsed = parse_url($database_url);
 $dsn = "pgsql:host={$parsed['host']};port=" . ($parsed['port'] ?? 5432) . ";dbname=" . ltrim($parsed['path'], '/');
@@ -19,11 +31,13 @@ $pdo = new PDO($dsn, $parsed['user'], $parsed['pass'], [
 
 $klaida = '';
 
+// Automatinio prisijungimo tikrinimas per „prisiminti mane" slapuką (remember_token)
 if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     $token = $_COOKIE['remember_token'];
     $hashed_token = hash('sha256', $token);
     
     try {
+        // Užklausa: ieškomas galiojantis remember_token ir susiejamas su vartotoju
         $stmt = $pdo->prepare("
             SELECT v.id, v.vardas, v.pavarde, v.role 
             FROM remember_tokens rt
@@ -34,12 +48,14 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
         $user = $stmt->fetch();
         
         if ($user) {
+            // Sėkmingas automatinis prisijungimas: kuriama nauja sesija
             session_regenerate_id(true);
             $_SESSION['vartotojas_id'] = $user['id'];
             $_SESSION['vardas'] = $user['vardas'];
             $_SESSION['pavarde'] = $user['pavarde'];
             $_SESSION['role'] = $user['role'] ?? '';
             
+            // Įrašomas aktyvus vartotojas į aktyvus_vartotojai lentelę
             $session_id = session_id();
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
             $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
@@ -54,6 +70,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
             header("Location: /index.php");
             exit;
         } else {
+            // Negaliojantis slapukas - ištrinamas
             setcookie('remember_token', '', [
                 'expires' => time() - 3600,
                 'path' => '/',
@@ -66,17 +83,20 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     }
 }
 
+// Jei vartotojas jau prisijungęs - nukreipiame į pagrindinį puslapį
 if (isset($_SESSION['vartotojas_id'])) {
     header('Location: /index.php');
     exit;
 }
 
+// POST užklausos apdorojimas: prisijungimo formos duomenų tikrinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $vardas = trim($_POST['vardas'] ?? '');
     $pavarde = trim($_POST['pavarde'] ?? '');
     $slaptazodis = $_POST['slaptazodis'] ?? '';
 
     if ($vardas && $pavarde && $slaptazodis) {
+        // Vartotojo paieška duomenų bazėje pagal vardą ir pavardę
         $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas AND pavarde = :pavarde");
         $stmt->execute([
             'vardas' => $vardas,
@@ -84,7 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $naudotojas = $stmt->fetch();
 
+        // Slaptažodžio tikrinimas su password_verify (bcrypt)
         if ($naudotojas && password_verify($slaptazodis, $naudotojas['slaptazodis'])) {
+            // Sėkmingas prisijungimas: sesijos kintamųjų nustatymas
             session_regenerate_id(true);
             
             $_SESSION['vartotojas_id'] = $naudotojas['id'];
@@ -92,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['pavarde'] = $naudotojas['pavarde'];
             $_SESSION['role'] = $naudotojas['role'] ?? '';
             
+            // Aktyvaus vartotojo įrašymas (sesijos sekimas)
             $session_id = session_id();
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
             $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
@@ -103,15 +126,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     paskutine_veikla = CURRENT_TIMESTAMP");
             $stmt_ins->execute([$naudotojas['id'], $session_id, $naudotojas['vardas'], $naudotojas['pavarde'], $ip, $user_agent]);
             
+            // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
             if (isset($_POST['remember']) && $_POST['remember'] == '1') {
                 $token = bin2hex(random_bytes(32));
                 $expires = time() + (30 * 24 * 60 * 60);
                 
+                // Užšifruoto žetono įrašymas į remember_tokens lentelę
                 $stmt_token = $pdo->prepare("INSERT INTO remember_tokens 
                     (vartotojas_id, token, expires_at) 
                     VALUES (?, ?, TO_TIMESTAMP(?))");
                 $stmt_token->execute([$naudotojas['id'], hash('sha256', $token), $expires]);
                 
+                // Slapuko nustatymas naršyklėje
                 setcookie('remember_token', $token, [
                     'expires' => $expires,
                     'path' => '/',
