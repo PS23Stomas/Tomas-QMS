@@ -32,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'id' => $_POST['id'],
         ]);
+        $mt_pav = trim($_POST['pilnas_pavadinimas'] ?? '');
+        $uzs_nr = trim($_POST['uzsakymo_numeris'] ?? '');
+        if ($mt_pav !== '' && $uzs_nr !== '') {
+            require_once __DIR__ . '/klases/Gamys1.php';
+            $gh = new Gamys1($pdo);
+            $gh->irasytiPilnaPavadinima($uzs_nr, $mt_pav);
+        }
         $message = 'Užsakymas atnaujintas.';
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? $_GET['id'] ?? null;
@@ -63,15 +70,6 @@ if ($view_id) {
         $gaminys_helper = new Gamys1($pdo);
         $uzsakymo_nr = $order['uzsakymo_numeris'] ?? '';
         $uzsakovas_name = $order['uzsakovas'] ?? '';
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_mt_pavadinimas') {
-            $pavadinimas = trim($_POST['pilnas_pavadinimas'] ?? '');
-            if ($pavadinimas !== '' && $uzsakymo_nr !== '') {
-                $gaminys_helper->irasytiPilnaPavadinima($uzsakymo_nr, $pavadinimas);
-            }
-            header("Location: /uzsakymai.php?id=$view_id&mt_saved=1");
-            exit;
-        }
 
         $esamas_pavadinimas = $gaminys_helper->gautiPilnaPavadinima($uzsakymo_nr);
 
@@ -120,9 +118,6 @@ require_once __DIR__ . '/includes/header.php';
         Atgal
     </a>
 </div>
-<?php if (isset($_GET['mt_saved'])): ?>
-<div class="alert alert-success">Gaminio pavadinimas išsaugotas.</div>
-<?php endif; ?>
 
 <?php
     $first_product = $order_products[0] ?? null;
@@ -140,8 +135,8 @@ require_once __DIR__ . '/includes/header.php';
                 <p><strong>Kiekis:</strong> <?= h($order['kiekis'] ?? '-') ?></p>
             </div>
             <div>
+                <p><strong>Pavadinimas:</strong> <?= h($esamas_pavadinimas ?: ($first_product['gaminio_tipas'] ?? '-')) ?></p>
                 <p><strong>Gaminio Nr.:</strong> <?= h($first_product['gaminio_numeris'] ?? '-') ?></p>
-                <p><strong>Tipas:</strong> <?= h($first_product['gaminio_tipas'] ?? '-') ?></p>
                 <p><strong>Protokolo Nr.:</strong> <?= h($first_product['protokolo_nr'] ?? '-') ?></p>
                 <p><strong>Atitikties kodas:</strong> <?= h($first_product['atitikmuo_kodas'] ?? '-') ?></p>
                 <p><strong>Sukūrė:</strong> <?= h(($order['vardas'] ?? '') . ' ' . ($order['pavarde'] ?? '')) ?></p>
@@ -158,58 +153,6 @@ require_once __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
-    </div>
-</div>
-
-<div class="card" style="margin-bottom: 16px;" data-testid="card-redaguoti">
-    <div class="card-header">
-        <span class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Redaguoti
-        </span>
-    </div>
-    <div class="card-body">
-        <form method="POST" action="/uzsakymai.php?id=<?= $view_id ?>">
-            <input type="hidden" name="action" value="save_mt_pavadinimas">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label class="form-label"><strong>MT Gaminio pavadinimas:</strong></label>
-                <div class="mt-pavadinimas-row">
-                    <input type="text" name="pilnas_pavadinimas" class="form-control" 
-                           value="<?= h($esamas_pavadinimas ?? '') ?>" 
-                           placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
-                    <button type="submit" class="btn btn-primary" data-testid="button-save-pavadinimas">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Išsaugoti
-                    </button>
-                </div>
-            </div>
-        </form>
-        <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
-            <div class="grid-2" style="gap: 10px;">
-                <div class="form-group">
-                    <label class="form-label">Užsakymo numeris</label>
-                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['uzsakymo_numeris'] ?? '-') ?></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Užsakovas</label>
-                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['uzsakovas'] ?? '-') ?></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Objektas</label>
-                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['objektas'] ?? '-') ?></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Kiekis</label>
-                    <div style="padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"><?= h($order['kiekis'] ?? '-') ?></div>
-                </div>
-            </div>
-            <div style="text-align: right; margin-top: 8px;">
-                <button class="btn btn-secondary btn-sm" onclick="openModal('editOrderModal')" data-testid="button-edit-order">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Keisti užsakymo duomenis
-                </button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -260,6 +203,15 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Įtampos testai</div>
                 </div>
             </a>
+            <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
+                <div class="mt-tile-icon mt-tile-icon-slate">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Redaguoti</div>
+                    <div class="mt-tile-desc">Užsakymo duomenys</div>
+                </div>
+            </div>
             <?php else: ?>
             <div class="mt-tile mt-tile-disabled">
                 <div class="mt-tile-icon mt-tile-icon-muted">
@@ -288,6 +240,15 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Nėra gaminio</div>
                 </div>
             </div>
+            <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
+                <div class="mt-tile-icon mt-tile-icon-slate">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Redaguoti</div>
+                    <div class="mt-tile-desc">Užsakymo duomenys</div>
+                </div>
+            </div>
             <?php endif; ?>
         </div>
     </div>
@@ -304,32 +265,38 @@ require_once __DIR__ . '/includes/header.php';
             <input type="hidden" name="id" value="<?= $order['id'] ?>">
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Užsakymo numeris</label>
-                    <input type="text" class="form-control" name="uzsakymo_numeris" value="<?= h($order['uzsakymo_numeris'] ?? '') ?>" data-testid="input-order-number-edit">
+                    <label class="form-label">MT Gaminio pavadinimas</label>
+                    <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
                 </div>
-                <div class="grid-2">
+                <div style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px;">
                     <div class="form-group">
-                        <label class="form-label">Užsakovas</label>
-                        <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($clients as $c): ?>
-                            <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label">Užsakymo numeris</label>
+                        <input type="text" class="form-control" name="uzsakymo_numeris" value="<?= h($order['uzsakymo_numeris'] ?? '') ?>" data-testid="input-order-number-edit">
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Užsakovas</label>
+                            <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($clients as $c): ?>
+                                <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Objektas</label>
+                            <select class="form-control" name="objektas_id" data-testid="select-object-edit">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($objects as $o): ?>
+                                <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Objektas</label>
-                        <select class="form-control" name="objektas_id" data-testid="select-object-edit">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($objects as $o): ?>
-                            <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label">Kiekis</label>
+                        <input type="number" class="form-control" name="kiekis" value="<?= h($order['kiekis'] ?? '') ?>" data-testid="input-quantity-edit">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Kiekis</label>
-                    <input type="number" class="form-control" name="kiekis" value="<?= h($order['kiekis'] ?? '') ?>" data-testid="input-quantity-edit">
                 </div>
             </div>
             <div class="modal-footer">
