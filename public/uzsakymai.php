@@ -311,19 +311,24 @@ require_once __DIR__ . '/includes/header.php';
 <div class="card">
     <div class="card-header">
         <span class="card-title">Visi užsakymai (<?= count($orders) ?>)</span>
-        <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Naujas užsakymas
-        </button>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <div style="position:relative;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Naujas užsakymas
+            </button>
+        </div>
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table>
+            <table id="ordersTable">
                 <thead>
                     <tr>
                         <th>Nr.</th>
                         <th>Užsakovas</th>
-                        <th>Objektas</th>
                         <th>Gaminių</th>
                         <th>Sukūrė</th>
                         <th>Data</th>
@@ -333,10 +338,9 @@ require_once __DIR__ . '/includes/header.php';
                 <tbody>
                     <?php if (count($orders) > 0): ?>
                         <?php foreach ($orders as $o): ?>
-                        <tr data-testid="row-order-<?= $o['id'] ?>">
+                        <tr data-testid="row-order-<?= $o['id'] ?>" data-order-nr="<?= h(mb_strtolower($o['uzsakymo_numeris'] ?? '')) ?>">
                             <td><a href="/uzsakymai.php?id=<?= $o['id'] ?>" style="color: var(--primary); font-weight: 500;" data-testid="link-order-<?= $o['id'] ?>"><?= h($o['uzsakymo_numeris'] ?: 'Be nr.') ?></a></td>
                             <td><?= h($o['uzsakovas'] ?? '-') ?></td>
-                            <td><?= h($o['objektas'] ?? '-') ?></td>
                             <td><span class="badge badge-info"><?= $o['gaminiu_sk'] ?></span></td>
                             <td><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
                             <td style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
@@ -353,13 +357,30 @@ require_once __DIR__ . '/includes/header.php';
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="7" class="empty-state"><p>Nėra užsakymų</p></td></tr>
+                        <tr><td colspan="6" class="empty-state"><p>Nėra užsakymų</p></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script>
+function filterOrders() {
+    const search = document.getElementById('orderSearch').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#ordersTable tbody tr[data-order-nr]');
+    let visible = 0;
+    rows.forEach(row => {
+        const nr = row.getAttribute('data-order-nr') || '';
+        if (!search || nr.includes(search)) {
+            row.style.display = '';
+            visible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 
 <div class="modal-overlay" id="createOrderModal">
     <div class="modal">
