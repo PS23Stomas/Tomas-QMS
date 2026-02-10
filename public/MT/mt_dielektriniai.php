@@ -57,20 +57,21 @@ if (isset($_GET['salinti'])) {
     exit;
 }
 
+$db_prietaisai = $conn->query("SELECT id, pavadinimas, modelis, serijos_nr, kalibravimo_data, galiojimo_pabaiga, kalibracijos_sertifikato_nr FROM prietaisai ORDER BY pavadinimas")->fetchAll(PDO::FETCH_ASSOC);
+
 $stmt = $conn->prepare("SELECT COUNT(*) FROM bandymai_prietaisai WHERE gaminys_id=?");
 $stmt->execute([$gaminys_id]);
 $prietaisu_sk = $stmt->fetchColumn();
 
 if ($prietaisu_sk == 0) {
-    $default_prietaisai = [
-        ['Eurotest 61554', '11350310', '2025-02-07', '2026-02-06', '2233650'],
-        ['Metrel 2077', '07180456', '2025-02-25', '2026-02-24', '2233717'],
-        ['AID-70M', '1800', '2025-05-26', '2026-05-24', 'K-0043409']
-    ];
+    $default_modeliai = ['AID-70M', 'EUROTEST 61557', 'MI2077'];
     $sql = "INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)";
     $insert = $conn->prepare($sql);
-    foreach ($default_prietaisai as $p) {
-        $insert->execute([$gaminys_id, $p[0], $p[1], $p[2], $p[3], $p[4]]);
+    foreach ($db_prietaisai as $dp) {
+        if (in_array(strtoupper($dp['modelis']), $default_modeliai)) {
+            $tipas = $dp['modelis'];
+            $insert->execute([$gaminys_id, $tipas, $dp['serijos_nr'], $dp['kalibravimo_data'], $dp['galiojimo_pabaiga'], $dp['kalibracijos_sertifikato_nr']]);
+        }
     }
 }
 
@@ -78,9 +79,7 @@ $stmt = $conn->prepare("SELECT * FROM bandymai_prietaisai WHERE gaminys_id=? ORD
 $stmt->execute([$gaminys_id]);
 $prietaisai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt = $conn->prepare("SELECT * FROM antriniu_grandiniu_bandymai WHERE gaminys_id=?");
-$stmt->execute([$gaminys_id]);
-$vid_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$vid_itampa = [];
 
 $stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
 $stmt->execute([$gaminys_id]);
@@ -140,7 +139,16 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
     <h4 class="mt-4">Matavimai atlikti prietaisais:</h4>
     
     <div class="row g-2 mb-2">
-        <div class="col"><input type="text" id="prietaiso_tipas" name="prietaiso_tipas" class="form-control" placeholder="Tipas" required></div>
+        <div class="col">
+            <select id="prietaiso_select" class="form-control" onchange="uzpildytiPrietaisa(this.value)">
+                <option value="">-- Pasirinkti prietaisą --</option>
+                <?php foreach ($db_prietaisai as $dp): ?>
+                <option value="<?=htmlspecialchars(json_encode($dp))?>"><?=htmlspecialchars($dp['pavadinimas'] . ' / ' . $dp['modelis'])?></option>
+                <?php endforeach; ?>
+                <option value="__kita__">Kita (įvesti rankiniu būdu)...</option>
+            </select>
+            <input type="text" id="prietaiso_tipas" name="prietaiso_tipas" class="form-control mt-1" placeholder="Tipas" required style="display:none;">
+        </div>
         <div class="col"><input type="text" id="prietaiso_nr" name="prietaiso_nr" class="form-control" placeholder="Nr." required></div>
         <div class="col"><input type="date" id="patikra_data" name="patikra_data" class="form-control" required></div>
         <div class="col"><input type="date" id="galioja_iki" name="galioja_iki" class="form-control" required></div>
@@ -176,14 +184,61 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 </table>
 
 <script>
-function redaguotiPrietaisa(id, tipas, nr, patikra, galioja, sert) {
-    document.getElementById('prietaiso_id').value=id;
-    document.getElementById('prietaiso_tipas').value=tipas;
-    document.getElementById('prietaiso_nr').value=nr;
-    document.getElementById('patikra_data').value=patikra;
-    document.getElementById('galioja_iki').value=galioja;
-    document.getElementById('sertifikato_nr').value=sert;
+function uzpildytiPrietaisa(val) {
+    var tipasInput = document.getElementById('prietaiso_tipas');
+    var selectEl = document.getElementById('prietaiso_select');
+    if (val === '__kita__') {
+        tipasInput.style.display = 'block';
+        tipasInput.value = '';
+        tipasInput.focus();
+        document.getElementById('prietaiso_nr').value = '';
+        document.getElementById('patikra_data').value = '';
+        document.getElementById('galioja_iki').value = '';
+        document.getElementById('sertifikato_nr').value = '';
+        return;
+    }
+    if (!val) {
+        tipasInput.style.display = 'none';
+        tipasInput.value = '';
+        return;
+    }
+    try {
+        var p = JSON.parse(val);
+        tipasInput.value = p.modelis || '';
+        tipasInput.style.display = 'none';
+        document.getElementById('prietaiso_nr').value = p.serijos_nr || '';
+        document.getElementById('patikra_data').value = p.kalibravimo_data || '';
+        document.getElementById('galioja_iki').value = p.galiojimo_pabaiga || '';
+        document.getElementById('sertifikato_nr').value = p.kalibracijos_sertifikato_nr || '';
+    } catch(e) {}
 }
+
+function redaguotiPrietaisa(id, tipas, nr, patikra, galioja, sert) {
+    document.getElementById('prietaiso_id').value = id;
+    document.getElementById('prietaiso_tipas').value = tipas;
+    document.getElementById('prietaiso_tipas').style.display = 'block';
+    document.getElementById('prietaiso_select').value = '';
+    document.getElementById('prietaiso_nr').value = nr;
+    document.getElementById('patikra_data').value = patikra;
+    document.getElementById('galioja_iki').value = galioja;
+    document.getElementById('sertifikato_nr').value = sert;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    var tipasInput = document.getElementById('prietaiso_tipas');
+    var selectEl = document.getElementById('prietaiso_select');
+    if (tipasInput.style.display === 'none' && selectEl.value && selectEl.value !== '__kita__') {
+        try {
+            var p = JSON.parse(selectEl.value);
+            tipasInput.value = p.modelis || '';
+        } catch(ex) {}
+    }
+    if (!tipasInput.value.trim()) {
+        e.preventDefault();
+        alert('Pasirinkite arba įveskite prietaiso tipą');
+    }
+});
 </script>
 
 <form action="/MT/issaugoti_mt_dielektriniai.php" method="post">
