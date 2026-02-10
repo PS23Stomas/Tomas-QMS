@@ -130,15 +130,23 @@ for ($i = 1; $i <= 18; $i++) {
         <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
         <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
 
-        <table class="table table-bordered">
+        <table class="table table-bordered" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 45px;">
+                <col style="width: 28%;">
+                <col style="width: 70px;">
+                <col style="width: 22%;">
+                <col style="width: 20%;">
+                <col style="width: 42px;">
+            </colgroup>
             <thead style="background-color: #0f766e; color: white;">
                 <tr>
-                    <th>Nr.</th>
-                    <th>Gamintojo kodas</th>
-                    <th>Kiekis</th>
-                    <th>Aprašymas</th>
-                    <th>Gamintojas</th>
-                    <th style="width: 50px;"></th>
+                    <th style="padding: 8px 6px; font-size: 13px;">Nr.</th>
+                    <th style="padding: 8px 6px; font-size: 13px;">Gamintojo kodas</th>
+                    <th style="padding: 8px 6px; font-size: 13px;">Kiekis</th>
+                    <th style="padding: 8px 6px; font-size: 13px;">Aprašymas</th>
+                    <th style="padding: 8px 6px; font-size: 13px;">Gamintojas</th>
+                    <th style="padding: 8px 4px;"></th>
                 </tr>
             </thead>
             <tbody id="komponentai_tbody">
@@ -161,20 +169,27 @@ function pridetiEilute() {
     const index = tbody.children.length + 1;
     const naujaEilute = `
         <tr>
-            <td><input type='text' class='form-control' name='eile_id[]' value='${index}' readonly></td>
-            <td>
-                <input type='text' class='form-control' name='kodas[]' placeholder='Gamintojo kodas'>
+            <td style='padding: 6px 4px; vertical-align: top; text-align: center; font-weight: 600; font-size: 13px;'>
+                ${index}
+                <input type='hidden' name='eile_id[]' value='${index}'>
+            </td>
+            <td style='padding: 5px 4px; vertical-align: top;'>
+                <input type='text' class='form-control form-control-sm' name='kodas[]' placeholder='Gamintojo kodas' style='font-size: 12px;'>
                 <input type='hidden' name='kodas_naujas[]' value=''>
             </td>
-            <td><input type='number' class='form-control' name='kiekis[]'></td>
-            <td><input type='text' class='form-control' name='aprasymas[]'></td>
-            <td>
-                <input type='text' class='form-control' name='gamintojas[]' placeholder='Gamintojas'>
+            <td style='padding: 5px 4px; vertical-align: top;'>
+                <input type='number' class='form-control form-control-sm' name='kiekis[]' style='font-size: 12px;'>
+            </td>
+            <td style='padding: 5px 4px; vertical-align: top;'>
+                <input type='text' class='form-control form-control-sm' name='aprasymas[]' style='font-size: 12px;'>
+            </td>
+            <td style='padding: 5px 4px; vertical-align: top;'>
+                <input type='text' class='form-control form-control-sm' name='gamintojas[]' placeholder='Gamintojas' style='font-size: 12px;'>
                 <input type='hidden' name='gamintojas_naujas[]' value=''>
             </td>
-            <td style='vertical-align: middle; text-align: center;'>
-                <button type='submit' name='saugoti[]' value='${index}' class='btn btn-outline-secondary btn-sm' title='Išsaugoti eilutę' style='padding: 4px 8px;'>
-                    <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/><polyline points='17 21 17 13 7 13 7 21'/><polyline points='7 3 7 8 15 8'/></svg>
+            <td style='padding: 5px 2px; vertical-align: middle; text-align: center;'>
+                <button type='submit' name='saugoti[]' value='${index}' class='btn btn-outline-secondary btn-sm' title='Išsaugoti eilutę' style='padding: 3px 6px;'>
+                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/><polyline points='17 21 17 13 7 13 7 21'/><polyline points='7 3 7 8 15 8'/></svg>
                 </button>
             </td>
         </tr>
