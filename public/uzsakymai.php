@@ -91,6 +91,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="card-header">
         <span class="card-title">Užsakymas: <?= h($order['uzsakymo_numeris'] ?: 'Be nr.') ?></span>
         <div class="actions">
+            <a href="/gaminiu_langai_mt.php?uzsakymo_numeris=<?= urlencode($order['uzsakymo_numeris'] ?? '') ?>&uzsakovas=<?= urlencode($order['uzsakovas'] ?? '') ?>" class="btn btn-success btn-sm" data-testid="button-mt-langas" style="margin-right: 8px;">MT Langas</a>
             <button class="btn btn-primary btn-sm" onclick="openModal('editOrderModal')" data-testid="button-edit-order">Redaguoti</button>
         </div>
     </div>

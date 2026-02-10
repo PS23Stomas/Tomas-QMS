@@ -53,6 +53,14 @@ public/                     # Web root served by PHP
 ├── pretenzijos.php         # Claims - list, view, create, edit, delete
 ├── prietaisai.php          # Devices/instruments - calibration tracking, CRUD
 ├── vartotojai.php          # User management (admin only) - CRUD
+├── gaminiu_langai_mt.php   # MT product navigation window (tiles for forms/components/tests)
+├── mt_funkciniai_bandymai.php  # MT functional tests form (21 requirements)
+├── issaugoti_mt_bandyma.php    # Save handler for functional tests
+├── MT/
+│   ├── mt_sumontuoti_komponentai.php  # MT mounted components list (18 default items)
+│   ├── issaugoti_mt_komponentus.php   # Save handler for components
+│   ├── mt_dielektriniai.php           # Dielectric tests (instruments, voltage tests, grounding)
+│   └── issaugoti_mt_dielektriniai.php # Save handler for dielectric tests
 ├── mt_statistika.php       # MT statistics page with filtering
 ├── grafiko_duomenys.php    # Chart data API endpoint
 └── router.php              # URL router for PHP built-in server
@@ -76,6 +84,8 @@ public/                     # Web root served by PHP
   - `pretenzijos` - Claims/complaints tracking
   - `prietaisai` - Devices/instruments with calibration tracking
   - `gaminiu_rusys` - Product categories
+  - `bandymai_prietaisai` - Test instruments/devices for dielectric tests
+  - `antriniu_grandiniu_bandymai` - Secondary circuit (medium voltage) test results
 
 ### Build & Development
 - **Dev**: `npm run dev` runs `tsx server/index.ts` which launches PHP built-in server
@@ -92,6 +102,12 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-10: Added MT gaminių langas with navigation tiles to functional tests, components, dielectric tests
+- 2026-02-10: Added MT functional tests form (21 manufacturing requirements with save)
+- 2026-02-10: Added MT components management (18 default components with CRUD)
+- 2026-02-10: Added MT dielectric tests (instruments, voltage tests, grounding checks with save)
+- 2026-02-10: Added Sesija.php and Komponentas.php helper classes
+- 2026-02-10: Added "MT Langas" button to order detail view in uzsakymai.php
 - 2026-02-10: Added password reset via email (slaptazodis_atstatymas.php, slaptazodis_keitimas.php)
 - 2026-02-10: Added user profile page (profilis.php) with email update and password change
 - 2026-02-10: Added Emailas.php class for Resend API email integration

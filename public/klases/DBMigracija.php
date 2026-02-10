@@ -7,7 +7,38 @@ class DBMigracija {
     }
 
     public function paleisti(): void {
+        $this->sukurtiTrukstamasLenteles();
         $this->pataisytiVarcharLaukus();
+    }
+
+    private function sukurtiTrukstamasLenteles(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS bandymai_prietaisai (
+                    id SERIAL PRIMARY KEY,
+                    gaminys_id INTEGER NOT NULL,
+                    prietaiso_tipas VARCHAR(255),
+                    prietaiso_nr VARCHAR(255),
+                    patikra_data DATE,
+                    galioja_iki DATE,
+                    sertifikato_nr VARCHAR(255)
+                )
+            ");
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS antriniu_grandiniu_bandymai (
+                    id SERIAL PRIMARY KEY,
+                    gaminys_id INTEGER NOT NULL,
+                    eiles_nr INTEGER,
+                    grandines_pavadinimas TEXT,
+                    grandines_itampa VARCHAR(50),
+                    bandymo_schema VARCHAR(255),
+                    bandymo_itampa_kV VARCHAR(50),
+                    bandymo_trukme VARCHAR(50),
+                    isvada TEXT
+                )
+            ");
+        } catch (PDOException $e) {
+        }
     }
 
     private function pataisytiVarcharLaukus(): void {
