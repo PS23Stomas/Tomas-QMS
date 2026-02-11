@@ -35,6 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'vartotojas_id' => $_SESSION['vartotojas_id'],
         ]);
+        $new_order_id = $pdo->lastInsertId();
+        $pdo->prepare('INSERT INTO gaminiai (uzsakymo_id) VALUES (:uid)')->execute(['uid' => $new_order_id]);
         $message = 'Užsakymas sukurtas sėkmingai.';
     // Užsakymo duomenų atnaujinimas ir MT gaminio pavadinimo įrašymas
     } elseif ($action === 'update') {
