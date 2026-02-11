@@ -119,13 +119,18 @@ class MTPasasKomponentai {
         return $this->formatuoti($this->gautiPagalEilesNr(4));
     }
 
-    /** Paso sekcija 3.10 - šynų sistema (eilės nr. 9) */
+    /** Paso sekcija 3.10 - sekcinio saugiklio įdėklas (eilės nr. 3) */
     public function punktas3_10() {
+        return $this->formatuoti($this->gautiPagalEilesNr(3));
+    }
+
+    /** Paso sekcija 3.11 - komercinė apskaita, srovės transformatorius (eilės nr. 9) */
+    public function punktas3_11() {
         return $this->formatuoti($this->gautiPagalEilesNr(9));
     }
 
-    /** Paso sekcija 3.11 - kiti komponentai (eilės nr. 10) */
-    public function punktas3_11() {
+    /** Paso sekcija 3.12 - kontrolinė apskaita, srovės transformatorius (eilės nr. 10) */
+    public function punktas3_12() {
         return $this->formatuoti($this->gautiPagalEilesNr(10));
     }
 }

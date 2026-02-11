@@ -69,6 +69,7 @@ $komp_34 = $mt_pasas->punktas3_4();
 $komp_39 = $mt_pasas->punktas3_9();
 $komp_310 = $mt_pasas->punktas3_10();
 $komp_311 = $mt_pasas->punktas3_11();
+$komp_312 = $mt_pasas->punktas3_12();
 
 preg_match('/(\d+)x(\d+)/', $gaminio_pavadinimas, $match_kva);
 $transformatoriai_kva = $match_kva[0] ?? '';
@@ -763,8 +764,9 @@ require_once __DIR__ . '/../includes/header.php';
         </tr>
 
         <?php
-        $text_312 = gautiTeksta('3_12', '', $korekcijos_data);
-        $klase_312 = turiKorekcija('3_12', $korekcijos_data) ? 'koreguota' : 'highlight';
+        $orig_312 = formatuotiKomponenta($komp_312);
+        $text_312 = gautiTeksta('3_12', $orig_312, $korekcijos_data);
+        $klase_312 = turiKorekcija('3_12', $korekcijos_data) ? 'koreguota' : (empty($komp_312['gamintojo_kodas']) ? 'highlight' : '');
         ?>
         <tr>
             <td class="nr-col">3.12</td>

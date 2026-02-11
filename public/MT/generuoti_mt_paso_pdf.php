@@ -49,6 +49,7 @@ $komp_34 = $mt_pasas->punktas3_4();
 $komp_39 = $mt_pasas->punktas3_9();
 $komp_310 = $mt_pasas->punktas3_10();
 $komp_311 = $mt_pasas->punktas3_11();
+$komp_312 = $mt_pasas->punktas3_12();
 
 preg_match('/(\d+)x(\d+)/', $gaminio_pavadinimas, $match_kva);
 $transformatoriai_kva = $match_kva[0] ?? '';
@@ -128,7 +129,7 @@ $text_34 = gautiTekstaPdf('3_4', formatuotiKomponentaPdf($komp_34, false), $kore
 $text_39 = gautiTekstaPdf('3_9', formatuotiKomponentaPdf($komp_39, false), $korekcijos_data);
 $text_310 = gautiTekstaPdf('3_10', formatuotiKomponentaPdf($komp_310), $korekcijos_data);
 $text_311 = gautiTekstaPdf('3_11', formatuotiKomponentaPdf($komp_311), $korekcijos_data);
-$text_312 = gautiTekstaPdf('3_12', '', $korekcijos_data);
+$text_312 = gautiTekstaPdf('3_12', formatuotiKomponentaPdf($komp_312), $korekcijos_data);
 
 $transformatoriaus_eilute = htmlspecialchars($transformatoriai_kva ?: 'Nenurodyta');
 if (!empty($galingumas_kva)) {
