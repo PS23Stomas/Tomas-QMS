@@ -57,17 +57,18 @@ $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
-$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
 $duomenys_map = [];
 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
     $nr = (int)$r['eil_nr'];
     $duomenys_map[$nr] = [
-        'isvada'   => $r['isvada'] ?? 'nepadaryta',
-        'defektas' => $r['defektas'] ?? '',
-        'atliko'   => $r['darba_atliko'] ?? '',
-        'irase'    => $r['irase_vartotojas'] ?? ''
+        'isvada'     => $r['isvada'] ?? 'nepadaryta',
+        'defektas'   => $r['defektas'] ?? '',
+        'atliko'     => $r['darba_atliko'] ?? '',
+        'irase'      => $r['irase_vartotojas'] ?? '',
+        'nuotrauka'  => $r['defekto_nuotraukos_pavadinimas'] ?? ''
     ];
 }
 ?>
@@ -86,7 +87,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         .col-irase  { width: 220px; }
         .col-atliko { width: 220px; }
         .col-isvada { width: 180px; }
-        .col-defekt { width: 320px; }
+        .col-defekt { width: 260px; }
+        .col-nuotr  { width: 160px; }
+        .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
+        .nuotr-input { font-size: 11px; }
     </style>
 </head>
 <body>
@@ -108,7 +112,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
 
     <h2 class="text-center mb-4">MT gaminio atliktų darbų pildymo forma</h2>
 
-    <form action="/issaugoti_mt_bandyma.php" method="post">
+    <form action="/issaugoti_mt_bandyma.php" method="post" enctype="multipart/form-data">
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle">
                 <thead class="table-light text-center">
@@ -119,6 +123,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                         <th class="col-atliko">Atliko</th>
                         <th class="col-isvada">Išvada</th>
                         <th class="col-defekt">Defektas</th>
+                        <th class="col-nuotr">Nuotrauka</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -126,10 +131,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                 <?php foreach ($reikalavimai as $i => $reik):
                     $eil_nr   = $i + 1;
                     $row      = $duomenys_map[$eil_nr] ?? [];
-                    $isvada   = $row['isvada']   ?? 'nepadaryta';
-                    $defektas = $row['defektas'] ?? '';
-                    $atliko   = $row['atliko']   ?? '';
-                    $irase    = $row['irase']    ?? '';
+                    $isvada    = $row['isvada']    ?? 'nepadaryta';
+                    $defektas  = $row['defektas']  ?? '';
+                    $atliko    = $row['atliko']    ?? '';
+                    $irase     = $row['irase']     ?? '';
+                    $nuotrauka = $row['nuotrauka'] ?? '';
                 ?>
                     <tr>
                         <td class="text-center"><?= $eil_nr ?></td>
@@ -158,6 +164,14 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                                    placeholder="Įveskite defektą (jei yra)" value="<?= htmlspecialchars($defektas) ?>">
                             <input type="hidden" name="reikalavimas[<?= $i ?>]" value="<?= htmlspecialchars($reik) ?>">
                             <input type="hidden" name="eil_nr[<?= $i ?>]" value="<?= (int)$eil_nr ?>">
+                        </td>
+                        <td class="text-center">
+                            <?php if (!empty($nuotrauka)): ?>
+                                <a href="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>" target="_blank">
+                                    <img src="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>&thumb=1" class="nuotr-preview" alt="Nuotrauka" title="<?= htmlspecialchars($nuotrauka) ?>">
+                                </a>
+                            <?php endif; ?>
+                            <input type="file" name="nuotrauka_<?= $eil_nr ?>" accept="image/*" capture="environment" class="form-control nuotr-input mt-1" data-testid="input-photo-<?= $eil_nr ?>">
                         </td>
                     </tr>
                 <?php endforeach; ?>

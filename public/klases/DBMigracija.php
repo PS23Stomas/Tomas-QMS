@@ -14,6 +14,7 @@ class DBMigracija {
         $this->sukurtiTrukstamasLenteles();
         $this->pridetiMtPasoStulpelius();
         $this->pridetiMtDielektriniuStulpelius();
+        $this->pridetiDefektoNuotraukuStulpelius();
         $this->pataisytiVarcharLaukus();
     }
 
@@ -69,6 +70,19 @@ class DBMigracija {
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_dielektriniu_pdf BYTEA");
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_dielektriniu_failas VARCHAR(255)");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda defekto nuotraukų stulpelius į mt_funkciniai_bandymai lentelę */
+    private function pridetiDefektoNuotraukuStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'defekto_nuotrauka'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN defekto_nuotrauka BYTEA");
+                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN defekto_nuotraukos_pavadinimas VARCHAR(255)");
             }
         } catch (PDOException $e) {
         }

@@ -158,6 +158,46 @@ try {
         $del->execute(array_merge([$gaminio_id], $pateikti_eil_nriai));
     }
 
+    /* --- Nuotraukų įkėlimo apdorojimas --- */
+    $max_foto_dydis = 10 * 1024 * 1024;
+    $leistini_tipai = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+
+    foreach ($pateikti_eil_nriai as $enr) {
+        $file_key = 'nuotrauka_' . $enr;
+        if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === UPLOAD_ERR_OK && $_FILES[$file_key]['size'] > 0) {
+            if ($_FILES[$file_key]['size'] > $max_foto_dydis) {
+                continue;
+            }
+            $tmp = $_FILES[$file_key]['tmp_name'];
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $tikras_tipas = $finfo->file($tmp);
+            if (!in_array($tikras_tipas, $leistini_tipai)) {
+                continue;
+            }
+            $pavadinimas = $_FILES[$file_key]['name'];
+            $turinys = file_get_contents($tmp);
+            if ($turinys !== false) {
+                $check = $conn->prepare("SELECT 1 FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
+                $check->execute([$gaminio_id, $enr]);
+                if (!$check->fetch()) {
+                    $ins = $conn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id, eil_nr, isvada, defekto_nuotrauka, defekto_nuotraukos_pavadinimas) VALUES (:gid, :enr, 'nepadaryta', :foto, :pav)");
+                    $ins->bindParam(':foto', $turinys, PDO::PARAM_LOB);
+                    $ins->bindParam(':pav', $pavadinimas);
+                    $ins->bindParam(':gid', $gaminio_id);
+                    $ins->bindParam(':enr', $enr);
+                    $ins->execute();
+                } else {
+                    $upd_photo = $conn->prepare("UPDATE mt_funkciniai_bandymai SET defekto_nuotrauka = :foto, defekto_nuotraukos_pavadinimas = :pav WHERE gaminio_id = :gid AND eil_nr = :enr");
+                    $upd_photo->bindParam(':foto', $turinys, PDO::PARAM_LOB);
+                    $upd_photo->bindParam(':pav', $pavadinimas);
+                    $upd_photo->bindParam(':gid', $gaminio_id);
+                    $upd_photo->bindParam(':enr', $enr);
+                    $upd_photo->execute();
+                }
+            }
+        }
+    }
+
     /* Transakcijos patvirtinimas - visi pakeitimai įrašomi */
     $conn->commit();
 
