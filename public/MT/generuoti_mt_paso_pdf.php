@@ -328,11 +328,10 @@ try {
     $failo_pavadinimas = 'MT_Pasas_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
 
     $stmt = $conn->prepare("UPDATE gaminiai SET mt_paso_pdf = :pdf, mt_paso_failas = :failas WHERE id = :id");
-    $stmt->execute([
-        'pdf' => $pdf_content,
-        'failas' => $failo_pavadinimas,
-        'id' => $gaminio_id,
-    ]);
+    $stmt->bindParam('pdf', $pdf_content, PDO::PARAM_LOB);
+    $stmt->bindParam('failas', $failo_pavadinimas);
+    $stmt->bindParam('id', $gaminio_id);
+    $stmt->execute();
 
     $params = http_build_query([
         'gaminio_id' => $gaminio_id,
