@@ -56,11 +56,16 @@ public/                     # Web root served by PHP
 ├── gaminiu_langai_mt.php   # MT product navigation window (tiles for forms/components/tests)
 ├── mt_funkciniai_bandymai.php  # MT functional tests form (21 requirements)
 ├── issaugoti_mt_bandyma.php    # Save handler for functional tests
+├── defekto_nuotrauka.php       # Defect photo viewing endpoint (serves BYTEA images)
 ├── MT/
 │   ├── mt_sumontuoti_komponentai.php  # MT mounted components list (18 default items)
 │   ├── issaugoti_mt_komponentus.php   # Save handler for components (single row or bulk)
 │   ├── mt_dielektriniai.php           # Dielectric tests (instruments, voltage tests, grounding)
 │   ├── issaugoti_mt_dielektriniai.php # Save handler for dielectric tests (with transactions)
+│   ├── generuoti_mt_dielektriniu_pdf.php # Dielectric tests PDF generation
+│   ├── mt_dielektriniu_pdf.php        # Dielectric tests PDF viewing/download
+│   ├── generuoti_mt_funkciniu_pdf.php # Functional tests PDF generation
+│   ├── mt_funkciniu_pdf.php           # Functional tests PDF viewing/download
 │   ├── issaugoti_mt_saugiklius.php    # Save handler for fuse holders (transactional)
 │   ├── issaugoti_prietaisus.php       # Save handler for test instruments
 │   ├── issaugoti_protokolo_nr.php     # Save handler for protocol number
@@ -108,6 +113,11 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-11: Added functional tests PDF generation (generuoti_mt_funkciniu_pdf.php, mt_funkciniu_pdf.php)
+- 2026-02-11: Added mt_funkciniu_pdf (BYTEA) and mt_funkciniu_failas columns to gaminiai table
+- 2026-02-11: Added "Funkc." column to orders list showing functional tests PDF availability
+- 2026-02-11: Added defect photo upload feature to functional tests form with camera capture
+- 2026-02-11: Added defekto_nuotrauka.php endpoint for viewing defect photos
 - 2026-02-11: Added dielectric tests PDF generation (generuoti_mt_dielektriniu_pdf.php, mt_dielektriniu_pdf.php)
 - 2026-02-11: Added mt_dielektriniu_pdf (BYTEA) and mt_dielektriniu_failas columns to gaminiai table
 - 2026-02-11: Updated issaugoti_mt_dielektriniai.php to save medium voltage data to antriniu_grandiniu_bandymai

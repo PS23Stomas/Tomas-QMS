@@ -55,6 +55,11 @@ $conn = Database::getConnection();
 $gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
+$gaminio_info = $gaminys->gautiPagalId($gaminio_id);
+$turi_funkciniu_pdf = !empty($gaminio_info['mt_funkciniu_failas']);
+$pdf_sukurtas = $_GET['pdf_sukurtas'] ?? '';
+$pdf_klaida = $_GET['pdf_klaida'] ?? '';
+
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
 $stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
@@ -108,6 +113,12 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
 
     <?php if (isset($_GET['issaugota']) && $_GET['issaugota'] === 'taip'): ?>
         <div class="alert alert-success">Duomenys sėkmingai išsaugoti.</div>
+    <?php endif; ?>
+    <?php if ($pdf_sukurtas === 'taip'): ?>
+        <div class="alert alert-success">PDF dokumentas sėkmingai sugeneruotas ir išsaugotas.</div>
+    <?php endif; ?>
+    <?php if (!empty($pdf_klaida)): ?>
+        <div class="alert alert-danger">PDF generavimo klaida: <?= htmlspecialchars($pdf_klaida) ?></div>
     <?php endif; ?>
 
     <h2 class="text-center mb-4">MT gaminio atliktų darbų pildymo forma</h2>
@@ -192,6 +203,21 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
             <button type="submit" class="btn btn-success">Išsaugoti</button>
         </div>
     </form>
+
+    <div class="d-flex gap-2 mb-3 mt-4 align-items-center">
+        <form action="/MT/generuoti_mt_funkciniu_pdf.php" method="post" style="display:inline;">
+            <input type="hidden" name="gaminio_id" value="<?= (int)$gaminio_id ?>">
+            <input type="hidden" name="uzsakymo_numeris" value="<?= htmlspecialchars($uzsakymo_numeris) ?>">
+            <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
+            <input type="hidden" name="gaminio_pavadinimas" value="<?= htmlspecialchars($gaminio_pavadinimas) ?>">
+            <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
+            <button type="submit" class="btn btn-primary" data-testid="button-generuoti-funkciniu-pdf">Generuoti PDF</button>
+        </form>
+        <?php if ($turi_funkciniu_pdf): ?>
+        <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $gaminio_id ?>" target="_blank" class="btn btn-outline-primary" data-testid="button-perziureti-funkciniu-pdf">Peržiūrėti PDF</a>
+        <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $gaminio_id ?>&atsisiusti" class="btn btn-outline-secondary" data-testid="button-atsisiusti-funkciniu-pdf">Atsisiųsti PDF</a>
+        <?php endif; ?>
+    </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
