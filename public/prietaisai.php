@@ -15,13 +15,35 @@ $user = currentUser();
 $message = '';
 $error = '';
 
+function tikrintiPdfFaila(&$error) {
+    if (empty($_FILES['sertifikato_pdf']['tmp_name']) || $_FILES['sertifikato_pdf']['error'] !== UPLOAD_ERR_OK) {
+        return [null, null];
+    }
+    $tmp = $_FILES['sertifikato_pdf']['tmp_name'];
+    $dydis = $_FILES['sertifikato_pdf']['size'];
+    $pavadinimas = $_FILES['sertifikato_pdf']['name'];
+    if ($dydis > 10 * 1024 * 1024) {
+        $error = 'PDF failas per didelis. Maksimalus dydis: 10 MB.';
+        return [null, null];
+    }
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($tmp);
+    if ($mime !== 'application/pdf') {
+        $error = 'Netinkamas failo formatas. Leidžiamas tik PDF.';
+        return [null, null];
+    }
+    return [file_get_contents($tmp), $pavadinimas];
+}
+
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     // Naujo prietaiso kūrimas su visais kalibravimo duomenimis
     if ($action === 'create') {
-        $stmt = $pdo->prepare("INSERT INTO prietaisai (vidinis_kodas, pavadinimas, gamintojas, modelis, serijos_nr, matavimo_tipas, matavimo_ribos, tikslumo_klase, busena, vieta, atsakingas_asmuo, kalibracijos_sertifikato_nr, kalibravimo_istaiga, kalibravimo_data, galiojimo_pabaiga, kita_kalibracija, standartas_metodika, pastabos, sukurta) VALUES (:vidinis_kodas, :pavadinimas, :gamintojas, :modelis, :serijos_nr, :matavimo_tipas, :matavimo_ribos, :tikslumo_klase, :busena, :vieta, :atsakingas_asmuo, :kalibracijos_sertifikato_nr, :kalibravimo_istaiga, :kalibravimo_data, :galiojimo_pabaiga, :kita_kalibracija, :standartas_metodika, :pastabos, CURRENT_TIMESTAMP)");
+        list($pdf_data, $pdf_failas) = tikrintiPdfFaila($error);
+        if (!$error) {
+        $stmt = $pdo->prepare("INSERT INTO prietaisai (vidinis_kodas, pavadinimas, gamintojas, modelis, serijos_nr, matavimo_tipas, matavimo_ribos, tikslumo_klase, busena, vieta, atsakingas_asmuo, kalibracijos_sertifikato_nr, kalibravimo_istaiga, kalibravimo_data, galiojimo_pabaiga, kita_kalibracija, standartas_metodika, pastabos, sertifikato_pdf, sertifikato_failas, sukurta) VALUES (:vidinis_kodas, :pavadinimas, :gamintojas, :modelis, :serijos_nr, :matavimo_tipas, :matavimo_ribos, :tikslumo_klase, :busena, :vieta, :atsakingas_asmuo, :kalibracijos_sertifikato_nr, :kalibravimo_istaiga, :kalibravimo_data, :galiojimo_pabaiga, :kita_kalibracija, :standartas_metodika, :pastabos, :sertifikato_pdf, :sertifikato_failas, CURRENT_TIMESTAMP)");
         $stmt->execute([
             'vidinis_kodas' => $_POST['vidinis_kodas'] ?? '',
             'pavadinimas' => $_POST['pavadinimas'] ?? '',
@@ -41,12 +63,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'kita_kalibracija' => $_POST['kita_kalibracija'] ?: null,
             'standartas_metodika' => $_POST['standartas_metodika'] ?? '',
             'pastabos' => $_POST['pastabos'] ?? '',
+            'sertifikato_pdf' => $pdf_data,
+            'sertifikato_failas' => $pdf_failas,
         ]);
         $message = 'Prietaisas pridėtas sėkmingai.';
+        }
     // Esamo prietaiso duomenų atnaujinimas
     } elseif ($action === 'update') {
-        $stmt = $pdo->prepare("UPDATE prietaisai SET vidinis_kodas = :vidinis_kodas, pavadinimas = :pavadinimas, gamintojas = :gamintojas, modelis = :modelis, serijos_nr = :serijos_nr, matavimo_tipas = :matavimo_tipas, matavimo_ribos = :matavimo_ribos, tikslumo_klase = :tikslumo_klase, busena = :busena, vieta = :vieta, atsakingas_asmuo = :atsakingas_asmuo, kalibracijos_sertifikato_nr = :kalibracijos_sertifikato_nr, kalibravimo_istaiga = :kalibravimo_istaiga, kalibravimo_data = :kalibravimo_data, galiojimo_pabaiga = :galiojimo_pabaiga, kita_kalibracija = :kita_kalibracija, standartas_metodika = :standartas_metodika, pastabos = :pastabos, atnaujinta = CURRENT_TIMESTAMP WHERE id = :id");
-        $stmt->execute([
+        $pdf_sql = '';
+        $pdf_params = [];
+        list($pdf_data, $pdf_failas) = tikrintiPdfFaila($error);
+        if ($pdf_data !== null && !$error) {
+            $pdf_sql = ', sertifikato_pdf = :sertifikato_pdf, sertifikato_failas = :sertifikato_failas';
+            $pdf_params = ['sertifikato_pdf' => $pdf_data, 'sertifikato_failas' => $pdf_failas];
+        } elseif (!empty($_POST['pasalinti_pdf'])) {
+            $pdf_sql = ', sertifikato_pdf = NULL, sertifikato_failas = NULL';
+        }
+        if (!$error) {
+        $stmt = $pdo->prepare("UPDATE prietaisai SET vidinis_kodas = :vidinis_kodas, pavadinimas = :pavadinimas, gamintojas = :gamintojas, modelis = :modelis, serijos_nr = :serijos_nr, matavimo_tipas = :matavimo_tipas, matavimo_ribos = :matavimo_ribos, tikslumo_klase = :tikslumo_klase, busena = :busena, vieta = :vieta, atsakingas_asmuo = :atsakingas_asmuo, kalibracijos_sertifikato_nr = :kalibracijos_sertifikato_nr, kalibravimo_istaiga = :kalibravimo_istaiga, kalibravimo_data = :kalibravimo_data, galiojimo_pabaiga = :galiojimo_pabaiga, kita_kalibracija = :kita_kalibracija, standartas_metodika = :standartas_metodika, pastabos = :pastabos{$pdf_sql}, atnaujinta = CURRENT_TIMESTAMP WHERE id = :id");
+        $stmt->execute(array_merge([
             'vidinis_kodas' => $_POST['vidinis_kodas'] ?? '',
             'pavadinimas' => $_POST['pavadinimas'] ?? '',
             'gamintojas' => $_POST['gamintojas'] ?? '',
@@ -66,8 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'standartas_metodika' => $_POST['standartas_metodika'] ?? '',
             'pastabos' => $_POST['pastabos'] ?? '',
             'id' => $_POST['id'],
-        ]);
+        ], $pdf_params));
         $message = 'Prietaisas atnaujintas.';
+        }
     // Prietaiso šalinimas iš sistemos
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
@@ -118,6 +154,9 @@ foreach ($devices as $d) {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<?php if ($error): ?>
+<div class="alert alert-danger"><?= h($error) ?></div>
+<?php endif; ?>
 <?php if ($message): ?>
 <div class="alert alert-success"><?= h($message) ?></div>
 <?php endif; ?>
@@ -191,6 +230,17 @@ require_once __DIR__ . '/includes/header.php';
             <p style="color: var(--text-secondary);"><?= h($view_device['pastabos']) ?></p>
         </div>
         <?php endif; ?>
+        <?php if (!empty($view_device['sertifikato_failas'])): ?>
+        <div style="margin-top: 16px; padding: 12px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
+            <p style="margin-bottom: 8px;"><strong>Kalibravimo sertifikatas (PDF):</strong></p>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span style="color: #0369a1; font-weight: 500;"><?= h($view_device['sertifikato_failas']) ?></span>
+                <a href="/prietaiso_sertifikatas.php?id=<?= $view_device['id'] ?>" target="_blank" class="btn btn-primary btn-sm" data-testid="button-view-pdf">Atidaryti PDF</a>
+                <a href="/prietaiso_sertifikatas.php?id=<?= $view_device['id'] ?>&action=download" class="btn btn-secondary btn-sm" data-testid="button-download-pdf">Atsisiųsti</a>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -200,7 +250,7 @@ require_once __DIR__ . '/includes/header.php';
             <h3>Redaguoti prietaisą</h3>
             <button class="modal-close" onclick="closeModal('editDeviceModal')">&times;</button>
         </div>
-        <form method="POST" action="/prietaisai.php?id=<?= $view_device['id'] ?>">
+        <form method="POST" action="/prietaisai.php?id=<?= $view_device['id'] ?>" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" value="<?= $view_device['id'] ?>">
             <div class="modal-body">
@@ -293,6 +343,21 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Pastabos</label>
                     <textarea class="form-control" name="pastabos" rows="2" data-testid="input-device-notes-edit"><?= h($view_device['pastabos'] ?? '') ?></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sertifikato PDF (originalus sertifikatas)</label>
+                    <?php if (!empty($view_device['sertifikato_failas'])): ?>
+                    <div style="margin-bottom: 8px; padding: 8px 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span style="font-size: 13px; color: #0369a1;"><?= h($view_device['sertifikato_failas']) ?></span>
+                        <a href="/prietaiso_sertifikatas.php?id=<?= $view_device['id'] ?>" target="_blank" class="btn btn-sm" style="background: #0284c7; color: #fff; padding: 3px 10px; font-size: 12px;" data-testid="button-view-pdf-edit">Atidaryti</a>
+                        <label style="font-size: 12px; color: #666; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" name="pasalinti_pdf" value="1" data-testid="checkbox-remove-pdf"> Pašalinti
+                        </label>
+                    </div>
+                    <?php endif; ?>
+                    <input type="file" class="form-control" name="sertifikato_pdf" accept="application/pdf" data-testid="input-device-pdf-edit" style="padding: 6px;">
+                    <small style="color: var(--text-secondary); font-size: 11px;">Maks. 10 MB. Tik PDF formatą.</small>
                 </div>
             </div>
             <div class="modal-footer">
@@ -444,7 +509,7 @@ require_once __DIR__ . '/includes/header.php';
             <h3>Naujas prietaisas</h3>
             <button class="modal-close" onclick="closeModal('createDeviceModal')">&times;</button>
         </div>
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create">
             <div class="modal-body">
                 <div class="grid-2">
@@ -537,6 +602,11 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Pastabos</label>
                     <textarea class="form-control" name="pastabos" rows="2" data-testid="input-device-notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sertifikato PDF (originalus sertifikatas)</label>
+                    <input type="file" class="form-control" name="sertifikato_pdf" accept="application/pdf" data-testid="input-device-pdf" style="padding: 6px;">
+                    <small style="color: var(--text-secondary); font-size: 11px;">Maks. 10 MB. Tik PDF formatą.</small>
                 </div>
             </div>
             <div class="modal-footer">
