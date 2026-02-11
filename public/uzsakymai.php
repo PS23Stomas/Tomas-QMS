@@ -118,6 +118,10 @@ if ($view_id) {
             $st->execute([$gaminio_id_mt]);
             $uzbaigtumo_zingsniai['funkciniai'] = ((int)$st->fetchColumn()) > 0;
 
+            $st = $pdo->prepare("SELECT COUNT(*) FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND (isvada = 'neatitinka' OR isvada = 'nepadaryta')");
+            $st->execute([$gaminio_id_mt]);
+            $funkciniu_klaidu_sk = (int)$st->fetchColumn();
+
             $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id = ?");
             $st->execute([$gaminio_id_mt]);
             $uzbaigtumo_zingsniai['komponentai'] = ((int)$st->fetchColumn()) > 0;
@@ -166,6 +170,11 @@ if (!empty($all_gaminio_ids)) {
     $funk_map = [];
     while ($r = $funk_st->fetch(PDO::FETCH_ASSOC)) { $funk_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
 
+    $funk_err_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id IN ($placeholders) AND (isvada = 'neatitinka' OR isvada = 'nepadaryta') GROUP BY gaminio_id");
+    $funk_err_st->execute(array_values($all_gaminio_ids));
+    $funk_err_map = [];
+    while ($r = $funk_err_st->fetch(PDO::FETCH_ASSOC)) { $funk_err_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
+
     $komp_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
     $komp_st->execute(array_values($all_gaminio_ids));
     $komp_map = [];
@@ -193,7 +202,7 @@ if (!empty($all_gaminio_ids)) {
         if (($komp_map[$gid] ?? 0) > 0) $steps++;
         if ((($diel_map[$gid] ?? 0) + ($izem_map[$gid] ?? 0)) > 0) $steps++;
         if ($paso_map[$gid] ?? false) $steps++;
-        $uzbaigtumo_cache[$gid] = $steps;
+        $uzbaigtumo_cache[$gid] = ['steps' => $steps, 'funk_errors' => $funk_err_map[$gid] ?? 0];
     }
 }
 
@@ -284,7 +293,15 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Gaminio pildymo forma</div>
-                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['funkciniai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
+                    <div class="mt-tile-desc"><?php
+                        if ($uzbaigtumo_zingsniai['funkciniai'] && $funkciniu_klaidu_sk > 0) {
+                            echo '<span class="uzbaigtumo-badge uzbaigtumo-warn-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' . $funkciniu_klaidu_sk . ' neatit./nepad.</span>';
+                        } elseif ($uzbaigtumo_zingsniai['funkciniai']) {
+                            echo '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>';
+                        } else {
+                            echo '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>';
+                        }
+                    ?></div>
                 </div>
             </a>
             <a href="/MT/mt_sumontuoti_komponentai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
@@ -473,7 +490,9 @@ require_once __DIR__ . '/includes/header.php';
                             <td style="text-align: center;">
                                 <?php
                                     $gid = (int)($o['pirmasis_gaminio_id'] ?? 0);
-                                    $uzb_steps = $uzbaigtumo_cache[$gid] ?? 0;
+                                    $uzb_data = $uzbaigtumo_cache[$gid] ?? ['steps' => 0, 'funk_errors' => 0];
+                                    $uzb_steps = $uzb_data['steps'];
+                                    $uzb_funk_err = $uzb_data['funk_errors'];
                                     $uzb_pct = round(($uzb_steps / 4) * 100);
                                     $uzb_color = $uzb_pct == 100 ? 'var(--success)' : ($uzb_pct >= 50 ? 'var(--warning)' : 'var(--text-light)');
                                 ?>
@@ -482,6 +501,11 @@ require_once __DIR__ . '/includes/header.php';
                                         <div class="uzbaigtumo-bar-fill-mini" style="width: <?= $uzb_pct ?>%; background: <?= $uzb_color ?>;"></div>
                                     </div>
                                     <span style="font-size: 11px; color: var(--text-secondary);"><?= $uzb_steps ?>/4</span>
+                                    <?php if ($uzb_funk_err > 0): ?>
+                                    <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų bandymų">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    </span>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td style="text-align: center;">
@@ -520,10 +544,23 @@ require_once __DIR__ . '/includes/header.php';
                                     $funk_g = $funk_gaminys->fetch();
                                     ?>
                                     <?php if ($funk_g): ?>
-                                    <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $funk_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-funkciniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                    <span style="display:inline-flex;align-items:center;gap:3px;">
+                                        <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $funk_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-funkciniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <?php if ($uzb_funk_err > 0): ?>
+                                        <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                        </span>
+                                        <?php endif; ?>
+                                    </span>
                                     <?php endif; ?>
                                 <?php else: ?>
+                                    <?php if ($uzb_funk_err > 0): ?>
+                                    <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    </span>
+                                    <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -538,7 +575,7 @@ require_once __DIR__ . '/includes/header.php';
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="8" class="empty-state"><p>Nėra užsakymų</p></td></tr>
+                        <tr><td colspan="9" class="empty-state"><p>Nėra užsakymų</p></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

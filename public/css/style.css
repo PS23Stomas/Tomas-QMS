@@ -1298,6 +1298,18 @@ textarea.form-control {
     transition: width 0.3s ease;
 }
 
+.uzbaigtumo-warn {
+    display: inline-flex;
+    align-items: center;
+    color: var(--danger);
+    cursor: help;
+}
+
+.uzbaigtumo-warn-badge {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
 .mt-pavadinimas-section {
     border-top: 1px solid var(--border);
     padding-top: 16px;
