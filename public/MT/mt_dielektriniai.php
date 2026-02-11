@@ -312,8 +312,8 @@ if (empty($vid_itampa)) {
             <td><input type='text' name='vid_itampa[aprasymas][]' class='form-control' value='".htmlspecialchars($row['grandines_pavadinimas'])."'></td>
             <td><input type='text' name='vid_itampa[itampa][]' class='form-control' value='".htmlspecialchars($row['grandines_itampa'])."'></td>
             <td><input type='text' name='vid_itampa[schema1][]' class='form-control' value='L - (kabelio ekranas + PE)'></td>
-            <td><input type='text' name='vid_itampa[band_itampa][]' class='form-control' value='".htmlspecialchars($row['bandymo_itampa_kV'])."'></td>
-            <td><input type='text' name='vid_itampa[trukme][]' class='form-control' value='".htmlspecialchars($row['bandymo_trukme'])."'></td>
+            <td><input type='text' name='vid_itampa[band_itampa][]' class='form-control' value='".htmlspecialchars($row['bandymo_itampa_kv'] ?? '')."'></td>
+            <td><input type='text' name='vid_itampa[trukme][]' class='form-control' value='".htmlspecialchars($row['bandymo_trukme'] ?? '')."'></td>
         </tr>";
         $i++;
     }
