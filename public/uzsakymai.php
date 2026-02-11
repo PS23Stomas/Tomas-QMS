@@ -237,13 +237,11 @@ require_once __DIR__ . '/includes/header.php';
                 <p><strong>Užsakymo Nr.:</strong> <?= h($order['uzsakymo_numeris'] ?: '-') ?></p>
                 <p><strong>Užsakovas:</strong> <?= h($order['uzsakovas'] ?? '-') ?></p>
                 <p><strong>Objektas:</strong> <?= h($order['objektas'] ?? '-') ?></p>
-                <p><strong>Kiekis:</strong> <?= h($order['kiekis'] ?? '-') ?></p>
             </div>
             <div>
                 <p><strong>Pavadinimas:</strong> <?= h($esamas_pavadinimas ?: ($first_product['gaminio_tipas'] ?? '-')) ?></p>
                 <p><strong>Gaminio Nr.:</strong> <?= h($first_product['gaminio_numeris'] ?? '-') ?></p>
                 <p><strong>Protokolo Nr.:</strong> <?= h($first_product['protokolo_nr'] ?? '-') ?></p>
-                <p><strong>Atitikties kodas:</strong> <?= h($first_product['atitikmuo_kodas'] ?? '-') ?></p>
                 <p><strong>Sukūrė:</strong> <?= h(($order['vardas'] ?? '') . ' ' . ($order['pavarde'] ?? '')) ?></p>
                 <p><strong>Data:</strong> <?= h($order['sukurtas'] ?? '') ?></p>
             </div>
