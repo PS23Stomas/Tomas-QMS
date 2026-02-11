@@ -108,6 +108,10 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-11: Added MT passport PDF generation using mPDF library (generuoti_mt_paso_pdf.php, mt_paso_pdf.php)
+- 2026-02-11: Added mt_paso_pdf (BYTEA) and mt_paso_failas columns to gaminiai table for PDF storage
+- 2026-02-11: Added "Generuoti PDF", "Peržiūrėti PDF", "Atsisiųsti PDF" buttons to MT passport page
+- 2026-02-11: Optimized gautiPagalId() to exclude large BYTEA fields from SELECT
 - 2026-02-10: Integrated all save handlers: functional tests (with transactions, original user preservation), dielectric tests, components, fuse holders, test instruments, protocol number, passport text corrections
 - 2026-02-10: Created gvx_dokumentai table for PDF document storage
 - 2026-02-10: Added rezultatas column to antriniu_grandiniu_bandymai table

@@ -126,6 +126,8 @@ $inzinierius = ($_SESSION['vardas'] ?? '') . ' ' . ($_SESSION['pavarde'] ?? '');
 
 $nuoroda_atgal = "/uzsakymai.php?view=" . urlencode($uzsakymo_id);
 
+$turi_pdf = !empty($gaminio_info['mt_paso_failas']);
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -379,8 +381,35 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="d-flex gap-2 flex-wrap">
         <a href="<?= htmlspecialchars($nuoroda_atgal) ?>" class="btn btn-secondary btn-sm">Grįžti į užsakymą</a>
         <button onclick="window.print()" class="btn btn-outline-primary btn-sm">Spausdinti</button>
+        <form method="POST" action="/MT/generuoti_mt_paso_pdf.php" style="display:inline;">
+            <input type="hidden" name="gaminio_id" value="<?= htmlspecialchars($gaminio_id) ?>">
+            <input type="hidden" name="uzsakymo_numeris" value="<?= htmlspecialchars($uzsakymo_numeris) ?>">
+            <input type="hidden" name="uzsakovas" value="<?= htmlspecialchars($uzsakovas) ?>">
+            <input type="hidden" name="gaminio_pavadinimas" value="<?= htmlspecialchars($gaminio_pavadinimas) ?>">
+            <input type="hidden" name="uzsakymo_id" value="<?= htmlspecialchars($uzsakymo_id) ?>">
+            <input type="hidden" name="lang" value="<?= htmlspecialchars($lang) ?>">
+            <button type="submit" class="btn btn-success btn-sm" data-testid="button-generuoti-pdf">Generuoti PDF</button>
+        </form>
+        <?php if ($turi_pdf): ?>
+        <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= urlencode($gaminio_id) ?>" target="_blank" class="btn btn-primary btn-sm" data-testid="button-perziureti-pdf">Peržiūrėti PDF</a>
+        <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= urlencode($gaminio_id) ?>&atsisiusti=1" class="btn btn-outline-secondary btn-sm" data-testid="button-atsisiusti-pdf">Atsisiųsti PDF</a>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (isset($_GET['pdf_sukurtas'])): ?>
+<div class="alert alert-success alert-dismissible fade show no-print" role="alert" style="margin-bottom: 15px;">
+    PDF sugeneruotas ir išsaugotas sėkmingai!
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
+
+<?php if (isset($_GET['pdf_klaida'])): ?>
+<div class="alert alert-danger alert-dismissible fade show no-print" role="alert" style="margin-bottom: 15px;">
+    Klaida generuojant PDF: <?= htmlspecialchars(urldecode($_GET['pdf_klaida'])) ?>
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
 
 <?php if (isset($_GET['issaugota'])): ?>
 <div class="alert alert-success alert-dismissible fade show no-print" role="alert" style="margin-bottom: 15px;">

@@ -9,9 +9,10 @@ class DBMigracija {
         $this->conn = $conn;
     }
 
-    /** Paleidžia visas migracijas: sukuria trūkstamas lenteles ir pataiso varchar laukus */
+    /** Paleidžia visas migracijas: sukuria trūkstamas lenteles, prideda stulpelius ir pataiso varchar laukus */
     public function paleisti(): void {
         $this->sukurtiTrukstamasLenteles();
+        $this->pridetiMtPasoStulpelius();
         $this->pataisytiVarcharLaukus();
     }
 
@@ -42,6 +43,19 @@ class DBMigracija {
                     isvada TEXT
                 )
             ");
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda mt_paso_pdf ir mt_paso_failas stulpelius į gaminiai lentelę */
+    private function pridetiMtPasoStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'mt_paso_pdf'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_paso_pdf BYTEA");
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_paso_failas VARCHAR(255)");
+            }
         } catch (PDOException $e) {
         }
     }
