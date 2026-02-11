@@ -402,7 +402,6 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td>
                                 <div class="actions">
-                                    <a href="/uzsakymai.php?id=<?= $o['id'] ?>" class="btn btn-secondary btn-sm" data-testid="button-view-order-<?= $o['id'] ?>">Peržiūrėti</a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį užsakymą?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= $o['id'] ?>">
