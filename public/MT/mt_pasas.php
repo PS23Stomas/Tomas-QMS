@@ -28,7 +28,7 @@ if (empty($gaminio_pavadinimas)) {
 
 $gaminio_info = $gaminys_obj->gautiPagalId($gaminio_id);
 $protokolo_nr = $gaminio_info['protokolo_nr'] ?? '';
-$atitikmuo_kodas = $gaminio_info['atitikmuo_kodas'] ?? '15.6.2';
+$atitikmuo_kodas = !empty($gaminio_info['atitikmuo_kodas']) ? $gaminio_info['atitikmuo_kodas'] : '15.6.2';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_atitikmuo'])) {
     $naujas_kodas = $_POST['atitikmuo_kodas'] ?? '15.6.2';
@@ -426,7 +426,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="paso-meta-line">
-        Tipas: <strong>MT <?= htmlspecialchars($gaminio_pavadinimas) ?></strong>&nbsp;&nbsp;&nbsp;
+        Tipas: <strong><?= htmlspecialchars($gaminio_pavadinimas) ?></strong>&nbsp;&nbsp;&nbsp;
         Gam. ser. Nr.: <strong><?= htmlspecialchars($serijos_nr) ?></strong>&nbsp;&nbsp;&nbsp;
         Data: <strong><?= htmlspecialchars($data) ?></strong>
     </div>
