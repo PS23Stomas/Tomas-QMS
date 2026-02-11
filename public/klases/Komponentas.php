@@ -1,4 +1,4 @@
-<?php
+  <?php
 /**
  * Komponento atvaizdavimo klasė - MT sumontuotų komponentų lentelės eilutės generavimas
  */
