@@ -146,12 +146,12 @@ function formatuotiKomponenta($komp, $su_kiekiu = true) {
 
 // ESO atitikties tipų aprašymai pagal kodus
 $tipu_aprasai = [
-    '15.6.1' => 'Mažoji transformatorinė pastotė su SF6 skirstykla ir variklinėmis pavaromis 10 kV',
-    '15.6.2' => 'Mažoji transformatorinė pastotė su vakuuminiais jungikliais 10 kV',
-    '15.6.3' => 'Mažoji transformatorinė pastotė su oro izoliacija 10 kV',
-    '15.2.5' => 'Metalinis skirstomasis įrenginys su SF6 skirstykla 10 kV',
-    '15.2.9' => 'Metalinis skirstomasis įrenginys su vakuuminiais jungikliais 10 kV',
-    '15.2.11' => 'Metalinis skirstomasis įrenginys su oro izoliacija 10 kV',
+    '15.6.1' => '10/0,4 kV įtampos mažo gabarito modulinės tranzitinės transformatorinės su vienu iki 160 kVA galios transformatoriumi techninius reikalavimus',
+    '15.6.2' => '10/0,4 kV įtampos mažo gabarito modulinės transformatorinės su vienu iki 630 kVA galios transformatoriumi techninius reikalavimus',
+    '15.6.3' => '10/0,4 kV įtampos mažo gabarito modulinės transformatorinės su dviem iki 630 kVA galios transformatoriais techninius reikalavimus',
+    '15.2.5' => '10/0,4 kV modulinė transformatorinė su vienu iki 1000 kVA galios transformatoriumi (neigilinta) techninius reikalavimus',
+    '15.2.9' => '10/0,4 kV modulinė transformatorinė su dviem 800 - 1600 kVA galios transformatoriais (neigilinta) techninius reikalavimus',
+    '15.2.11' => '10/0,4 kV modulinė galinė transformatorinė su vienu iki 160 kVA galios transformatoriumi (neigilinta) techninius reikalavimus',
 ];
 
 $tipas_aprasas = $tipu_aprasai[$atitikmuo_kodas] ?? 'Nenurodytas';
@@ -431,7 +431,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div class="paso-toolbar no-print">
         <div style="width: 100%;">
-            <label style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">Gaminys atitinka ESO techninius reikalavimus:</label>
+            <label style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">Gaminys atitinka AB „Energijos skirstymo operatorius":</label>
             <form method="POST" style="display: flex; gap: 8px; align-items: center;">
                 <input type="hidden" name="gaminio_id" value="<?= htmlspecialchars($gaminio_id) ?>">
                 <input type="hidden" name="issaugoti_atitikmuo" value="1">
@@ -454,7 +454,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="print-only" style="display: none; font-size: 12px; margin-bottom: 10px;">
-        <strong>Gaminys atitinka ESO techninius reikalavimus:</strong> <?= htmlspecialchars($atitikmuo_kodas) ?> - <?= htmlspecialchars($tipas_aprasas) ?>
+        <strong>Gaminys atitinka AB „Energijos skirstymo operatorius":</strong> <?= htmlspecialchars($atitikmuo_kodas) ?> - <?= htmlspecialchars($tipas_aprasas) ?>
     </div>
 
     <table class="paso-table">
