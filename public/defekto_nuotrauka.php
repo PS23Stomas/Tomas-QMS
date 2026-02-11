@@ -12,8 +12,7 @@ if ($gaminio_id <= 0 || $eil_nr <= 0) {
     exit('Trūksta parametrų');
 }
 
-$db = \App\Database::getInstance();
-$conn = $db->getConnection();
+$conn = Database::getConnection();
 
 $stmt = $conn->prepare("SELECT defekto_nuotrauka, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
 $stmt->execute([$gaminio_id, $eil_nr]);
