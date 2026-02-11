@@ -108,6 +108,10 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-11: Added dielectric tests PDF generation (generuoti_mt_dielektriniu_pdf.php, mt_dielektriniu_pdf.php)
+- 2026-02-11: Added mt_dielektriniu_pdf (BYTEA) and mt_dielektriniu_failas columns to gaminiai table
+- 2026-02-11: Updated issaugoti_mt_dielektriniai.php to save medium voltage data to antriniu_grandiniu_bandymai
+- 2026-02-11: Updated mt_dielektriniai.php to read medium voltage data from antriniu_grandiniu_bandymai
 - 2026-02-11: Added MT passport PDF generation using mPDF library (generuoti_mt_paso_pdf.php, mt_paso_pdf.php)
 - 2026-02-11: Added mt_paso_pdf (BYTEA) and mt_paso_failas columns to gaminiai table for PDF storage
 - 2026-02-11: Added "Generuoti PDF", "Peržiūrėti PDF", "Atsisiųsti PDF" buttons to MT passport page

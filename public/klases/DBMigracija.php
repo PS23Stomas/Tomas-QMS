@@ -13,6 +13,7 @@ class DBMigracija {
     public function paleisti(): void {
         $this->sukurtiTrukstamasLenteles();
         $this->pridetiMtPasoStulpelius();
+        $this->pridetiMtDielektriniuStulpelius();
         $this->pataisytiVarcharLaukus();
     }
 
@@ -55,6 +56,19 @@ class DBMigracija {
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_paso_pdf BYTEA");
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_paso_failas VARCHAR(255)");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda mt_dielektriniu_pdf ir mt_dielektriniu_failas stulpelius į gaminiai lentelę */
+    private function pridetiMtDielektriniuStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'mt_dielektriniu_pdf'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_dielektriniu_pdf BYTEA");
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_dielektriniu_failas VARCHAR(255)");
             }
         } catch (PDOException $e) {
         }

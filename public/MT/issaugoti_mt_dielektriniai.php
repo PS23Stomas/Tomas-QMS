@@ -28,6 +28,29 @@ try {
     // Transakcijos pradžia – užtikrinamas duomenų vientisumas
     $conn->beginTransaction();
 
+    // Esamų vidutinės įtampos bandymų trynimas prieš pakartotinį įrašymą
+    $conn->prepare("DELETE FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
+
+    // Vidutinės įtampos bandymų duomenų pakartotinis įrašymas
+    if (!empty($_POST['vid_itampa']['aprasymas'])) {
+        $stmt_vid = $conn->prepare("INSERT INTO antriniu_grandiniu_bandymai 
+            (gaminys_id, eiles_nr, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kV, bandymo_trukme, isvada) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+        foreach ($_POST['vid_itampa']['aprasymas'] as $i => $apras) {
+            $stmt_vid->execute([
+                $gaminys_id,
+                $_POST['vid_itampa']['eiles_nr'][$i] ?? '',
+                $apras,
+                $_POST['vid_itampa']['itampa'][$i] ?? '',
+                $_POST['vid_itampa']['schema1'][$i] ?? '',
+                $_POST['vid_itampa']['band_itampa'][$i] ?? '',
+                $_POST['vid_itampa']['trukme'][$i] ?? '',
+                $_POST['vid_itampa']['isvada'] ?? ''
+            ]);
+        }
+    }
+
     // Esamų žemos įtampos bandymų trynimas prieš pakartotinį įrašymą
     $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
 

@@ -166,7 +166,7 @@ class Gaminys {
     /** Gauna gaminį pagal jo ID */
     public function gautiPagalId($id) {
         if (!$id) return null;
-        $sql = "SELECT id, uzsakymo_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr, atitikmuo_kodas, mt_paso_failas FROM gaminiai WHERE id = ?";
+        $sql = "SELECT id, uzsakymo_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr, atitikmuo_kodas, mt_paso_failas, mt_dielektriniu_failas FROM gaminiai WHERE id = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$id]);
         $rez = $stmt->fetch(PDO::FETCH_ASSOC);

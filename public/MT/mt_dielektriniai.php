@@ -33,14 +33,17 @@ $uzsakovas         = $_REQUEST['uzsakovas']         ?? '';
 $gaminio_pavadinimas = $_REQUEST['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id       = $_REQUEST['uzsakymo_id']       ?? '';
 $issaugota         = $_REQUEST['issaugota'] ?? '';
+$pdf_sukurtas      = $_REQUEST['pdf_sukurtas'] ?? '';
+$pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
-$stmt = $conn->prepare("SELECT id, protokolo_nr FROM gaminiai WHERE id=?");
+$stmt = $conn->prepare("SELECT id, protokolo_nr, mt_dielektriniu_failas FROM gaminiai WHERE id=?");
 $stmt->execute([$gaminys_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_numeris = $gaminys['protokolo_nr'] ?? '';
+$turi_dielektriniu_pdf = !empty($gaminys['mt_dielektriniu_failas']);
 
 // === Prietaisų CRUD operacijos ===
 // Naujo prietaiso pridėjimas
@@ -99,8 +102,10 @@ $stmt = $conn->prepare("SELECT * FROM bandymai_prietaisai WHERE gaminys_id=? ORD
 $stmt->execute([$gaminys_id]);
 $prietaisai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Vidutinės įtampos bandymų duomenys (šiuo metu tuščias masyvas – pildomas vėliau)
-$vid_itampa = [];
+// Vidutinės įtampos bandymų duomenys iš antriniu_grandiniu_bandymai lentelės
+$stmt = $conn->prepare("SELECT * FROM antriniu_grandiniu_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
+$stmt->execute([$gaminys_id]);
+$vid_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Žemos įtampos (0,4 kV) dielektrinių bandymų duomenų gavimas
 $stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
@@ -148,6 +153,12 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 
 <?php if ($issaugota==='taip'): ?>
 <div class="alert alert-success">Duomenys sėkmingai išsaugoti.</div>
+<?php endif; ?>
+<?php if ($pdf_sukurtas==='taip'): ?>
+<div class="alert alert-success">PDF dokumentas sėkmingai sugeneruotas ir išsaugotas.</div>
+<?php endif; ?>
+<?php if (!empty($pdf_klaida)): ?>
+<div class="alert alert-danger">PDF generavimo klaida: <?=htmlspecialchars($pdf_klaida)?></div>
 <?php endif; ?>
 
 <form action="mt_dielektriniai.php" method="post">
@@ -457,6 +468,22 @@ if (!empty($izem)) {
 </div>
 
 </form>
+
+<div class="d-flex gap-2 mb-3 align-items-center">
+    <form action="/MT/generuoti_mt_dielektriniu_pdf.php" method="post" style="display:inline;">
+        <input type="hidden" name="gaminio_id" value="<?=$gaminys_id?>">
+        <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
+        <input type="hidden" name="uzsakymo_numeris" value="<?=htmlspecialchars($uzsakymo_numeris)?>">
+        <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
+        <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
+        <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+        <button type="submit" class="btn btn-primary" data-testid="button-generuoti-dielektriniu-pdf">Generuoti PDF</button>
+    </form>
+    <?php if ($turi_dielektriniu_pdf): ?>
+    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?=$gaminys_id?>" target="_blank" class="btn btn-outline-primary" data-testid="button-perziureti-dielektriniu-pdf">Peržiūrėti PDF</a>
+    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?=$gaminys_id?>&atsisiusti" class="btn btn-outline-secondary" data-testid="button-atsisiusti-dielektriniu-pdf">Atsisiųsti PDF</a>
+    <?php endif; ?>
+</div>
 
 <div class="mt-3 p-2 border rounded d-flex align-items-center justify-content-between mb-4" style="background:#f9f9f9;">
     <div style="flex:1; font-size:14px; line-height:1.4;">
