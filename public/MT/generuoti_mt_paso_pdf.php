@@ -285,9 +285,9 @@ body {
 </table>
 
 <div class="paso-info-section">
-    <p>MT ' . htmlspecialchars($gaminio_pavadinimas) . ' (gaminio serijos Nr. ' . htmlspecialchars($serijos_nr) . ' ) sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271-202 standartą bandymų protokolo Nr. ' . htmlspecialchars($protokolo_nr ?: '437A') . '.</p>
+    <p>' . htmlspecialchars($gaminio_pavadinimas) . ' (gaminio serijos Nr. ' . htmlspecialchars($serijos_nr) . ' ) sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271-202 standartą bandymų protokolo Nr. ' . htmlspecialchars($protokolo_nr ?: '437A') . '.</p>
     <p>Komplektuojamajai skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271 standartą. Komplektuojamajam SI-04R skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 61439-1 ir LST EN 61439-2 standartus. Bandymų protokolo Nr ' . htmlspecialchars($protokolo_nr ?: '437A') . '.</p>
-    <p>MT ' . htmlspecialchars($gaminio_pavadinimas) . ' ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (UAB ELGA) įsipareigoja vykdyti transformatorinės MT ' . htmlspecialchars($gaminio_pavadinimas) . ' garantinį aptarnavimą 24 mėn.</p>
+    <p>' . htmlspecialchars($gaminio_pavadinimas) . ' ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (UAB ELGA) įsipareigoja vykdyti transformatorinės ' . htmlspecialchars($gaminio_pavadinimas) . ' garantinį aptarnavimą 24 mėn.</p>
 </div>
 
 <table class="sig-table">
