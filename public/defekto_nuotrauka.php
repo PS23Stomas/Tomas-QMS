@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/includes/config.php';
 
-\App\Sesija::pradzia();
-\App\Sesija::tikrintiPrisijungima();
+Sesija::pradzia();
+Sesija::tikrintiPrisijungima();
 
 $gaminio_id = isset($_GET['gaminio_id']) ? (int)$_GET['gaminio_id'] : 0;
 $eil_nr     = isset($_GET['eil_nr'])     ? (int)$_GET['eil_nr']     : 0;
