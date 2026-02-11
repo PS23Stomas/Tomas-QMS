@@ -116,7 +116,8 @@ if ($view_id) {
 $orders = $pdo->query('
     SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk,
-           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_paso_failas IS NOT NULL) as paso_pdf_sk
+           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_paso_failas IS NOT NULL) as paso_pdf_sk,
+           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_dielektriniu_failas IS NOT NULL) as dielektriniu_pdf_sk
     FROM uzsakymai u
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
     LEFT JOIN objektai o ON u.objektas_id = o.id
@@ -375,6 +376,7 @@ require_once __DIR__ . '/includes/header.php';
                         <th>Sukūrė</th>
                         <th>Data</th>
                         <th>Pasas</th>
+                        <th>Dielektr.</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
@@ -400,6 +402,20 @@ require_once __DIR__ . '/includes/header.php';
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                 <?php endif; ?>
                             </td>
+                            <td style="text-align: center;">
+                                <?php if (($o['dielektriniu_pdf_sk'] ?? 0) > 0): ?>
+                                    <?php
+                                    $diel_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_dielektriniu_failas IS NOT NULL LIMIT 1");
+                                    $diel_gaminys->execute([$o['id']]);
+                                    $diel_g = $diel_gaminys->fetch();
+                                    ?>
+                                    <?php if ($diel_g): ?>
+                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $diel_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-dielektriniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span style="color: var(--text-secondary); font-size: 11px;">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <div class="actions">
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį užsakymą?');">
@@ -412,7 +428,7 @@ require_once __DIR__ . '/includes/header.php';
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="6" class="empty-state"><p>Nėra užsakymų</p></td></tr>
+                        <tr><td colspan="7" class="empty-state"><p>Nėra užsakymų</p></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
