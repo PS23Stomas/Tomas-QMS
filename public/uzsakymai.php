@@ -111,6 +111,33 @@ if ($view_id) {
                 $gaminio_id_mt = (int)$row['gaminio_id'];
             }
         }
+
+        $uzbaigtumo_zingsniai = ['funkciniai' => false, 'komponentai' => false, 'dielektriniai' => false, 'pasas' => false];
+        if ($gaminio_id_mt > 0) {
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+            $st->execute([$gaminio_id_mt]);
+            $uzbaigtumo_zingsniai['funkciniai'] = ((int)$st->fetchColumn()) > 0;
+
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id = ?");
+            $st->execute([$gaminio_id_mt]);
+            $uzbaigtumo_zingsniai['komponentai'] = ((int)$st->fetchColumn()) > 0;
+
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
+            $st->execute([$gaminio_id_mt]);
+            $diel_cnt = (int)$st->fetchColumn();
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?");
+            $st->execute([$gaminio_id_mt]);
+            $izem_cnt = (int)$st->fetchColumn();
+            $uzbaigtumo_zingsniai['dielektriniai'] = ($diel_cnt + $izem_cnt) > 0;
+
+            $st = $pdo->prepare("SELECT mt_paso_failas FROM gaminiai WHERE id = ?");
+            $st->execute([$gaminio_id_mt]);
+            $paso_f = $st->fetchColumn();
+            $uzbaigtumo_zingsniai['pasas'] = !empty($paso_f);
+        }
+        $uzbaigtumo_atlikta = array_sum($uzbaigtumo_zingsniai);
+        $uzbaigtumo_viso = count($uzbaigtumo_zingsniai);
+        $uzbaigtumo_procentai = round(($uzbaigtumo_atlikta / $uzbaigtumo_viso) * 100);
     }
 }
 
@@ -120,13 +147,55 @@ $orders = $pdo->query('
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_paso_failas IS NOT NULL) as paso_pdf_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_dielektriniu_failas IS NOT NULL) as dielektriniu_pdf_sk,
-           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_funkciniu_failas IS NOT NULL) as funkciniu_pdf_sk
+           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_funkciniu_failas IS NOT NULL) as funkciniu_pdf_sk,
+           (SELECT g2.id FROM gaminiai g2 WHERE g2.uzsakymo_id = u.id ORDER BY g2.id DESC LIMIT 1) as pirmasis_gaminio_id
     FROM uzsakymai u
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
     LEFT JOIN objektai o ON u.objektas_id = o.id
     LEFT JOIN vartotojai v ON u.vartotojas_id = v.id
     ORDER BY u.id DESC
 ')->fetchAll();
+
+$uzbaigtumo_cache = [];
+$all_gaminio_ids = array_filter(array_column($orders, 'pirmasis_gaminio_id'));
+if (!empty($all_gaminio_ids)) {
+    $placeholders = implode(',', array_fill(0, count($all_gaminio_ids), '?'));
+
+    $funk_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
+    $funk_st->execute(array_values($all_gaminio_ids));
+    $funk_map = [];
+    while ($r = $funk_st->fetch(PDO::FETCH_ASSOC)) { $funk_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
+
+    $komp_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
+    $komp_st->execute(array_values($all_gaminio_ids));
+    $komp_map = [];
+    while ($r = $komp_st->fetch(PDO::FETCH_ASSOC)) { $komp_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
+
+    $diel_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM mt_dielektriniai_bandymai WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
+    $diel_st->execute(array_values($all_gaminio_ids));
+    $diel_map = [];
+    while ($r = $diel_st->fetch(PDO::FETCH_ASSOC)) { $diel_map[(int)$r['gaminys_id']] = (int)$r['cnt']; }
+
+    $izem_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM mt_izeminimo_tikrinimas WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
+    $izem_st->execute(array_values($all_gaminio_ids));
+    $izem_map = [];
+    while ($r = $izem_st->fetch(PDO::FETCH_ASSOC)) { $izem_map[(int)$r['gaminys_id']] = (int)$r['cnt']; }
+
+    $paso_st = $pdo->prepare("SELECT id, mt_paso_failas FROM gaminiai WHERE id IN ($placeholders)");
+    $paso_st->execute(array_values($all_gaminio_ids));
+    $paso_map = [];
+    while ($r = $paso_st->fetch(PDO::FETCH_ASSOC)) { $paso_map[(int)$r['id']] = !empty($r['mt_paso_failas']); }
+
+    foreach ($all_gaminio_ids as $gid) {
+        $gid = (int)$gid;
+        $steps = 0;
+        if (($funk_map[$gid] ?? 0) > 0) $steps++;
+        if (($komp_map[$gid] ?? 0) > 0) $steps++;
+        if ((($diel_map[$gid] ?? 0) + ($izem_map[$gid] ?? 0)) > 0) $steps++;
+        if ($paso_map[$gid] ?? false) $steps++;
+        $uzbaigtumo_cache[$gid] = $steps;
+    }
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -184,11 +253,19 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <div class="card" style="margin-bottom: 16px;" data-testid="card-mt-langas">
-    <div class="card-header">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             MT Gaminių Langas
         </span>
+        <?php if (isset($uzbaigtumo_procentai)): ?>
+        <div class="uzbaigtumo-rodiklis" data-testid="text-completion-indicator">
+            <div class="uzbaigtumo-bar">
+                <div class="uzbaigtumo-bar-fill <?= $uzbaigtumo_procentai == 100 ? 'uzbaigtumo-bar-done' : '' ?>" style="width: <?= $uzbaigtumo_procentai ?>%;"></div>
+            </div>
+            <span class="uzbaigtumo-tekstas"><?= $uzbaigtumo_atlikta ?>/<?= $uzbaigtumo_viso ?> (<?= $uzbaigtumo_procentai ?>%)</span>
+        </div>
+        <?php endif; ?>
     </div>
     <div class="card-body">
         <?php if ($gaminio_id_mt === 0): ?>
@@ -207,7 +284,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Gaminio pildymo forma</div>
-                    <div class="mt-tile-desc">Funkciniai bandymai</div>
+                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['funkciniai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
                 </div>
             </a>
             <a href="/MT/mt_sumontuoti_komponentai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
@@ -217,7 +294,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Panaudoti komponentai</div>
-                    <div class="mt-tile-desc">Sumontuotos dalys</div>
+                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['komponentai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
                 </div>
             </a>
             <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
@@ -227,7 +304,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Dielektriniai bandymai</div>
-                    <div class="mt-tile-desc">Įtampos testai</div>
+                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['dielektriniai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
                 </div>
             </a>
             <a href="/MT/mt_pasas.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
@@ -237,7 +314,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">MT Pasas</div>
-                    <div class="mt-tile-desc">Gaminio pasas</div>
+                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['pasas'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Sugeneruotas</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Nesugeneruotas</span>' ?></div>
                 </div>
             </a>
             <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
@@ -378,6 +455,7 @@ require_once __DIR__ . '/includes/header.php';
                         <th>Užsakovas</th>
                         <th>Sukūrė</th>
                         <th>Data</th>
+                        <th>Užbaigtumas</th>
                         <th>Pasas</th>
                         <th>Dielektr.</th>
                         <th>Funkc.</th>
@@ -392,6 +470,20 @@ require_once __DIR__ . '/includes/header.php';
                             <td><?= h($o['uzsakovas'] ?? '-') ?></td>
                             <td><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
                             <td style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
+                            <td style="text-align: center;">
+                                <?php
+                                    $gid = (int)($o['pirmasis_gaminio_id'] ?? 0);
+                                    $uzb_steps = $uzbaigtumo_cache[$gid] ?? 0;
+                                    $uzb_pct = round(($uzb_steps / 4) * 100);
+                                    $uzb_color = $uzb_pct == 100 ? 'var(--success)' : ($uzb_pct >= 50 ? 'var(--warning)' : 'var(--text-light)');
+                                ?>
+                                <div class="uzbaigtumo-mini" data-testid="text-completion-<?= $o['id'] ?>">
+                                    <div class="uzbaigtumo-bar-mini">
+                                        <div class="uzbaigtumo-bar-fill-mini" style="width: <?= $uzb_pct ?>%; background: <?= $uzb_color ?>;"></div>
+                                    </div>
+                                    <span style="font-size: 11px; color: var(--text-secondary);"><?= $uzb_steps ?>/4</span>
+                                </div>
+                            </td>
                             <td style="text-align: center;">
                                 <?php if (($o['paso_pdf_sk'] ?? 0) > 0): ?>
                                     <?php

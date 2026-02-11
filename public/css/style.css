@@ -1226,6 +1226,78 @@ textarea.form-control {
     margin-top: 2px;
 }
 
+.uzbaigtumo-rodiklis {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.uzbaigtumo-bar {
+    width: 120px;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.uzbaigtumo-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.uzbaigtumo-bar-done {
+    background: var(--success);
+}
+
+.uzbaigtumo-tekstas {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.uzbaigtumo-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.uzbaigtumo-done {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.uzbaigtumo-pending {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.uzbaigtumo-mini {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+}
+
+.uzbaigtumo-bar-mini {
+    width: 50px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.uzbaigtumo-bar-fill-mini {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
 .mt-pavadinimas-section {
     border-top: 1px solid var(--border);
     padding-top: 16px;
