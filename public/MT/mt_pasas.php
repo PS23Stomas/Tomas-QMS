@@ -25,7 +25,8 @@ $uzsakymo_id = $_GET['uzsakymo_id'] ?? '';
 $lang = $_GET['lang'] ?? 'lt';
 
 if (!$gaminio_id) {
-    die('Trūksta gaminio ID');
+    header('Location: /uzsakymai.php');
+    exit;
 }
 
 if (empty($gaminio_pavadinimas)) {
