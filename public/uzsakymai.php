@@ -190,7 +190,7 @@ $orders = $pdo->query('
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
     LEFT JOIN objektai o ON u.objektas_id = o.id
     LEFT JOIN vartotojai v ON u.vartotojas_id = v.id
-    ORDER BY u.id DESC
+    ORDER BY u.sukurtas DESC, u.id DESC
 ')->fetchAll();
 
 $uzbaigtumo_cache = [];
