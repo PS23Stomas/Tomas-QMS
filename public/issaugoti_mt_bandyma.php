@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Sesija.php';
+require_once __DIR__ . '/klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -200,6 +201,8 @@ try {
 
     /* Transakcijos patvirtinimas - visi pakeitimai įrašomi */
     $conn->commit();
+
+    try { TomoQMS::sinchFunkciniai($conn, $gaminio_id); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
 
     $qs = http_build_query([
         'uzsakymo_numeris' => $uzsakymo_numeris,

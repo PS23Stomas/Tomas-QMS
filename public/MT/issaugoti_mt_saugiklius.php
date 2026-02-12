@@ -9,6 +9,7 @@
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -70,6 +71,8 @@ try {
 
     // Transakcijos patvirtinimas
     $conn->commit();
+
+    try { TomoQMS::sinchSaugiklius($conn, $gaminio_id); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
 
     // Nukreipimo parametrų paruošimas
     $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? '';

@@ -9,6 +9,7 @@
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -54,6 +55,8 @@ try {
         ':lang'       => $lang,
         ':tekstas'    => $tekstas
     ]);
+
+    try { TomoQMS::sinchPasoTeksta($conn, (int)$gaminio_id, $field_key, $lang, $tekstas); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
 
     $response['success'] = true;
     $response['message'] = 'Tekstas išsaugotas sėkmingai';

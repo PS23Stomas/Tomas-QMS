@@ -25,6 +25,13 @@ MT Modulis is a Lithuanian-language manufacturing order management system that a
 - **Database**: PDO with PostgreSQL driver
 - **Security**: Prepared statements for all queries, `htmlspecialchars()` for output escaping
 
+### Cross-Database Sync
+- **TomoQMS.php**: Singleton class for syncing data to Tomo QMS external database
+- **Connection**: Via `TOMO_QMS_DATABASE_URL` environment secret (Neon PostgreSQL)
+- **Strategy**: Uses uzsakymo_numeris as natural key for order mapping, 1:1 order-to-product relationship
+- **Graceful degradation**: All sync calls wrapped in try/catch, failures logged but don't break main flow
+- **Synced data**: Orders, products, functional tests, components, dielectric tests, grounding tests, fuse holders, test instruments, protocol numbers, passport text corrections, all PDF documents
+
 ### File Structure
 ```
 public/                     # Web root served by PHP
@@ -42,7 +49,8 @@ public/                     # Web root served by PHP
 │   ├── Emailas.php         # Resend API email sending (password reset)
 │   ├── GaminioTipas.php    # Product type queries
 │   ├── Gaminys.php         # Product queries and validation
-│   └── Gamys1.php          # Extended product CRUD
+│   ├── Gamys1.php          # Extended product CRUD
+│   └── TomoQMS.php         # Tomo QMS database sync (cross-DB replication)
 ├── login.php               # Login page with "Pamiršau slaptažodį" link
 ├── logout.php              # Session destroy and redirect
 ├── slaptazodis_atstatymas.php  # Password reset request (enter email)
@@ -105,6 +113,7 @@ public/                     # Web root served by PHP
 
 ## External Dependencies
 
+- **Tomo QMS Database**: External PostgreSQL for data sync, connected via `TOMO_QMS_DATABASE_URL` secret
 - **PostgreSQL**: Primary database, connected via `DATABASE_URL` environment variable
 - **Google Fonts**: Inter font loaded via CDN
 - **PHP Extensions**: pgsql, pdo_pgsql, mbstring, session
@@ -113,6 +122,8 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-12: Added Tomo QMS cross-database sync (TomoQMS.php) - auto-syncs all data to external database
+- 2026-02-12: Removed Kiekis and Atitikties kodas from order detail view
 - 2026-02-11: Added functional tests PDF generation (generuoti_mt_funkciniu_pdf.php, mt_funkciniu_pdf.php)
 - 2026-02-11: Added mt_funkciniu_pdf (BYTEA) and mt_funkciniu_failas columns to gaminiai table
 - 2026-02-11: Added "Funkc." column to orders list showing functional tests PDF availability

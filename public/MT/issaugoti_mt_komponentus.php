@@ -9,6 +9,7 @@
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -71,10 +72,10 @@ if ($saugoti_eile_id !== null) {
         }
         $conn->commit();
     } catch (Exception $e) {
-        // Klaidos atveju – transakcijos atšaukimas
         $conn->rollBack();
         die("Klaida išsaugant: " . htmlspecialchars($e->getMessage()));
     }
+    try { TomoQMS::sinchKomponentai($conn, $gaminio_id); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
 
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
@@ -111,6 +112,7 @@ if ($saugoti_eile_id !== null) {
         $conn->rollBack();
         die("Klaida išsaugant: " . htmlspecialchars($e->getMessage()));
     }
+    try { TomoQMS::sinchKomponentai($conn, $gaminio_id); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
 
     header("Location: /MT/mt_sumontuoti_komponentai.php?gaminio_id=" . urlencode($gaminio_id) .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .

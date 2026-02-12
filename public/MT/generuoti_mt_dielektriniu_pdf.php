@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 requireLogin();
 
@@ -276,6 +277,8 @@ try {
     $stmt->bindParam('failas', $failo_pavadinimas);
     $stmt->bindParam('id', $gaminio_id);
     $stmt->execute();
+
+    try { TomoQMS::sinchPDF($conn, (int)$gaminio_id, 'mt_dielektriniu_pdf', 'mt_dielektriniu_failas'); } catch (Throwable $e2) { error_log('Sinch PDF klaida: ' . $e2->getMessage()); }
 
     $gaminio_numeris = $_POST['gaminio_numeris'] ?? '';
     $params = http_build_query([

@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -59,7 +60,8 @@ try {
         ]);
     }
 
-    // Sėkmingas nukreipimas atgal į dielektrinių bandymų puslapį
+    try { TomoQMS::sinchPrietaisus($conn, $gaminio_id); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
+
     header("Location: /MT/mt_dielektriniai.php?gaminys_id=" . $gaminio_id .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .

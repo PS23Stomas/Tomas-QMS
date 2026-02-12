@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
+require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
@@ -35,7 +36,8 @@ try {
         ':id' => $gaminio_id
     ]);
 
-    // Nukreipimo parametrų formavimas
+    try { TomoQMS::sinchProtokoloNr($conn, $gaminio_id, $protokolo_nr); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
+
     $params = http_build_query([
         'gaminio_id'       => $gaminio_id,
         'uzsakymo_numeris' => $_POST['uzsakymo_numeris'] ?? '',
