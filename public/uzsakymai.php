@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$_POST['objektas_id']]);
             $obj_pav = $st->fetchColumn() ?: '';
         }
-        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr_val, $uzs_pav, $obj_pav, (int)($_POST['kiekis'] ?: 1)); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
+        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr_val, $uzs_pav, $obj_pav, (int)($_POST['kiekis'] ?: 1), (int)$_SESSION['vartotojas_id'], 1); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
         $message = 'Užsakymas sukurtas sėkmingai.';
     // Užsakymo duomenų atnaujinimas ir MT gaminio pavadinimo įrašymas
     } elseif ($action === 'update') {
@@ -82,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$_POST['objektas_id']]);
             $obj_pav_upd = $st->fetchColumn() ?: '';
         }
-        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr ?: ($_POST['uzsakymo_numeris'] ?? ''), $uzs_pav_upd, $obj_pav_upd, (int)($_POST['kiekis'] ?: 1)); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
+        $rusis_id_upd = null;
+        $st_r = $pdo->prepare('SELECT gaminiu_rusis_id FROM uzsakymai WHERE id = ?');
+        $st_r->execute([$_POST['id']]);
+        $rusis_id_upd = $st_r->fetchColumn() ?: null;
+        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr ?: ($_POST['uzsakymo_numeris'] ?? ''), $uzs_pav_upd, $obj_pav_upd, (int)($_POST['kiekis'] ?: 1), 1, $rusis_id_upd ? (int)$rusis_id_upd : null); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
         $message = 'Užsakymas atnaujintas.';
     // Užsakymo trynimas kartu su visais susijusiais gaminiais
     } elseif ($action === 'delete') {

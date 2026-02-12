@@ -69,7 +69,7 @@ class TomoQMS {
         }
     }
 
-    public static function sinchronizuotiUzsakyma(string $uzsakymo_numeris, ?string $uzsakovas_pav, ?string $objektas_pav, int $kiekis = 1, int $vartotojas_id = 1): ?int {
+    public static function sinchronizuotiUzsakyma(string $uzsakymo_numeris, ?string $uzsakovas_pav, ?string $objektas_pav, int $kiekis = 1, int $vartotojas_id = 1, ?int $gaminiu_rusis_id = null): ?int {
         $conn = self::getConnection();
         if (!$conn || trim($uzsakymo_numeris) === '') return null;
         try {
@@ -81,17 +81,36 @@ class TomoQMS {
             $objektas_id = $objektas_pav ? self::gautiArbaKurtiObjekta($objektas_pav) : null;
 
             if ($uzs_id) {
-                $stmt = $conn->prepare("UPDATE uzsakymai SET kiekis = :kiekis, uzsakovas_id = :uzs_id, objektas_id = :obj_id WHERE id = :id");
-                $stmt->execute([':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':id' => $uzs_id]);
+                $stmt = $conn->prepare("UPDATE uzsakymai SET kiekis = :kiekis, uzsakovas_id = :uzs_id, objektas_id = :obj_id, gaminiu_rusis_id = :rusis WHERE id = :id");
+                $stmt->execute([':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':rusis' => $gaminiu_rusis_id, ':id' => $uzs_id]);
                 return (int)$uzs_id;
             } else {
-                $stmt = $conn->prepare("INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id) VALUES (:nr, :kiekis, :uzs_id, :obj_id, :vart_id) RETURNING id");
-                $stmt->execute([':nr' => $uzsakymo_numeris, ':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':vart_id' => $vartotojas_id]);
+                $stmt = $conn->prepare("INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzs_id, :obj_id, :vart_id, :rusis) RETURNING id");
+                $stmt->execute([':nr' => $uzsakymo_numeris, ':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':vart_id' => $vartotojas_id, ':rusis' => $gaminiu_rusis_id]);
                 return (int)$stmt->fetchColumn();
             }
         } catch (Exception $e) {
             error_log('TomoQMS uzsakymas klaida: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    public static function sinchGaminioTipa(PDO $localConn, ?int $tipas_id): void {
+        if (!$tipas_id) return;
+        $conn = self::getConnection();
+        if (!$conn) return;
+        try {
+            $exists = $conn->prepare("SELECT id FROM gaminio_tipai WHERE id = ?");
+            $exists->execute([$tipas_id]);
+            if ($exists->fetchColumn()) return;
+            $stmt = $localConn->prepare("SELECT id, gaminio_tipas, grupe, atitikmuo_kodas FROM gaminio_tipai WHERE id = ?");
+            $stmt->execute([$tipas_id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $conn->prepare("INSERT INTO gaminio_tipai (id, gaminio_tipas, grupe, atitikmuo_kodas) VALUES (?, ?, ?, ?)")->execute([$row['id'], $row['gaminio_tipas'], $row['grupe'], $row['atitikmuo_kodas']]);
+            }
+        } catch (Exception $e) {
+            error_log('TomoQMS sinchGaminioTipa klaida: ' . $e->getMessage());
         }
     }
 
@@ -128,7 +147,7 @@ class TomoQMS {
         try {
             $stmt = $localConn->prepare("
                 SELECT u.uzsakymo_numeris, g.gaminio_numeris, g.gaminio_tipas_id, g.protokolo_nr,
-                       uz.uzsakovas, o.pavadinimas as objektas, u.kiekis
+                       uz.uzsakovas, o.pavadinimas as objektas, u.kiekis, u.gaminiu_rusis_id
                 FROM gaminiai g
                 JOIN uzsakymai u ON u.id = g.uzsakymo_id
                 LEFT JOIN uzsakovai uz ON uz.id = u.uzsakovas_id
@@ -139,11 +158,17 @@ class TomoQMS {
             $info = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$info || !$info['uzsakymo_numeris']) return null;
 
+            if ($info['gaminio_tipas_id']) {
+                self::sinchGaminioTipa($localConn, (int)$info['gaminio_tipas_id']);
+            }
+
             $tomo_uzs_id = self::sinchronizuotiUzsakyma(
                 $info['uzsakymo_numeris'],
                 $info['uzsakovas'] ?? null,
                 $info['objektas'] ?? null,
-                (int)($info['kiekis'] ?? 1)
+                (int)($info['kiekis'] ?? 1),
+                1,
+                $info['gaminiu_rusis_id'] ? (int)$info['gaminiu_rusis_id'] : null
             );
             if (!$tomo_uzs_id) return null;
 
