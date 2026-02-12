@@ -495,9 +495,38 @@ class TomoQMS {
         $tomo = self::getConnection();
         if (!$qt || !$tomo) return ['klaida' => 'Nepavyko prisijungti prie duomenų bazių'];
 
-        $rezultatas = ['nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'klaidos' => []];
+        $rezultatas = ['vartotojai' => 0, 'nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'bandymai' => 0, 'klaidos' => []];
 
         try {
+            // === 1. VARTOTOJAI ===
+            $qt_users = $qt->query("SELECT id, vardas, pavarde, el_pastas, slaptazodis, role FROM vartotojai ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($qt_users as $u) {
+                $check = $tomo->prepare("SELECT id FROM vartotojai WHERE id = ?");
+                $check->execute([$u['id']]);
+                if ($check->fetchColumn()) {
+                    $tomo->prepare("UPDATE vartotojai SET vardas=?, pavarde=?, role=? WHERE id=?")
+                        ->execute([$u['vardas'], $u['pavarde'], $u['role'], $u['id']]);
+                } else {
+                    $tomo->prepare("INSERT INTO vartotojai (id, vardas, pavarde, el_pastas, slaptazodis, role) VALUES (?,?,?,?,?,?)")
+                        ->execute([$u['id'], $u['vardas'], $u['pavarde'], $u['el_pastas'] ?? '', $u['slaptazodis'] ?? '', $u['role'] ?? 'user']);
+                }
+                $rezultatas['vartotojai']++;
+            }
+            $max_id = $tomo->query("SELECT MAX(id) FROM vartotojai")->fetchColumn();
+            if ($max_id) $tomo->exec("SELECT setval(pg_get_serial_sequence('vartotojai', 'id'), $max_id, true)");
+
+            // === 2. GAMINIO TIPAI ===
+            $types = $qt->query("SELECT id, gaminio_tipas, grupe, atitikmuo_kodas FROM gaminio_tipai WHERE grupe = 'MT'")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($types as $t) {
+                $exists = $tomo->prepare("SELECT id FROM gaminio_tipai WHERE id = ?");
+                $exists->execute([$t['id']]);
+                if (!$exists->fetchColumn()) {
+                    $tomo->prepare("INSERT INTO gaminio_tipai (id, gaminio_tipas, grupe, atitikmuo_kodas) VALUES (?,?,?,?)")
+                        ->execute([$t['id'], $t['gaminio_tipas'], $t['grupe'], $t['atitikmuo_kodas']]);
+                }
+            }
+
+            // === 3. UŽSAKOVAI IR OBJEKTAI (batch) ===
             $stmt = $qt->query("
                 SELECT u.id as qt_id, u.uzsakymo_numeris, u.sukurtas, u.kiekis, u.gaminiu_rusis_id, u.vartotojas_id,
                        uz.uzsakovas, o.pavadinimas as objektas
@@ -509,58 +538,126 @@ class TomoQMS {
             ");
             $mt_uzsakymai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            $uzsakovai_cache = [];
+            $objektai_cache = [];
             foreach ($mt_uzsakymai as $uzs) {
-                try {
-                    $nr = trim($uzs['uzsakymo_numeris']);
-                    if ($nr === '') continue;
+                if ($uzs['uzsakovas'] && !isset($uzsakovai_cache[$uzs['uzsakovas']])) {
+                    $uzsakovai_cache[$uzs['uzsakovas']] = self::gautiArbaKurtiUzsakova($uzs['uzsakovas']);
+                }
+                if ($uzs['objektas'] && !isset($objektai_cache[$uzs['objektas']])) {
+                    $objektai_cache[$uzs['objektas']] = self::gautiArbaKurtiObjekta($uzs['objektas']);
+                }
+            }
 
-                    $check = $tomo->prepare("SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)");
-                    $check->execute([$nr]);
-                    $existing_id = $check->fetchColumn();
+            // === 4. UŽSAKYMAI ===
+            $existing = [];
+            $st = $tomo->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
+            foreach ($st as $r) $existing[trim($r['uzsakymo_numeris'])] = (int)$r['id'];
 
-                    $uzsakovas_id = $uzs['uzsakovas'] ? self::gautiArbaKurtiUzsakova($uzs['uzsakovas']) : null;
-                    $objektas_id = $uzs['objektas'] ? self::gautiArbaKurtiObjekta($uzs['objektas']) : null;
+            $order_map = [];
+            foreach ($mt_uzsakymai as $uzs) {
+                $nr = trim($uzs['uzsakymo_numeris']);
+                if ($nr === '') continue;
+                $uzs_id_val = $uzs['uzsakovas'] ? ($uzsakovai_cache[$uzs['uzsakovas']] ?? null) : null;
+                $obj_id_val = $uzs['objektas'] ? ($objektai_cache[$uzs['objektas']] ?? null) : null;
 
-                    if ($existing_id) {
-                        $upd = $tomo->prepare("UPDATE uzsakymai SET kiekis = ?, uzsakovas_id = ?, objektas_id = ?, gaminiu_rusis_id = ?, sukurtas = ? WHERE id = ?");
-                        $upd->execute([$uzs['kiekis'], $uzsakovas_id, $objektas_id, $uzs['gaminiu_rusis_id'], $uzs['sukurtas'], $existing_id]);
-                        $tomo_uzs_id = (int)$existing_id;
-                        $rezultatas['atnaujinti']++;
+                if (isset($existing[$nr])) {
+                    $tomo->prepare("UPDATE uzsakymai SET kiekis=?,uzsakovas_id=?,objektas_id=?,gaminiu_rusis_id=?,vartotojas_id=?,sukurtas=? WHERE id=?")
+                        ->execute([$uzs['kiekis'], $uzs_id_val, $obj_id_val, $uzs['gaminiu_rusis_id'], $uzs['vartotojas_id'] ?? 1, $uzs['sukurtas'], $existing[$nr]]);
+                    $order_map[$uzs['qt_id']] = $existing[$nr];
+                    $rezultatas['atnaujinti']++;
+                } else {
+                    $ins = $tomo->prepare("INSERT INTO uzsakymai (uzsakymo_numeris,kiekis,uzsakovas_id,objektas_id,vartotojas_id,gaminiu_rusis_id,sukurtas) VALUES (?,?,?,?,?,?,?) RETURNING id");
+                    $ins->execute([$nr, $uzs['kiekis'], $uzs_id_val, $obj_id_val, $uzs['vartotojas_id'] ?? 1, $uzs['gaminiu_rusis_id'], $uzs['sukurtas']]);
+                    $tid = (int)$ins->fetchColumn();
+                    $order_map[$uzs['qt_id']] = $tid;
+                    $rezultatas['nauji']++;
+                }
+            }
+
+            // === 5. GAMINIAI ===
+            $qt_to_tomo_gam = [];
+            foreach ($mt_uzsakymai as $uzs) {
+                $tomo_uzs_id = $order_map[$uzs['qt_id']] ?? null;
+                if (!$tomo_uzs_id) continue;
+                $gam_stmt = $qt->prepare("SELECT id as qt_gam_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
+                $gam_stmt->execute([$uzs['qt_id']]);
+                foreach ($gam_stmt as $gam) {
+                    $chk = $tomo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris=? LIMIT 1");
+                    $chk->execute([$tomo_uzs_id, $gam['gaminio_numeris']]);
+                    $gid = $chk->fetchColumn();
+                    if (!$gid) {
+                        $chk2 = $tomo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris IS NULL LIMIT 1");
+                        $chk2->execute([$tomo_uzs_id]);
+                        $gid = $chk2->fetchColumn();
+                    }
+                    if ($gid) {
+                        $tomo->prepare("UPDATE gaminiai SET gaminio_numeris=?,gaminio_tipas_id=?,protokolo_nr=? WHERE id=?")
+                            ->execute([$gam['gaminio_numeris'], $gam['gaminio_tipas_id'], $gam['protokolo_nr'], $gid]);
+                        $qt_to_tomo_gam[(int)$gam['qt_gam_id']] = (int)$gid;
                     } else {
-                        $ins = $tomo->prepare("INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id, sukurtas) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id");
-                        $ins->execute([$nr, $uzs['kiekis'], $uzsakovas_id, $objektas_id, $uzs['vartotojas_id'] ?? 1, $uzs['gaminiu_rusis_id'], $uzs['sukurtas']]);
-                        $tomo_uzs_id = (int)$ins->fetchColumn();
-                        $rezultatas['nauji']++;
+                        $ins2 = $tomo->prepare("INSERT INTO gaminiai (uzsakymo_id,gaminio_numeris,gaminio_tipas_id,protokolo_nr) VALUES (?,?,?,?) RETURNING id");
+                        $ins2->execute([$tomo_uzs_id, $gam['gaminio_numeris'], $gam['gaminio_tipas_id'], $gam['protokolo_nr']]);
+                        $qt_to_tomo_gam[(int)$gam['qt_gam_id']] = (int)$ins2->fetchColumn();
                     }
+                    $rezultatas['gaminiai']++;
+                }
+            }
 
-                    $gam_stmt = $qt->prepare("SELECT gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
-                    $gam_stmt->execute([$uzs['qt_id']]);
-                    $gaminiai = $gam_stmt->fetchAll(PDO::FETCH_ASSOC);
+            // === 6. FUNKCINIAI BANDYMAI ===
+            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
 
-                    foreach ($gaminiai as $gam) {
-                        if ($gam['gaminio_tipas_id']) {
-                            self::sinchGaminioTipa($qt, (int)$gam['gaminio_tipas_id']);
+            $select_cols = "fb.gaminio_id, fb.eil_nr, fb.reikalavimas, fb.isvada, fb.defektas, fb.darba_atliko, fb.irase_vartotojas";
+            if ($has_photo) $select_cols .= ", fb.defekto_nuotrauka, fb.defekto_nuotraukos_pavadinimas";
+
+            $tests = $qt->query("
+                SELECT $select_cols
+                FROM mt_funkciniai_bandymai fb
+                JOIN gaminiai g ON g.id = fb.gaminio_id
+                JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                WHERE u.gaminiu_rusis_id = 2
+                ORDER BY fb.gaminio_id, fb.eil_nr
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $grouped = [];
+            foreach ($tests as $t) $grouped[$t['gaminio_id']][] = $t;
+
+            foreach ($grouped as $qt_gam_id => $rows) {
+                $tomo_gam_id = $qt_to_tomo_gam[$qt_gam_id] ?? null;
+                if (!$tomo_gam_id) continue;
+                try {
+                    $tomo->beginTransaction();
+                    $tomo->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
+
+                    if ($has_photo) {
+                        $ins = $tomo->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
+                    } else {
+                        $ins = $tomo->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
+                    }
+                    foreach ($rows as $r) {
+                        $params = [$tomo_gam_id, $r['eil_nr'], $r['reikalavimas'], $r['isvada'], $r['defektas'], $r['darba_atliko'], $r['irase_vartotojas']];
+                        if ($has_photo) {
+                            $params[] = $r['defekto_nuotrauka'] ?? null;
+                            $params[] = $r['defekto_nuotraukos_pavadinimas'] ?? null;
                         }
-                        self::gautiArbaKurtiGamini(
-                            $tomo_uzs_id,
-                            $gam['gaminio_numeris'],
-                            $gam['gaminio_tipas_id'] ? (int)$gam['gaminio_tipas_id'] : null,
-                            $gam['protokolo_nr']
-                        );
-                        $rezultatas['gaminiai']++;
+                        $ins->execute($params);
                     }
+                    $tomo->commit();
+                    $rezultatas['bandymai'] += count($rows);
                 } catch (Exception $e) {
-                    $rezultatas['klaidos'][] = "Nr.{$uzs['uzsakymo_numeris']}: {$e->getMessage()}";
+                    $tomo->rollBack();
+                    $rezultatas['klaidos'][] = "Bandymai gam_id=$qt_gam_id: {$e->getMessage()}";
                 }
             }
 
             self::irasytLog(
                 'Importas iš quality_tomas',
-                'uzsakymai',
+                'uzsakymai+bandymai',
                 null,
-                $rezultatas['nauji'] + $rezultatas['atnaujinti'],
+                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['bandymai'],
                 empty($rezultatas['klaidos']) ? 'ok' : 'klaida',
-                empty($rezultatas['klaidos']) ? null : implode('; ', $rezultatas['klaidos'])
+                empty($rezultatas['klaidos']) ? null : implode('; ', array_slice($rezultatas['klaidos'], 0, 5))
             );
 
         } catch (Exception $e) {
