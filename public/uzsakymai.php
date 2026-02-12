@@ -89,13 +89,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sukurtas_upd = $upd_row['sukurtas'] ?? null;
         try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr ?: ($_POST['uzsakymo_numeris'] ?? ''), $uzs_pav_upd, $obj_pav_upd, (int)($_POST['kiekis'] ?: 1), 1, $rusis_id_upd ? (int)$rusis_id_upd : null, $sukurtas_upd); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
         $message = 'Užsakymas atnaujintas.';
-    // Užsakymo trynimas kartu su visais susijusiais gaminiais
     } elseif ($action === 'delete') {
-        $id = $_POST['id'] ?? $_GET['id'] ?? null;
-        if ($id) {
-            $pdo->prepare('DELETE FROM gaminiai WHERE uzsakymo_id = :id')->execute(['id' => $id]);
-            $pdo->prepare('DELETE FROM uzsakymai WHERE id = :id')->execute(['id' => $id]);
-            $message = 'Užsakymas ištrintas.';
+        $id = $_POST['id'] ?? null;
+        $patvirtinimas = trim($_POST['patvirtinimo_nr'] ?? '');
+        $user = currentUser();
+        if ($user['role'] !== 'admin') {
+            $error = 'Tik administratorius gali trinti užsakymus.';
+        } elseif (!$id) {
+            $error = 'Nenurodytas užsakymo ID.';
+        } else {
+            $chk = $pdo->prepare('SELECT uzsakymo_numeris FROM uzsakymai WHERE id = ?');
+            $chk->execute([$id]);
+            $tikras_nr = trim($chk->fetchColumn() ?: '');
+            if ($tikras_nr === '') {
+                $error = 'Užsakymas nerastas.';
+            } elseif ($patvirtinimas !== $tikras_nr) {
+                $error = 'Įvestas neteisingas užsakymo numeris. Trynimas atšauktas.';
+            } else {
+                $pdo->beginTransaction();
+                try {
+                    $gam_ids = $pdo->prepare('SELECT id FROM gaminiai WHERE uzsakymo_id = ?');
+                    $gam_ids->execute([$id]);
+                    foreach ($gam_ids->fetchAll(PDO::FETCH_COLUMN) as $gid) {
+                        $pdo->prepare('DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM mt_komponentai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM bandymai_prietaisai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM antriniu_grandiniu_bandymai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pret_ids = $pdo->prepare('SELECT id FROM pretenzijos WHERE gaminio_id = ?');
+                        $pret_ids->execute([$gid]);
+                        foreach ($pret_ids->fetchAll(PDO::FETCH_COLUMN) as $pid) {
+                            $pdo->prepare('DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?')->execute([$pid]);
+                        }
+                        $pdo->prepare('DELETE FROM pretenzijos WHERE gaminio_id = ?')->execute([$gid]);
+                    }
+                    $uzs_pret_ids = $pdo->prepare('SELECT id FROM pretenzijos WHERE uzsakymo_id = ?');
+                    $uzs_pret_ids->execute([$id]);
+                    foreach ($uzs_pret_ids->fetchAll(PDO::FETCH_COLUMN) as $pid) {
+                        $pdo->prepare('DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?')->execute([$pid]);
+                    }
+                    $pdo->prepare('DELETE FROM pretenzijos WHERE uzsakymo_id = ?')->execute([$id]);
+                    $pdo->prepare('DELETE FROM gaminiai WHERE uzsakymo_id = ?')->execute([$id]);
+                    $pdo->prepare('DELETE FROM uzsakymai WHERE id = ?')->execute([$id]);
+                    $pdo->commit();
+                    $message = 'Užsakymas Nr. ' . h($tikras_nr) . ' ištrintas su visais susijusiais duomenimis.';
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    $error = 'Klaida trinant užsakymą: ' . $e->getMessage();
+                }
+            }
         }
     }
 }
@@ -596,11 +641,10 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td>
                                 <div class="actions">
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį užsakymą?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?= $o['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-order-<?= $o['id'] ?>">Trinti</button>
-                                    </form>
+                                    <?php if (currentUser()['role'] === 'admin'): ?>
+                                    <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-order-<?= $o['id'] ?>"
+                                        onclick="atidarytiTrynima(<?= $o['id'] ?>, '<?= h($o['uzsakymo_numeris']) ?>')">Trinti</button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -676,6 +720,58 @@ function filterOrders() {
         </form>
     </div>
 </div>
+<?php endif; ?>
+
+<?php if (currentUser()['role'] === 'admin'): ?>
+<div class="modal-overlay" id="deleteOrderModal" data-testid="modal-delete-order">
+    <div class="modal" style="max-width: 480px;">
+        <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
+            <h3 style="color: #dc2626;">Užsakymo trynimas</h3>
+            <button class="modal-close" onclick="closeModal('deleteOrderModal')" data-testid="button-close-delete-modal">&times;</button>
+        </div>
+        <form method="POST" id="deleteOrderForm" data-testid="form-delete-order">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" id="deleteOrderId">
+            <div class="modal-body">
+                <div class="delete-warning" data-testid="delete-warning">
+                    <div class="delete-warning-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">Šis veiksmas negrįžtamas!</p>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
+                        Bus ištrintas užsakymas <strong id="deleteOrderNrDisplay" style="color: var(--text-primary);"></strong> ir visi susiję duomenys:
+                        gaminiai, funkciniai bandymai, komponentai, dielektriniai bandymai, saugiklių įdėklai ir kiti įrašai.
+                    </p>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label style="font-size: 13px; font-weight: 600;">Patvirtinimui įveskite užsakymo numerį:</label>
+                        <input type="text" name="patvirtinimo_nr" id="deleteConfirmInput" class="form-control"
+                            placeholder="Įveskite užsakymo Nr." autocomplete="off"
+                            data-testid="input-delete-confirm" style="margin-top: 6px; border-color: #fecaca;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteOrderModal')" data-testid="button-cancel-delete">Atšaukti</button>
+                <button type="submit" class="btn btn-danger" id="deleteConfirmBtn" disabled data-testid="button-confirm-delete">Ištrinti užsakymą</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+var _deleteNr = '';
+function atidarytiTrynima(id, nr) {
+    _deleteNr = nr;
+    document.getElementById('deleteOrderId').value = id;
+    document.getElementById('deleteOrderNrDisplay').textContent = 'Nr. ' + nr;
+    document.getElementById('deleteConfirmInput').value = '';
+    document.getElementById('deleteConfirmBtn').disabled = true;
+    openModal('deleteOrderModal');
+    setTimeout(function(){ document.getElementById('deleteConfirmInput').focus(); }, 100);
+}
+document.getElementById('deleteConfirmInput').addEventListener('input', function() {
+    document.getElementById('deleteConfirmBtn').disabled = (this.value.trim() !== _deleteNr.trim());
+});
+</script>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

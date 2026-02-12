@@ -64,14 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("UPDATE vartotojai SET $fields WHERE id = :id");
         $stmt->execute($params);
         $message = 'Vartotojas atnaujintas.';
-    // Vartotojo šalinimas (negalima šalinti savęs)
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
-        if ($id && $id != $_SESSION['vartotojas_id']) {
+        $patvirtinta = ($_POST['trynimo_patvirtinimas'] ?? '') === 'TAIP';
+        if ($id == $_SESSION['vartotojas_id']) {
+            $error = 'Negalite ištrinti savo paskyros.';
+        } elseif (!$patvirtinta) {
+            $error = 'Trynimas nepatvirtintas.';
+        } elseif ($id) {
             $pdo->prepare("DELETE FROM vartotojai WHERE id = :id")->execute(['id' => $id]);
             $message = 'Vartotojas ištrintas.';
-        } else {
-            $error = 'Negalite ištrinti savo paskyros.';
         }
     // Vartotojo patvirtinimo būsenos perjungimas
     } elseif ($action === 'toggle_confirm') {
@@ -197,11 +199,8 @@ require_once __DIR__ . '/includes/header.php';
                                 </form>
                                 <?php endif; ?>
                                 <?php if ($u['id'] != $_SESSION['vartotojas_id']): ?>
-                                <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį vartotoją?');">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-user-<?= $u['id'] ?>">Trinti</button>
-                                </form>
+                                <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-user-<?= $u['id'] ?>"
+                                    onclick="atidarytiVartotojoTrinyma(<?= $u['id'] ?>, '<?= h($u['vardas'] . ' ' . $u['pavarde']) ?>')">Trinti</button>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -310,6 +309,42 @@ function editUser(u) {
     document.getElementById('edit_user_el_pastas').value = u.el_pastas || '';
     document.getElementById('edit_user_role').value = u.role || 'user';
     openModal('editUserModal');
+}
+</script>
+
+<div class="modal-overlay" id="deleteUserModal" data-testid="modal-delete-user">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
+            <h3 style="color: #dc2626;">Vartotojo trynimas</h3>
+            <button class="modal-close" onclick="closeModal('deleteUserModal')">&times;</button>
+        </div>
+        <form method="POST" id="deleteUserForm">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" id="deleteUserId">
+            <input type="hidden" name="trynimo_patvirtinimas" value="TAIP">
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <div class="delete-warning-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">Šis veiksmas negrįžtamas!</p>
+                    <p style="color: var(--text-secondary); font-size: 13px;">
+                        Ar tikrai norite ištrinti vartotoją <strong id="deleteUserNameDisplay"></strong>?
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteUserModal')">Atšaukti</button>
+                <button type="submit" class="btn btn-danger" data-testid="button-confirm-delete-user">Ištrinti</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function atidarytiVartotojoTrinyma(id, vardas) {
+    document.getElementById('deleteUserId').value = id;
+    document.getElementById('deleteUserNameDisplay').textContent = vardas;
+    openModal('deleteUserModal');
 }
 </script>
 

@@ -104,12 +104,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ], $pdf_params));
         $message = 'Prietaisas atnaujintas.';
         }
-    // Prietaiso šalinimas iš sistemos
     } elseif ($action === 'delete') {
-        $id = $_POST['id'] ?? null;
-        if ($id) {
-            $pdo->prepare("DELETE FROM prietaisai WHERE id = :id")->execute(['id' => $id]);
-            $message = 'Prietaisas ištrintas.';
+        $user = currentUser();
+        if ($user['role'] !== 'admin') {
+            $error = 'Tik administratorius gali trinti prietaisus.';
+        } else {
+            $id = $_POST['id'] ?? null;
+            $patvirtinta = ($_POST['trynimo_patvirtinimas'] ?? '') === 'TAIP';
+            if (!$patvirtinta) {
+                $error = 'Trynimas nepatvirtintas.';
+            } elseif ($id) {
+                $pdo->prepare("DELETE FROM prietaisai WHERE id = :id")->execute(['id' => $id]);
+                $message = 'Prietaisas ištrintas.';
+            }
         }
     }
 }
@@ -483,11 +490,8 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="actions">
                                     <a href="/prietaisai.php?id=<?= $d['id'] ?>" class="btn btn-secondary btn-sm" data-testid="button-view-device-<?= $d['id'] ?>">Peržiūrėti</a>
                                     <?php if (($user['role'] ?? '') === 'admin'): ?>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį prietaisą?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?= $d['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-device-<?= $d['id'] ?>">Trinti</button>
-                                    </form>
+                                    <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-device-<?= $d['id'] ?>"
+                                        onclick="atidarytiPrietaisoTrinyma(<?= $d['id'] ?>, '<?= h($d['pavadinimas'] ?? '') ?>')">Trinti</button>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -618,6 +622,44 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 <?php endif; ?>
 
+<?php endif; ?>
+
+<?php if (($user['role'] ?? '') === 'admin'): ?>
+<div class="modal-overlay" id="deleteDeviceModal" data-testid="modal-delete-device">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
+            <h3 style="color: #dc2626;">Prietaiso trynimas</h3>
+            <button class="modal-close" onclick="closeModal('deleteDeviceModal')">&times;</button>
+        </div>
+        <form method="POST" id="deleteDeviceForm">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" id="deleteDeviceId">
+            <input type="hidden" name="trynimo_patvirtinimas" value="TAIP">
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <div class="delete-warning-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">Šis veiksmas negrįžtamas!</p>
+                    <p style="color: var(--text-secondary); font-size: 13px;">
+                        Ar tikrai norite ištrinti prietaisą <strong id="deleteDeviceNameDisplay"></strong>?
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteDeviceModal')">Atšaukti</button>
+                <button type="submit" class="btn btn-danger" data-testid="button-confirm-delete-device">Ištrinti</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function atidarytiPrietaisoTrinyma(id, pav) {
+    document.getElementById('deleteDeviceId').value = id;
+    document.getElementById('deleteDeviceNameDisplay').textContent = '"' + pav + '"';
+    openModal('deleteDeviceModal');
+}
+</script>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -154,15 +154,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Pretenzijos šalinimas (tik ne skaitytojams)
     if ($veiksmas === 'trinti') {
-        if ($arSkaitytojas) {
-            $klaida = 'Neturite teisių trinti pretenzijų';
+        $user = currentUser();
+        if ($user['role'] !== 'admin') {
+            $klaida = 'Tik administratorius gali trinti pretenzijas.';
         } else {
             $id = (int)($_POST['id'] ?? 0);
-            if ($id > 0) {
-                $stmt = $pdo->prepare("DELETE FROM pretenzijos WHERE id = :id");
-                $stmt->execute([':id' => $id]);
+            $patvirtinta = ($_POST['trynimo_patvirtinimas'] ?? '') === 'TAIP';
+            if (!$patvirtinta) {
+                $klaida = 'Trynimas nepatvirtintas.';
+            } elseif ($id > 0) {
+                $pdo->prepare("DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = :id")->execute([':id' => $id]);
+                $pdo->prepare("DELETE FROM pretenzijos WHERE id = :id")->execute([':id' => $id]);
                 $sekminga = 'Pretenzija ištrinta';
             }
         }
@@ -607,14 +610,11 @@ include __DIR__ . '/includes/header.php';
             <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" data-testid="button-edit-<?= $p['id'] ?>">
               <i class="bi bi-pencil"></i>
             </button>
-            <?php if (!$arSkaitytojas): ?>
-            <form method="post" style="display:inline" onsubmit="return confirm('Ar tikrai norite ištrinti?')">
-              <input type="hidden" name="veiksmas" value="trinti">
-              <input type="hidden" name="id" value="<?= $p['id'] ?>">
-              <button type="submit" class="btn-action delete" title="Trinti" data-testid="button-delete-<?= $p['id'] ?>">
-                <i class="bi bi-trash"></i>
-              </button>
-            </form>
+            <?php if (currentUser()['role'] === 'admin'): ?>
+            <button class="btn-action delete" title="Trinti" data-testid="button-delete-<?= $p['id'] ?>"
+                onclick="atidarytiPretenzijosTrinyma(<?= $p['id'] ?>, '<?= h($p['nr'] ?? $p['id']) ?>')">
+              <i class="bi bi-trash"></i>
+            </button>
             <?php endif; ?>
           </div>
         </div>
@@ -1108,5 +1108,44 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit').forEach(modal =
   });
 });
 </script>
+
+<?php if (currentUser()['role'] === 'admin'): ?>
+<div class="modal-overlay" id="deletePretModal" data-testid="modal-delete-pretenzija">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
+            <h3 style="color: #dc2626;">Pretenzijos trynimas</h3>
+            <button class="modal-close" onclick="closeModal('deletePretModal')">&times;</button>
+        </div>
+        <form method="POST" id="deletePretForm">
+            <input type="hidden" name="veiksmas" value="trinti">
+            <input type="hidden" name="id" id="deletePretId">
+            <input type="hidden" name="trynimo_patvirtinimas" id="deletePretConfirmVal" value="">
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <div class="delete-warning-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">Šis veiksmas negrįžtamas!</p>
+                    <p style="color: var(--text-secondary); font-size: 13px;">
+                        Ar tikrai norite ištrinti pretenziją <strong id="deletePretNrDisplay"></strong>?
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deletePretModal')">Atšaukti</button>
+                <button type="submit" class="btn btn-danger" data-testid="button-confirm-delete-pret">Ištrinti</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function atidarytiPretenzijosTrinyma(id, nr) {
+    document.getElementById('deletePretId').value = id;
+    document.getElementById('deletePretNrDisplay').textContent = 'Nr. ' + nr;
+    document.getElementById('deletePretConfirmVal').value = 'TAIP';
+    openModal('deletePretModal');
+}
+</script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

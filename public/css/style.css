@@ -597,6 +597,17 @@ textarea.form-control {
     gap: 8px;
 }
 
+.delete-warning {
+    text-align: center;
+    padding: 8px 0;
+}
+.delete-warning-icon {
+    margin-bottom: 12px;
+}
+.delete-warning-icon svg {
+    display: inline-block;
+}
+
 /* Empty state */
 .empty-state {
     text-align: center;
