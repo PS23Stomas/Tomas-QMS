@@ -469,6 +469,108 @@ class TomoQMS {
         }
     }
 
+    public static function getQualityTomasConnection(): ?PDO {
+        static $qtConn = null;
+        $url = getenv('QUALITY_TOMAS_DATABASE_URL');
+        if (!$url) return null;
+        if ($qtConn !== null) return $qtConn;
+        try {
+            $parts = parse_url($url);
+            if (!$parts || !isset($parts['host'], $parts['user'], $parts['pass'], $parts['path'])) return null;
+            $dsn = 'pgsql:host=' . $parts['host'] . ';port=' . ($parts['port'] ?? 5432) . ';dbname=' . ltrim($parts['path'], '/');
+            if (strpos($url, 'sslmode=require') !== false) $dsn .= ';sslmode=require';
+            $qtConn = new PDO($dsn, $parts['user'], $parts['pass'], [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+            return $qtConn;
+        } catch (Exception $e) {
+            error_log('QualityTomas prisijungimo klaida: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public static function importuotiIsQualityTomas(): array {
+        $qt = self::getQualityTomasConnection();
+        $tomo = self::getConnection();
+        if (!$qt || !$tomo) return ['klaida' => 'Nepavyko prisijungti prie duomenų bazių'];
+
+        $rezultatas = ['nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'klaidos' => []];
+
+        try {
+            $stmt = $qt->query("
+                SELECT u.id as qt_id, u.uzsakymo_numeris, u.sukurtas, u.kiekis, u.gaminiu_rusis_id, u.vartotojas_id,
+                       uz.uzsakovas, o.pavadinimas as objektas
+                FROM uzsakymai u
+                LEFT JOIN uzsakovai uz ON uz.id = u.uzsakovas_id
+                LEFT JOIN objektai o ON o.id = u.objektas_id
+                WHERE u.gaminiu_rusis_id = 2
+                ORDER BY u.id
+            ");
+            $mt_uzsakymai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($mt_uzsakymai as $uzs) {
+                try {
+                    $nr = trim($uzs['uzsakymo_numeris']);
+                    if ($nr === '') continue;
+
+                    $check = $tomo->prepare("SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)");
+                    $check->execute([$nr]);
+                    $existing_id = $check->fetchColumn();
+
+                    $uzsakovas_id = $uzs['uzsakovas'] ? self::gautiArbaKurtiUzsakova($uzs['uzsakovas']) : null;
+                    $objektas_id = $uzs['objektas'] ? self::gautiArbaKurtiObjekta($uzs['objektas']) : null;
+
+                    if ($existing_id) {
+                        $upd = $tomo->prepare("UPDATE uzsakymai SET kiekis = ?, uzsakovas_id = ?, objektas_id = ?, gaminiu_rusis_id = ?, sukurtas = ? WHERE id = ?");
+                        $upd->execute([$uzs['kiekis'], $uzsakovas_id, $objektas_id, $uzs['gaminiu_rusis_id'], $uzs['sukurtas'], $existing_id]);
+                        $tomo_uzs_id = (int)$existing_id;
+                        $rezultatas['atnaujinti']++;
+                    } else {
+                        $ins = $tomo->prepare("INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id, sukurtas) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id");
+                        $ins->execute([$nr, $uzs['kiekis'], $uzsakovas_id, $objektas_id, $uzs['vartotojas_id'] ?? 1, $uzs['gaminiu_rusis_id'], $uzs['sukurtas']]);
+                        $tomo_uzs_id = (int)$ins->fetchColumn();
+                        $rezultatas['nauji']++;
+                    }
+
+                    $gam_stmt = $qt->prepare("SELECT gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
+                    $gam_stmt->execute([$uzs['qt_id']]);
+                    $gaminiai = $gam_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    foreach ($gaminiai as $gam) {
+                        if ($gam['gaminio_tipas_id']) {
+                            self::sinchGaminioTipa($qt, (int)$gam['gaminio_tipas_id']);
+                        }
+                        self::gautiArbaKurtiGamini(
+                            $tomo_uzs_id,
+                            $gam['gaminio_numeris'],
+                            $gam['gaminio_tipas_id'] ? (int)$gam['gaminio_tipas_id'] : null,
+                            $gam['protokolo_nr']
+                        );
+                        $rezultatas['gaminiai']++;
+                    }
+                } catch (Exception $e) {
+                    $rezultatas['klaidos'][] = "Nr.{$uzs['uzsakymo_numeris']}: {$e->getMessage()}";
+                }
+            }
+
+            self::irasytLog(
+                'Importas iš quality_tomas',
+                'uzsakymai',
+                null,
+                $rezultatas['nauji'] + $rezultatas['atnaujinti'],
+                empty($rezultatas['klaidos']) ? 'ok' : 'klaida',
+                empty($rezultatas['klaidos']) ? null : implode('; ', $rezultatas['klaidos'])
+            );
+
+        } catch (Exception $e) {
+            $rezultatas['klaidos'][] = $e->getMessage();
+            self::irasytLog('Importo klaida', 'uzsakymai', null, 0, 'klaida', $e->getMessage());
+        }
+
+        return $rezultatas;
+    }
+
     public static function sinchPDF(PDO $localConn, int $local_gaminio_id, string $pdf_column, string $failas_column): void {
         $conn = self::getConnection();
         if (!$conn) return;
