@@ -80,6 +80,7 @@ public/                     # Web root served by PHP
 │   └── issaugoti_mt_pasa_teksta.php   # AJAX endpoint for passport text corrections
 ├── mt_statistika.php       # MT statistics page with filtering
 ├── grafiko_duomenys.php    # Chart data API endpoint
+├── sync_log.php            # Sync log viewer (Tomo QMS sync history)
 └── router.php              # URL router for PHP built-in server
 ```
 
@@ -122,6 +123,8 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-12: Added sync_log.php page for viewing Tomo QMS sync history with filtering (status, order Nr.) and pagination
+- 2026-02-12: Added sync logging to all 9 TomoQMS sync methods (orders, functional tests, components, dielectrics, fuse holders, instruments, protocol Nr., passport text, PDFs)
 - 2026-02-12: Added Tomo QMS cross-database sync (TomoQMS.php) - auto-syncs all data to external database
 - 2026-02-12: Removed Kiekis and Atitikties kodas from order detail view
 - 2026-02-11: Added functional tests PDF generation (generuoti_mt_funkciniu_pdf.php, mt_funkciniu_pdf.php)
