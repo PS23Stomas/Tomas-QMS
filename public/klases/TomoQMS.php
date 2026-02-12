@@ -69,7 +69,7 @@ class TomoQMS {
         }
     }
 
-    public static function sinchronizuotiUzsakyma(string $uzsakymo_numeris, ?string $uzsakovas_pav, ?string $objektas_pav, int $kiekis = 1, int $vartotojas_id = 1, ?int $gaminiu_rusis_id = null): ?int {
+    public static function sinchronizuotiUzsakyma(string $uzsakymo_numeris, ?string $uzsakovas_pav, ?string $objektas_pav, int $kiekis = 1, int $vartotojas_id = 1, ?int $gaminiu_rusis_id = null, ?string $sukurtas = null): ?int {
         $conn = self::getConnection();
         if (!$conn || trim($uzsakymo_numeris) === '') return null;
         try {
@@ -81,12 +81,27 @@ class TomoQMS {
             $objektas_id = $objektas_pav ? self::gautiArbaKurtiObjekta($objektas_pav) : null;
 
             if ($uzs_id) {
-                $stmt = $conn->prepare("UPDATE uzsakymai SET kiekis = :kiekis, uzsakovas_id = :uzs_id, objektas_id = :obj_id, gaminiu_rusis_id = :rusis WHERE id = :id");
-                $stmt->execute([':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':rusis' => $gaminiu_rusis_id, ':id' => $uzs_id]);
+                $sql = "UPDATE uzsakymai SET kiekis = :kiekis, uzsakovas_id = :uzs_id, objektas_id = :obj_id, gaminiu_rusis_id = :rusis";
+                $params = [':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':rusis' => $gaminiu_rusis_id, ':id' => $uzs_id];
+                if ($sukurtas) {
+                    $sql .= ", sukurtas = :sukurtas";
+                    $params[':sukurtas'] = $sukurtas;
+                }
+                $sql .= " WHERE id = :id";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute($params);
                 return (int)$uzs_id;
             } else {
-                $stmt = $conn->prepare("INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzs_id, :obj_id, :vart_id, :rusis) RETURNING id");
-                $stmt->execute([':nr' => $uzsakymo_numeris, ':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':vart_id' => $vartotojas_id, ':rusis' => $gaminiu_rusis_id]);
+                $cols = "uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id";
+                $vals = ":nr, :kiekis, :uzs_id, :obj_id, :vart_id, :rusis";
+                $params = [':nr' => $uzsakymo_numeris, ':kiekis' => $kiekis, ':uzs_id' => $uzsakovas_id, ':obj_id' => $objektas_id, ':vart_id' => $vartotojas_id, ':rusis' => $gaminiu_rusis_id];
+                if ($sukurtas) {
+                    $cols .= ", sukurtas";
+                    $vals .= ", :sukurtas";
+                    $params[':sukurtas'] = $sukurtas;
+                }
+                $stmt = $conn->prepare("INSERT INTO uzsakymai ($cols) VALUES ($vals) RETURNING id");
+                $stmt->execute($params);
                 return (int)$stmt->fetchColumn();
             }
         } catch (Exception $e) {
@@ -147,7 +162,7 @@ class TomoQMS {
         try {
             $stmt = $localConn->prepare("
                 SELECT u.uzsakymo_numeris, g.gaminio_numeris, g.gaminio_tipas_id, g.protokolo_nr,
-                       uz.uzsakovas, o.pavadinimas as objektas, u.kiekis, u.gaminiu_rusis_id
+                       uz.uzsakovas, o.pavadinimas as objektas, u.kiekis, u.gaminiu_rusis_id, u.sukurtas
                 FROM gaminiai g
                 JOIN uzsakymai u ON u.id = g.uzsakymo_id
                 LEFT JOIN uzsakovai uz ON uz.id = u.uzsakovas_id
@@ -168,7 +183,8 @@ class TomoQMS {
                 $info['objektas'] ?? null,
                 (int)($info['kiekis'] ?? 1),
                 1,
-                $info['gaminiu_rusis_id'] ? (int)$info['gaminiu_rusis_id'] : null
+                $info['gaminiu_rusis_id'] ? (int)$info['gaminiu_rusis_id'] : null,
+                $info['sukurtas'] ?? null
             );
             if (!$tomo_uzs_id) return null;
 
