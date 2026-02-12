@@ -651,11 +651,43 @@ class TomoQMS {
                 }
             }
 
+            // === 7. MT KOMPONENTAI ===
+            $rezultatas['komponentai'] = 0;
+            $komp_data = $qt->query("
+                SELECT mk.gaminio_id as qt_gam_id, mk.eiles_numeris, mk.gamintojo_kodas, mk.kiekis, mk.aprasymas, mk.gamintojas, mk.parinkta_projektui
+                FROM mt_komponentai mk
+                JOIN gaminiai g ON g.id = mk.gaminio_id
+                JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                WHERE u.gaminiu_rusis_id = 2
+                ORDER BY mk.gaminio_id, mk.eiles_numeris
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $komp_grouped = [];
+            foreach ($komp_data as $k) $komp_grouped[$k['qt_gam_id']][] = $k;
+
+            foreach ($komp_grouped as $qt_gam_id => $rows) {
+                $tomo_gam_id = $qt_to_tomo_gam[$qt_gam_id] ?? null;
+                if (!$tomo_gam_id) continue;
+                try {
+                    $tomo->beginTransaction();
+                    $tomo->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
+                    $ins = $tomo->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
+                    foreach ($rows as $r) {
+                        $ins->execute([$tomo_gam_id, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
+                    }
+                    $tomo->commit();
+                    $rezultatas['komponentai'] += count($rows);
+                } catch (Exception $e) {
+                    $tomo->rollBack();
+                    $rezultatas['klaidos'][] = "Komponentai gam_id=$qt_gam_id: {$e->getMessage()}";
+                }
+            }
+
             self::irasytLog(
                 'Importas iš quality_tomas',
-                'uzsakymai+bandymai',
+                'uzsakymai+bandymai+komponentai',
                 null,
-                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['bandymai'],
+                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['bandymai'] + $rezultatas['komponentai'],
                 empty($rezultatas['klaidos']) ? 'ok' : 'klaida',
                 empty($rezultatas['klaidos']) ? null : implode('; ', array_slice($rezultatas['klaidos'], 0, 5))
             );
