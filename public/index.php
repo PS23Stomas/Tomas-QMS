@@ -5,7 +5,7 @@ requireLogin();
 $page_title = 'Kokybės rodikliai';
 $active_tab = $_GET['tab'] ?? '30d';
 
-$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
+$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) <> 'atitinka')";
 
 // ==================== TAB 1: 30 dienų duomenys ====================
 $where_sql_30d = "WHERE gt.grupe = 'MT' AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";

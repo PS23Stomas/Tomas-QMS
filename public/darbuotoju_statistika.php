@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Darbuotojų mėnesinė statistika';
-$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
+$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) <> 'atitinka')";
 
 $sel_metai = $_GET['metai'] ?? date('Y');
 $sel_menuo = $_GET['menuo'] ?? date('n');
