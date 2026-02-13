@@ -38,7 +38,7 @@ $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
-$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, g.pavadinimas AS gam_pav FROM gaminiai g WHERE g.id=?");
+$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, gt.gaminio_tipas AS gam_pav FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id=?");
 $stmt->execute([$gaminys_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
