@@ -10,7 +10,6 @@
  * - Detalus užsakymo peržiūros rodinys su MT gaminių navigacijos kortelėmis
  */
 require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/klases/TomoQMS.php';
 requireLogin();
 
 $page_title = 'Užsakymai';
@@ -417,15 +416,6 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Užsakymo duomenys</div>
                 </div>
             </div>
-            <div class="mt-tile" id="syncTile" onclick="sinchronizuoti(<?= $view_id ?>, <?= $gaminio_id_mt ?>)" data-testid="tile-sinchronizacija" style="cursor: pointer;">
-                <div class="mt-tile-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Sinchronizacija</div>
-                    <div class="mt-tile-desc" id="syncStatus">Siųsti į Tomo QMS</div>
-                </div>
-            </div>
             <?php else: ?>
             <div class="mt-tile mt-tile-disabled">
                 <div class="mt-tile-icon mt-tile-icon-muted">
@@ -470,15 +460,6 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Redaguoti</div>
                     <div class="mt-tile-desc">Užsakymo duomenys</div>
-                </div>
-            </div>
-            <div class="mt-tile" id="syncTile2" onclick="sinchronizuoti(<?= $view_id ?>, 0)" data-testid="tile-sinchronizacija-2" style="cursor: pointer;">
-                <div class="mt-tile-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Sinchronizacija</div>
-                    <div class="mt-tile-desc" id="syncStatus2">Siųsti į Tomo QMS</div>
                 </div>
             </div>
             <?php endif; ?>
@@ -549,6 +530,10 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
+            <button class="btn btn-sm" id="btnMasSync" onclick="masineSinchronizacija()" data-testid="button-mass-sync" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="massSyncIcon"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                <span id="massSyncText">Sinchronizuoti visus</span>
+            </button>
             <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
@@ -674,6 +659,17 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<div id="massSyncProgress" style="display:none; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-secondary);" data-testid="mass-sync-progress">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+        <span style="font-size:13px; font-weight:600;" id="massSyncLabel">Sinchronizuojama...</span>
+        <span style="font-size:12px; color:var(--text-secondary);" id="massSyncCount"></span>
+    </div>
+    <div style="width:100%; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
+        <div id="massSyncBar" style="height:100%; width:0%; background: linear-gradient(90deg, #0ea5e9, #2563eb); border-radius:3px; transition: width 0.3s ease;"></div>
+    </div>
+    <div id="massSyncDetails" style="font-size:11px; color:var(--text-secondary); margin-top:6px;"></div>
+</div>
+
 <script>
 function filterOrders() {
     const search = document.getElementById('orderSearch').value.toLowerCase().trim();
@@ -688,6 +684,73 @@ function filterOrders() {
             row.style.display = 'none';
         }
     });
+}
+
+function masineSinchronizacija() {
+    var btn = document.getElementById('btnMasSync');
+    var icon = document.getElementById('massSyncIcon');
+    var text = document.getElementById('massSyncText');
+    var progress = document.getElementById('massSyncProgress');
+    var bar = document.getElementById('massSyncBar');
+    var label = document.getElementById('massSyncLabel');
+    var countEl = document.getElementById('massSyncCount');
+    var details = document.getElementById('massSyncDetails');
+
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+    btn.style.pointerEvents = 'none';
+    icon.style.animation = 'spin 1s linear infinite';
+    text.textContent = 'Sinchronizuojama...';
+    progress.style.display = 'block';
+    bar.style.width = '0%';
+    label.textContent = 'Sinchronizuojama...';
+    countEl.textContent = '';
+    details.textContent = '';
+
+    var fd = new FormData();
+    fd.append('masinis', '1');
+
+    fetch('/sinchronizuoti.php', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            icon.style.animation = '';
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+
+            if (data.success) {
+                bar.style.width = '100%';
+                bar.style.background = 'var(--success)';
+                label.innerHTML = '<span style="color:var(--success);">Sinchronizacija baigta!</span>';
+                countEl.textContent = 'Užsakymų: ' + data.uzsakymu_viso + ', sinchronizuota elementų: ' + data.sinchronizuota_viso;
+                text.textContent = 'Sinchronizuoti visus';
+                if (data.klaidos && data.klaidos.length > 0) {
+                    details.innerHTML = '<span style="color:var(--danger);">Klaidos: ' + data.klaidos.join('; ') + '</span>';
+                } else {
+                    details.textContent = 'Visos operacijos sėkmingos.';
+                }
+            } else {
+                bar.style.width = '100%';
+                bar.style.background = 'var(--danger)';
+                label.innerHTML = '<span style="color:var(--danger);">Klaida</span>';
+                details.textContent = data.message || 'Nežinoma klaida';
+                text.textContent = 'Sinchronizuoti visus';
+            }
+
+            setTimeout(function() {
+                bar.style.background = 'linear-gradient(90deg, #0ea5e9, #2563eb)';
+            }, 5000);
+        })
+        .catch(function(err) {
+            icon.style.animation = '';
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+            bar.style.width = '100%';
+            bar.style.background = 'var(--danger)';
+            label.innerHTML = '<span style="color:var(--danger);">Ryšio klaida</span>';
+            text.textContent = 'Sinchronizuoti visus';
+        });
 }
 </script>
 
@@ -787,39 +850,6 @@ function atidarytiTrynima(id, nr) {
 document.getElementById('deleteConfirmInput').addEventListener('input', function() {
     document.getElementById('deleteConfirmBtn').disabled = (this.value.trim() !== _deleteNr.trim());
 });
-function sinchronizuoti(uzsakymoId, gaminioId) {
-    var statusEl = document.getElementById('syncStatus') || document.getElementById('syncStatus2');
-    var tileEl = document.getElementById('syncTile') || document.getElementById('syncTile2');
-    if (!statusEl || !tileEl) return;
-    statusEl.innerHTML = '<span style="color:var(--warning);">Sinchronizuojama...</span>';
-    tileEl.style.pointerEvents = 'none';
-    tileEl.style.opacity = '0.7';
-    var iconEl = tileEl.querySelector('.mt-tile-icon svg');
-    if (iconEl) iconEl.style.animation = 'spin 1s linear infinite';
-    var fd = new FormData();
-    fd.append('uzsakymo_id', uzsakymoId);
-    fd.append('gaminio_id', gaminioId);
-    fetch('/sinchronizuoti.php', { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                statusEl.innerHTML = '<span style="color:var(--success);">Sinchronizuota (' + data.sinchronizuota_viso + ')</span>';
-            } else {
-                statusEl.innerHTML = '<span style="color:var(--danger);">' + (data.message || 'Klaida') + '</span>';
-            }
-            tileEl.style.pointerEvents = '';
-            tileEl.style.opacity = '';
-            if (iconEl) iconEl.style.animation = '';
-            setTimeout(function() { statusEl.textContent = 'Siųsti į Tomo QMS'; }, 5000);
-        })
-        .catch(function(err) {
-            statusEl.innerHTML = '<span style="color:var(--danger);">Ryšio klaida</span>';
-            tileEl.style.pointerEvents = '';
-            tileEl.style.opacity = '';
-            if (iconEl) iconEl.style.animation = '';
-            setTimeout(function() { statusEl.textContent = 'Siųsti į Tomo QMS'; }, 5000);
-        });
-}
 </script>
 <?php endif; ?>
 
