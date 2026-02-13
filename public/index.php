@@ -1,135 +1,88 @@
 <?php
-/**
- * Pagrindinis puslapis - kokybės rodiklių skydelis (paskutinės 30 dienų)
- *
- * Šis puslapis rodo MT gaminių kokybės rodiklius (KPI):
- * - Patikrintų gaminių skaičius
- * - Bendras neatitikimų kiekis
- * - Neatitikimų procentas
- * - Aktyvūs nepataisyti defektai
- * - Savaitinė suvestinė (grafikas)
- * - TOP 5 dažniausios klaidos
- */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $page_title = 'Kokybės rodikliai';
+$active_tab = $_GET['tab'] ?? '30d';
 
-// Filtravimo sąlyga: tik MT grupės gaminiai per paskutines 30 dienų
-$where_sql = "WHERE gt.grupe = 'MT'
-  AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
-
-// Defekto buvimo sąlyga (naudojama keliuose užklausose)
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
-// SQL užklausa: unikalių patikrintų gaminių skaičius
-$sql = "
+// ==================== TAB 1: 30 dienų duomenys ====================
+$where_sql_30d = "WHERE gt.grupe = 'MT' AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
+
+$patikrinti = (int)$pdo->query("
   SELECT COUNT(DISTINCT fb.gaminio_id)
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  $where_sql
-";
-$patikrinti = (int)$pdo->query($sql)->fetchColumn();
+  $where_sql_30d
+")->fetchColumn();
 
-// SQL užklausa: bendras neatitikimų (defektų) skaičius
-$sql = "
+$viso_defektu = (int)$pdo->query("
   SELECT COUNT(*)
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  $where_sql
-  AND $DEFECT_COND
-";
-$viso_defektu = (int)$pdo->query($sql)->fetchColumn();
+  $where_sql_30d AND $DEFECT_COND
+")->fetchColumn();
 
-// SQL užklausa: visų bandymo punktų skaičius (neatitikimų procento skaičiavimui)
-$sql = "
+$viso_punktu = (int)$pdo->query("
   SELECT COUNT(*)
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  $where_sql
-";
-$viso_punktu = (int)$pdo->query($sql)->fetchColumn();
+  $where_sql_30d
+")->fetchColumn();
 
-// Neatitikimų procentas: defektai / visi punktai * 100
 $vid_proc = ($viso_punktu > 0) ? round($viso_defektu / $viso_punktu * 100, 1) : 0.0;
 
-// SQL užklausa: aktyvūs nepataisyti defektai (iki 50 įrašų)
 $sql_aktyvus = "
-  SELECT 
-    u.uzsakymo_numeris AS uzsakymo_nr,
-    g.gaminio_numeris,
-    gt.gaminio_tipas AS gaminio_tipas,
-    fb.eil_nr AS punkto_nr,
-    fb.reikalavimas,
-    fb.defektas AS defekto_aprasymas
+  SELECT u.uzsakymo_numeris AS uzsakymo_nr, g.gaminio_numeris, gt.gaminio_tipas AS gaminio_tipas,
+    fb.eil_nr AS punkto_nr, fb.reikalavimas, fb.defektas AS defekto_aprasymas
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  WHERE gt.grupe = 'MT'
-  AND $DEFECT_COND
-  AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
-  ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr
-  LIMIT 50
+  WHERE gt.grupe = 'MT' AND $DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
+  ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr LIMIT 50
 ";
 $aktyvus_defektai = $pdo->query($sql_aktyvus)->fetchAll(PDO::FETCH_ASSOC);
 $aktyvus_count = count($aktyvus_defektai);
 
-// SQL užklausa: TOP 5 dažniausiai pasikartojančios klaidos pagal reikalavimą
-$sql = "
-  SELECT 
-    MIN(fb.eil_nr) as eil_nr,
-    fb.reikalavimas, 
-    COUNT(*) AS kiekis
+$top_klaidos = $pdo->query("
+  SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  $where_sql
-  AND $DEFECT_COND
-  AND fb.reikalavimas IS NOT NULL
-  AND TRIM(fb.reikalavimas) <> ''
-  GROUP BY fb.reikalavimas
-  ORDER BY kiekis DESC, eil_nr ASC
-  LIMIT 5
-";
-$top_klaidos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+  $where_sql_30d AND $DEFECT_COND AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
+  GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
+")->fetchAll(PDO::FETCH_ASSOC);
 $max_kiekis = !empty($top_klaidos) ? (int)$top_klaidos[0]['kiekis'] : 1;
 
-// SQL užklausa: savaitiniai duomenys grafikui (patikrinti gaminiai ir klaidos pagal savaitę)
-$sql = "
-  SELECT 
-    TO_CHAR(u.sukurtas::timestamp, 'IYYYIW') AS yw,
+$weeks = $pdo->query("
+  SELECT TO_CHAR(u.sukurtas::timestamp, 'IYYYIW') AS yw,
     COUNT(DISTINCT fb.gaminio_id) AS patikrinta,
     SUM(CASE WHEN $DEFECT_COND THEN 1 ELSE 0 END) AS klaidu
   FROM mt_funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  $where_sql
+  $where_sql_30d
   GROUP BY TO_CHAR(u.sukurtas::timestamp, 'IYYYIW')
   ORDER BY TO_CHAR(u.sukurtas::timestamp, 'IYYYIW')
-";
-$weeks = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+")->fetchAll(PDO::FETCH_ASSOC);
 
-// Paruošiami masyvai Chart.js savaitiniam grafikui
 $wLabels=[]; $wGaminiai=[]; $wKlaidos=[];
 foreach ($weeks as $w) {
-  $yw=(string)$w['yw']; 
-  $wk=substr($yw,-2);
-  $pat=(int)$w['patikrinta']; 
-  $kl=(int)$w['klaidu'];
-  $wLabels[]="S$wk"; 
-  $wGaminiai[]=$pat; 
-  $wKlaidos[]=$kl;
+  $yw=(string)$w['yw']; $wk=substr($yw,-2);
+  $wLabels[]="S$wk"; $wGaminiai[]=(int)$w['patikrinta']; $wKlaidos[]=(int)$w['klaidu'];
 }
 
+// ==================== TAB 2: Ketvirčių palyginimas ====================
 $ketvirciu_sarasas = $pdo->query("
     SELECT DISTINCT
         EXTRACT(YEAR FROM u.sukurtas::timestamp)::int AS metai,
@@ -209,37 +162,228 @@ function kp_defPokytis($senas, $naujas) {
     return $p;
 }
 
+// ==================== TAB 3: Išplėstinė statistika ====================
+$ist_uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
+$ist_periodas         = $_GET['periodas'] ?? 'visi';
+$ist_menuo            = $_GET['menuo'] ?? '';
+$ist_nuo              = $_GET['nuo'] ?? '';
+$ist_iki              = $_GET['iki'] ?? '';
+
+$ist_uzsakymai = $pdo->query("
+    SELECT DISTINCT u.uzsakymo_numeris
+    FROM uzsakymai u
+    JOIN gaminiai g ON g.uzsakymo_id = u.id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+    WHERE gt.grupe = 'MT'
+    ORDER BY u.uzsakymo_numeris DESC
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$ist_patikrinti = 0; $ist_klaidos = 0;
+$ist_top_defektai = []; $ist_defektu_gaminiai = []; $ist_aktyvus_defektai = [];
+
+$ist_where_uzsakymas = ($ist_uzsakymo_numeris !== '') ? "u.uzsakymo_numeris = ?" : "1=1";
+$ist_params = [];
+if ($ist_uzsakymo_numeris !== '') $ist_params[] = $ist_uzsakymo_numeris;
+
+$ist_where_laikotarpis = '';
+if ($ist_menuo !== '') {
+    $ist_where_laikotarpis = " AND TO_CHAR(u.sukurtas::timestamp, 'YYYY-MM') = ?";
+    $ist_params[] = $ist_menuo;
+} elseif ($ist_nuo !== '' && $ist_iki !== '') {
+    $ist_where_laikotarpis = " AND DATE(u.sukurtas) BETWEEN ? AND ?";
+    $ist_params[] = $ist_nuo;
+    $ist_params[] = $ist_iki;
+} elseif ($ist_periodas === '1m') {
+    $ist_where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '1 month'";
+} elseif ($ist_periodas === '6m') {
+    $ist_where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '6 month'";
+} elseif ($ist_periodas === '1y') {
+    $ist_where_laikotarpis = " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '1 year'";
+}
+
+$ist_rodyti = !($ist_uzsakymo_numeris === '' && $ist_periodas === 'visi' && $ist_menuo === '' && ($ist_nuo === '' || $ist_iki === ''));
+$ist_where_sql = "WHERE $ist_where_uzsakymas $ist_where_laikotarpis";
+
+if ($ist_rodyti) {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT fb.gaminio_id)
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        $ist_where_sql AND gt.grupe = 'MT'
+    ");
+    $stmt->execute($ist_params);
+    $ist_patikrinti = (int)$stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("
+        SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        UNION ALL
+        SELECT u.uzsakymo_numeris, NULL AS reikalavimas, NULL AS defektas, 'atitinka' AS isvada
+        FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+        LEFT JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+        $ist_where_sql AND gt.grupe = 'MT'
+        GROUP BY u.uzsakymo_numeris
+        HAVING SUM(CASE WHEN fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' THEN 1 ELSE 0 END) = 0
+        ORDER BY uzsakymo_numeris
+    ");
+    $stmt->execute(array_merge($ist_params, $ist_params));
+    $ist_defektu_gaminiai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($ist_defektu_gaminiai as $r) {
+        if (!empty(trim((string)$r['defektas']))) $ist_klaidos++;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
+        GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
+    ");
+    $stmt->execute($ist_params);
+    $ist_top_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt = $pdo->prepare("
+        SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
+        FROM mt_funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
+        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        $ist_where_sql AND gt.grupe = 'MT' AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
+        AND f.defektas IS NOT NULL AND TRIM(f.defektas) <> ''
+        ORDER BY u.uzsakymo_numeris
+    ");
+    $stmt->execute($ist_params);
+    $ist_aktyvus_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<div class="dashboard-top-bar">
-  <div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutinės 30 dienų (1 mėnuo)</div>
-  <a href="/mt_statistika.php" class="btn btn-primary btn-sm" data-testid="link-mt-statistika">
+<div class="kr-tabs" data-testid="kr-tabs">
+  <button class="kr-tab <?= $active_tab === '30d' ? 'kr-tab-active' : '' ?>" data-tab="30d" data-testid="tab-30d" onclick="switchTab('30d')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    30 dienu rodikliai
+  </button>
+  <button class="kr-tab <?= $active_tab === 'ketv' ? 'kr-tab-active' : '' ?>" data-tab="ketv" data-testid="tab-ketv" onclick="switchTab('ketv')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Ketvirciu palyginimas
+  </button>
+  <button class="kr-tab <?= $active_tab === 'stat' ? 'kr-tab-active' : '' ?>" data-tab="stat" data-testid="tab-stat" onclick="switchTab('stat')">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-    Išplėstinė statistika su filtrais
-  </a>
+    Isplestine statistika
+  </button>
+</div>
+
+<!-- ==================== TAB 1: 30 dienų rodikliai ==================== -->
+<div id="tab-content-30d" class="kr-tab-content" style="<?= $active_tab !== '30d' ? 'display:none;' : '' ?>" data-testid="tab-content-30d">
+
+<div class="dashboard-top-bar">
+  <div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutines 30 dienu (1 menuo)</div>
 </div>
 
 <div class="kpi-grid" data-testid="kpi-container">
   <div class="kpi-card kpi-green" data-testid="kpi-patikrinta">
     <div class="kpi-value"><?= $patikrinti ?></div>
-    <div class="kpi-label">Patikrinta gaminių</div>
+    <div class="kpi-label">Patikrinta gaminiu</div>
   </div>
   <div class="kpi-card kpi-orange" data-testid="kpi-neatitikimai">
     <div class="kpi-value"><?= $viso_defektu ?></div>
-    <div class="kpi-label">Viso neatitikimų</div>
+    <div class="kpi-label">Viso neatitikimu</div>
   </div>
   <div class="kpi-card kpi-yellow" data-testid="kpi-procentas">
     <div class="kpi-value"><?= $vid_proc ?>%</div>
-    <div class="kpi-label">Neatitikimų %</div>
+    <div class="kpi-label">Neatitikimu %</div>
   </div>
   <div class="kpi-card kpi-red" data-testid="kpi-aktyvus">
     <div class="kpi-value"><?= $aktyvus_count ?></div>
-    <div class="kpi-label">Aktyvūs nepataisyti</div>
+    <div class="kpi-label">Aktyvus nepataisyti</div>
   </div>
 </div>
+
+<div class="dashboard-panels" data-testid="panels-container">
+  <div class="dashboard-panel" data-testid="panel-chart">
+    <div class="dashboard-panel-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+      Menesine Suvestine
+    </div>
+    <div class="chart-container">
+      <canvas id="weeklyChart"></canvas>
+    </div>
+  </div>
+  
+  <div class="dashboard-panel" data-testid="panel-top-klaidos">
+    <div class="dashboard-panel-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      TOP 5 Klaidos
+    </div>
+    <?php if (empty($top_klaidos)): ?>
+      <div class="klaidos-empty" data-testid="text-no-defects">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Defektu nerasta - puikus darbas!
+      </div>
+    <?php else: ?>
+      <div class="klaidos-list">
+        <?php foreach ($top_klaidos as $idx => $t): 
+          $pct = $max_kiekis > 0 ? round((int)$t['kiekis'] / $max_kiekis * 100) : 0;
+        ?>
+          <div class="klaidos-item" data-testid="klaida-<?= $idx ?>">
+            <div class="klaidos-header">
+              <span class="klaidos-text">
+                <strong>#<?= $idx+1 ?></strong> Kl. <?= (int)$t['eil_nr'] ?>: <?= h(mb_substr($t['reikalavimas'] ?? '', 0, 60)) ?><?= mb_strlen($t['reikalavimas'] ?? '') > 60 ? '...' : '' ?>
+              </span>
+              <span class="klaidos-count-badge"><?= (int)$t['kiekis'] ?></span>
+            </div>
+            <div class="klaidos-bar-bg">
+              <div class="klaidos-bar-fill" style="width:<?= $pct ?>%"></div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<div class="dashboard-panel aktyvus-panel-wrapper" data-testid="panel-aktyvus-defektai">
+  <div class="dashboard-panel-title">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Aktyvus Nepataisyti Defektai
+    <?php if ($aktyvus_count > 0): ?>
+      <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
+    <?php endif; ?>
+  </div>
+  
+  <?php if (empty($aktyvus_defektai)): ?>
+    <div class="klaidos-empty" data-testid="text-no-active-defects">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Puiku! Visi defektai pataisyti.
+    </div>
+  <?php else: ?>
+    <div class="defekt-grid" data-testid="defekt-grid">
+      <?php foreach ($aktyvus_defektai as $i => $d): ?>
+        <div class="defekt-card" data-testid="defekt-<?= $i ?>">
+          <div class="defekt-dot-indicator"></div>
+          <div class="defekt-content">
+            <div class="defekt-meta-row">
+              <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
+              <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
+              <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
+            </div>
+            <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>
+
+</div><!-- /tab-content-30d -->
+
+<!-- ==================== TAB 2: Ketvirčių palyginimas ==================== -->
+<div id="tab-content-ketv" class="kr-tab-content" style="<?= $active_tab !== 'ketv' ? 'display:none;' : '' ?>" data-testid="tab-content-ketv">
 
 <?php if ($kp_rodyti): ?>
 <?php
@@ -254,7 +398,6 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
   <div class="dashboard-panel-title">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     Ketvirciu palyginimas: <?= h($kp_q1['periodas']) ?> vs <?= h($kp_q2['periodas']) ?>
-    <a href="/ketvirciu_palyginimas.php" class="btn btn-secondary btn-sm" style="margin-left:auto;font-size:12px;" data-testid="link-full-comparison">Pilnas palyginimas</a>
   </div>
 
   <div class="kp-summary" data-testid="kp-summary" style="padding:12px 16px;font-size:14px;line-height:1.7;color:var(--text-primary);background:var(--bg-light);border-radius:8px;margin-bottom:16px;">
@@ -394,190 +537,305 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     <canvas id="compChart"></canvas>
   </div>
 </div>
+
+<?php else: ?>
+<div class="alert alert-info" data-testid="text-no-quarters">
+  Nepakanka duomenu ketvirciu palyginimui. Reikia bent 2 ketvirciu su duomenimis.
+</div>
 <?php endif; ?>
 
-<div class="dashboard-panels" data-testid="panels-container">
-  <div class="dashboard-panel" data-testid="panel-chart">
-    <div class="dashboard-panel-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-      Mėnesinė Suvestinė
-    </div>
-    <div class="chart-container">
-      <canvas id="weeklyChart"></canvas>
-    </div>
-  </div>
-  
-  <div class="dashboard-panel" data-testid="panel-top-klaidos">
-    <div class="dashboard-panel-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      TOP 5 Klaidos
-    </div>
-    <?php if (empty($top_klaidos)): ?>
-      <div class="klaidos-empty" data-testid="text-no-defects">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        Defektų nerasta - puikus darbas!
-      </div>
-    <?php else: ?>
-      <div class="klaidos-list">
-        <?php foreach ($top_klaidos as $idx => $t): 
-          $pct = $max_kiekis > 0 ? round((int)$t['kiekis'] / $max_kiekis * 100) : 0;
-        ?>
-          <div class="klaidos-item" data-testid="klaida-<?= $idx ?>">
-            <div class="klaidos-header">
-              <span class="klaidos-text">
-                <strong>#<?= $idx+1 ?></strong> Kl. <?= (int)$t['eil_nr'] ?>: <?= h(mb_substr($t['reikalavimas'] ?? '', 0, 60)) ?><?= mb_strlen($t['reikalavimas'] ?? '') > 60 ? '...' : '' ?>
-              </span>
-              <span class="klaidos-count-badge"><?= (int)$t['kiekis'] ?></span>
-            </div>
-            <div class="klaidos-bar-bg">
-              <div class="klaidos-bar-fill" style="width:<?= $pct ?>%"></div>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-  </div>
+</div><!-- /tab-content-ketv -->
+
+<!-- ==================== TAB 3: Išplėstinė statistika ==================== -->
+<div id="tab-content-stat" class="kr-tab-content" style="<?= $active_tab !== 'stat' ? 'display:none;' : '' ?>" data-testid="tab-content-stat">
+
+<div class="filter-bar" data-testid="filter-bar-stat">
+    <form method="GET" style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; width: 100%;">
+        <input type="hidden" name="tab" value="stat">
+        <div class="form-group">
+            <label class="form-label">Pasirinkti uzsakyma</label>
+            <select name="uzsakymo_numeris" class="form-control" data-testid="select-order-stat">
+                <option value="">-- Pasirinkti --</option>
+                <?php foreach ($ist_uzsakymai as $nr): ?>
+                <option value="<?= h($nr) ?>" <?= ($ist_uzsakymo_numeris == $nr) ? 'selected' : '' ?>><?= h($nr) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Laikotarpis</label>
+            <select name="periodas" class="form-control" data-testid="select-period-stat">
+                <option value="visi" <?= ($ist_periodas=='visi')?'selected':'' ?>>Visi</option>
+                <option value="1m"  <?= ($ist_periodas=='1m') ?'selected':'' ?>>Paskutinis menuo</option>
+                <option value="6m"  <?= ($ist_periodas=='6m') ?'selected':'' ?>>Paskutiniai 6 menesiai</option>
+                <option value="1y"  <?= ($ist_periodas=='1y') ?'selected':'' ?>>Paskutiniai 12 menesiu</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Menuo</label>
+            <input type="month" name="menuo" value="<?= h($ist_menuo) ?>" class="form-control" data-testid="input-month-stat">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Nuo</label>
+            <input type="date" name="nuo" class="form-control" value="<?= h($ist_nuo) ?>" data-testid="input-date-from-stat">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Iki</label>
+            <input type="date" name="iki" class="form-control" value="<?= h($ist_iki) ?>" data-testid="input-date-to-stat">
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary" data-testid="button-filter-stat">Rodyti</button>
+        </div>
+
+        <?php if ($ist_uzsakymo_numeris !== '' || $ist_periodas !== 'visi' || $ist_menuo !== '' || $ist_nuo !== '' || $ist_iki !== ''): ?>
+        <div class="form-group">
+            <a href="/?tab=stat" class="btn btn-secondary" data-testid="button-clear-filter-stat">Valyti filtrus</a>
+        </div>
+        <?php endif; ?>
+    </form>
 </div>
 
-<div class="dashboard-panel aktyvus-panel-wrapper" data-testid="panel-aktyvus-defektai">
-  <div class="dashboard-panel-title">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Aktyvūs Nepataisyti Defektai
-    <?php if ($aktyvus_count > 0): ?>
-      <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
-    <?php endif; ?>
-  </div>
-  
-  <?php if (empty($aktyvus_defektai)): ?>
-    <div class="klaidos-empty" data-testid="text-no-active-defects">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      Puiku! Visi defektai pataisyti.
-    </div>
-  <?php else: ?>
-    <div class="defekt-grid" data-testid="defekt-grid">
-      <?php foreach ($aktyvus_defektai as $i => $d): ?>
-        <div class="defekt-card" data-testid="defekt-<?= $i ?>">
-          <div class="defekt-dot-indicator"></div>
-          <div class="defekt-content">
-            <div class="defekt-meta-row">
-              <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
-              <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
-              <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
-            </div>
-            <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
+<?php if (!$ist_rodyti): ?>
+<div class="alert alert-info" data-testid="text-filter-hint-stat">
+    Pasirinkite bent viena filtra (uzsakyma ar laikotarpi), kad butu rodomi duomenys.
 </div>
+<?php else: ?>
+
+<div class="stats-summary">
+    <div class="stat-card" data-testid="stat-patikrinti">
+        <div class="stat-header">
+            <span class="stat-label">Patikrinti uzsakymai</span>
+            <div class="stat-icon green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+        </div>
+        <div class="stat-value"><?= (int)$ist_patikrinti ?></div>
+        <div class="stat-change">Gaminiu su funkciniais bandymais</div>
+    </div>
+    <div class="stat-card" data-testid="stat-klaidos">
+        <div class="stat-header">
+            <span class="stat-label">Klaidu skaicius</span>
+            <div class="stat-icon red">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+        </div>
+        <div class="stat-value"><?= (int)$ist_klaidos ?></div>
+        <div class="stat-change">Rasti defektai</div>
+    </div>
+    <div class="stat-card stat-card-wide" data-testid="stat-top-defektai">
+        <div class="stat-header">
+            <span class="stat-label">5 dazniausi klaidos punktai</span>
+            <div class="stat-icon orange">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+        </div>
+        <?php if (empty($ist_top_defektai)): ?>
+        <div class="stat-change" style="margin-top: 8px;">Defektu nerasta</div>
+        <?php else: ?>
+        <ol class="top-defektai-list">
+            <?php foreach ($ist_top_defektai as $d): ?>
+            <li>
+                <span class="defektas-punktas">Punktas <?= (int)$d['eil_nr'] ?>:</span>
+                <span class="defektas-tekstas"><?= h($d['reikalavimas']) ?></span>
+                <span class="badge badge-danger"><?= (int)$d['kiekis'] ?></span>
+            </li>
+            <?php endforeach; ?>
+        </ol>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;" data-testid="chart-container-stat">
+    <div class="card-header">
+        <span class="card-title">Per savaite: patikrinta gaminiu ir rasta klaidu</span>
+    </div>
+    <div class="card-body">
+        <canvas id="grafikas" height="90" data-testid="chart-weekly-stat"></canvas>
+    </div>
+</div>
+
+<?php if (!empty($ist_defektu_gaminiai)): ?>
+<div class="card" style="margin-bottom: 24px;" data-testid="table-defektai-container">
+    <div class="card-header">
+        <span class="card-title">Uzsakymai ir defektai</span>
+        <span class="badge badge-primary"><?= count($ist_defektu_gaminiai) ?> irasu</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper">
+            <table data-testid="table-defektai-stat">
+                <thead>
+                    <tr><th>Uzsakymo numeris</th><th>Reikalavimas</th><th>Defektas</th><th>Busena</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($ist_defektu_gaminiai as $eil):
+                        $busena = (in_array(strtolower((string)($eil['isvada'] ?? '')), ['neatitinka','nepadaryta'])) ? 'Nepataisyta' : 'Pataisyta';
+                        $busena_class = $busena === 'Nepataisyta' ? 'badge-danger' : 'badge-success';
+                    ?>
+                    <tr>
+                        <td><?= h($eil['uzsakymo_numeris']) ?></td>
+                        <td><?= h($eil['reikalavimas'] ?? '-') ?></td>
+                        <td><?= h($eil['defektas'] ?? '-') ?></td>
+                        <td><span class="badge <?= $busena_class ?>"><?= h($busena) ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php else: ?>
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header"><span class="card-title">Uzsakymai ir defektai</span></div>
+    <div class="card-body">
+        <div class="empty-state"><p>Pagal pasirinktus filtrus uzsakymu nerasta.</p></div>
+    </div>
+</div>
+<?php endif; ?>
+
+<div class="card aktyvus-defektai-card" style="margin-bottom: 24px;" data-testid="table-aktyvus-container-stat">
+    <div class="card-header aktyvus-defektai-header">
+        <span class="card-title"><span class="aktyvus-dot"></span> Aktyvus nepataisyti defektai</span>
+        <span class="badge badge-danger"><?= count($ist_aktyvus_defektai) ?></span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper">
+            <table data-testid="table-aktyvus-defektai-stat">
+                <thead class="aktyvus-thead">
+                    <tr><th style="width: 40px;"></th><th>Uzsakymo numeris</th><th>Reikalavimas</th><th>Defekto aprasymas</th></tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($ist_aktyvus_defektai)): ?>
+                    <?php foreach ($ist_aktyvus_defektai as $row): ?>
+                    <tr>
+                        <td style="text-align: center;"><span class="aktyvus-dot"></span></td>
+                        <td><?= h($row['uzsakymo_numeris']) ?></td>
+                        <td><?= h($row['reikalavimas']) ?></td>
+                        <td><?= h($row['defektas']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php else: ?>
+                    <tr><td colspan="4" style="text-align: center; padding: 24px; color: var(--text-secondary);">Nera aktyviu nepataisytu defektu</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<?php endif; ?>
+
+</div><!-- /tab-content-stat -->
 
 <div class="dashboard-footer-info" data-testid="text-dashboard-footer">
   Duomenys atnaujinami automatiskai kas 5 minutes
 </div>
 
-<!-- Chart.js savaitinio grafiko atvaizdavimas -->
 <script>
-// Automatinis puslapio atnaujinimas kas 5 minutes (300000 ms)
+function switchTab(tabId) {
+  document.querySelectorAll('.kr-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.kr-tab').forEach(el => el.classList.remove('kr-tab-active'));
+  document.getElementById('tab-content-' + tabId).style.display = '';
+  document.querySelector('[data-tab="' + tabId + '"]').classList.add('kr-tab-active');
+  
+  var url = new URL(window.location);
+  url.searchParams.set('tab', tabId);
+  window.history.replaceState({}, '', url);
+
+  if (tabId === '30d' && !window._weeklyChartInit) initWeeklyChart();
+  if (tabId === 'ketv' && !window._compChartInit) initCompChart();
+  if (tabId === 'stat' && !window._statChartInit) initStatChart();
+}
+
 setTimeout(() => location.reload(), 300000);
 
-// Savaitinio stulpelinio grafiko inicializavimas su Chart.js biblioteka
-const ctx = document.getElementById('weeklyChart');
-if (ctx) {
+var _weeklyChartInit = false;
+function initWeeklyChart() {
+  var ctx = document.getElementById('weeklyChart');
+  if (!ctx) return;
+  _weeklyChartInit = true;
   new Chart(ctx.getContext('2d'), {
     type: 'bar',
     data: {
       labels: <?= json_encode($wLabels) ?>,
       datasets: [
-        {
-          label: 'Gaminiai',
-          data: <?= json_encode($wGaminiai) ?>,
-          backgroundColor: 'rgba(22, 163, 74, 0.8)',
-          borderColor: 'rgba(22, 163, 74, 1)',
-          borderWidth: 1,
-          borderRadius: 4
-        },
-        {
-          label: 'Neatitikimai',
-          data: <?= json_encode($wKlaidos) ?>,
-          backgroundColor: 'rgba(220, 38, 38, 0.8)',
-          borderColor: 'rgba(220, 38, 38, 1)',
-          borderWidth: 1,
-          borderRadius: 4
-        }
+        { label: 'Gaminiai', data: <?= json_encode($wGaminiai) ?>, backgroundColor: 'rgba(22, 163, 74, 0.8)', borderColor: 'rgba(22, 163, 74, 1)', borderWidth: 1, borderRadius: 4 },
+        { label: 'Neatitikimai', data: <?= json_encode($wKlaidos) ?>, backgroundColor: 'rgba(220, 38, 38, 0.8)', borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 1, borderRadius: 4 }
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { 
-            padding: 15,
-            usePointStyle: true,
-            font: { size: 12, family: "'Inter', sans-serif" }
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(0,0,0,0.05)' },
-          ticks: { font: { family: "'Inter', sans-serif" } }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { font: { family: "'Inter', sans-serif" } }
-        }
-      }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true, font: { size: 12, family: "'Inter', sans-serif" } } } },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
     }
   });
 }
 
-<?php if ($kp_rodyti): ?>
-var compCtx = document.getElementById('compChart');
-if (compCtx) {
-  new Chart(compCtx.getContext('2d'), {
+var _compChartInit = false;
+function initCompChart() {
+  <?php if ($kp_rodyti): ?>
+  var ctx = document.getElementById('compChart');
+  if (!ctx) return;
+  _compChartInit = true;
+  new Chart(ctx.getContext('2d'), {
     type: 'bar',
     data: {
       labels: ['Uzsakymai', 'Gaminiai', 'Bandymu punktai', 'Defektai'],
       datasets: [
-        {
-          label: <?= json_encode($kp_q1['periodas']) ?>,
-          data: [<?= $kp_q1['uzsakymai'] ?>, <?= $kp_q1['gaminiai'] ?>, <?= $kp_q1['bandymai'] ?>, <?= $kp_q1['defektai'] ?>],
-          backgroundColor: 'rgba(37, 99, 235, 0.7)',
-          borderColor: 'rgba(37, 99, 235, 1)',
-          borderWidth: 1,
-          borderRadius: 4
-        },
-        {
-          label: <?= json_encode($kp_q2['periodas']) ?>,
-          data: [<?= $kp_q2['uzsakymai'] ?>, <?= $kp_q2['gaminiai'] ?>, <?= $kp_q2['bandymai'] ?>, <?= $kp_q2['defektai'] ?>],
-          backgroundColor: 'rgba(16, 185, 129, 0.7)',
-          borderColor: 'rgba(16, 185, 129, 1)',
-          borderWidth: 1,
-          borderRadius: 4
-        }
+        { label: <?= json_encode($kp_q1['periodas']) ?>, data: [<?= $kp_q1['uzsakymai'] ?>, <?= $kp_q1['gaminiai'] ?>, <?= $kp_q1['bandymai'] ?>, <?= $kp_q1['defektai'] ?>], backgroundColor: 'rgba(37, 99, 235, 0.7)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1, borderRadius: 4 },
+        { label: <?= json_encode($kp_q2['periodas']) ?>, data: [<?= $kp_q2['uzsakymai'] ?>, <?= $kp_q2['gaminiai'] ?>, <?= $kp_q2['bandymai'] ?>, <?= $kp_q2['defektai'] ?>], backgroundColor: 'rgba(16, 185, 129, 0.7)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1, borderRadius: 4 }
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { padding: 15, usePointStyle: true, font: { size: 12, family: "'Inter', sans-serif" } }
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { family: "'Inter', sans-serif" } } },
-        x: { grid: { display: false }, ticks: { font: { family: "'Inter', sans-serif" } } }
-      }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true, font: { size: 12, family: "'Inter', sans-serif" } } } },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
     }
   });
+  <?php endif; ?>
 }
-<?php endif; ?>
+
+var _statChartInit = false;
+function initStatChart() {
+  <?php if ($ist_rodyti): ?>
+  var ctx = document.getElementById('grafikas');
+  if (!ctx || _statChartInit) return;
+  _statChartInit = true;
+  (async function() {
+    var params = new URLSearchParams({
+      uzsakymo_numeris: <?= json_encode($ist_uzsakymo_numeris) ?>,
+      periodas: <?= json_encode($ist_periodas) ?>,
+      menuo: <?= json_encode($ist_menuo) ?>,
+      nuo: <?= json_encode($ist_nuo) ?>,
+      iki: <?= json_encode($ist_iki) ?>
+    });
+    try {
+      var res = await fetch('/grafiko_duomenys.php?' + params.toString());
+      var data = await res.json();
+      if (!data || data.length === 0) return;
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: data.map(d => 'Savaite ' + d.savaite),
+          datasets: [
+            { label: 'Patikrinta gaminiu', data: data.map(d => d.patikrinta_gaminiu), backgroundColor: 'rgba(37, 99, 235, 0.7)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1 },
+            { label: 'Rasta klaidu', data: data.map(d => d.klaidu), backgroundColor: 'rgba(220, 38, 38, 0.7)', borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 1 }
+          ]
+        },
+        options: { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, title: { display: true, text: 'vnt.' } } } }
+      });
+    } catch (e) { console.log('Chart data not available'); }
+  })();
+  <?php endif; ?>
+}
+
+var activeTab = <?= json_encode($active_tab) ?>;
+if (activeTab === '30d') initWeeklyChart();
+else if (activeTab === 'ketv') initCompChart();
+else if (activeTab === 'stat') initStatChart();
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

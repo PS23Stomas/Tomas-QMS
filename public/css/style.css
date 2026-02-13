@@ -1148,6 +1148,69 @@ textarea.form-control {
     padding: 10px 0 20px;
 }
 
+.kr-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.kr-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.kr-tab:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.kr-tab-active {
+    background: var(--primary) !important;
+    color: #fff !important;
+    box-shadow: var(--shadow);
+}
+
+.kr-tab-active svg {
+    stroke: #fff;
+}
+
+.kr-tab-content {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .kr-tabs {
+        flex-direction: column;
+    }
+    .kr-tab {
+        justify-content: flex-start;
+    }
+}
+
 /* MT Tiles in Order Detail */
 .mt-tiles-grid {
     display: grid;

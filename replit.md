@@ -123,9 +123,12 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-13: Redesigned kokybiniai rodikliai (index.php) with 3-tab navigation: 30 dienų rodikliai, Ketvirčių palyginimas, Išplėstinė statistika su filtrais
+- 2026-02-13: Added kr-tabs CSS component for tab switching UI
+- 2026-02-13: Embedded extended statistics (from mt_statistika.php) as tab 3 in dashboard with filter support
+- 2026-02-13: Charts lazily initialize only when their tab becomes active
 - 2026-02-13: Added ketvirciu_palyginimas.php - quarterly comparison page with summary, TOP 5 workers, TOP 5 error-makers, problem operations, Chart.js visualization
 - 2026-02-13: Added pokytis-badge CSS styles for change indicators (geriau/blogiau)
-- 2026-02-13: Added "Ketvirciu palyginimas" link to sidebar navigation
 - 2026-02-12: Added sync_log.php page for viewing Tomo QMS sync history with filtering (status, order Nr.) and pagination
 - 2026-02-12: Added sync logging to all 9 TomoQMS sync methods (orders, functional tests, components, dielectrics, fuse holders, instruments, protocol Nr., passport text, PDFs)
 - 2026-02-12: Added Tomo QMS cross-database sync (TomoQMS.php) - auto-syncs all data to external database
