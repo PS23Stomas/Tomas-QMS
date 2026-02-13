@@ -72,8 +72,6 @@ try {
     // Transakcijos patvirtinimas
     $conn->commit();
 
-    try { TomoQMS::sinchSaugiklius($conn, $gaminio_id); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
-
     // Nukreipimo parametrų paruošimas
     $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? '';
     $gaminio_numeris     = $_POST['gaminio_numeris'] ?? '';

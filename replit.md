@@ -29,6 +29,7 @@ MT Modulis is a Lithuanian-language manufacturing order management system that a
 - **TomoQMS.php**: Singleton class for syncing data to Tomo QMS external database
 - **Connection**: Via `TOMO_QMS_DATABASE_URL` environment secret (Neon PostgreSQL)
 - **Strategy**: Uses uzsakymo_numeris as natural key for order mapping, 1:1 order-to-product relationship
+- **Trigger**: Manual only - user clicks "Sinchronizacija" tile in order detail view (sinchronizuoti.php endpoint)
 - **Graceful degradation**: All sync calls wrapped in try/catch, failures logged but don't break main flow
 - **Synced data**: Orders, products, functional tests, components, dielectric tests, grounding tests, fuse holders, test instruments, protocol numbers, passport text corrections, all PDF documents
 
@@ -80,6 +81,7 @@ public/                     # Web root served by PHP
 │   └── issaugoti_mt_pasa_teksta.php   # AJAX endpoint for passport text corrections
 ├── mt_statistika.php       # MT statistics page with filtering
 ├── grafiko_duomenys.php    # Chart data API endpoint
+├── sinchronizuoti.php      # Manual sync endpoint (AJAX, syncs all order data to Tomo QMS)
 ├── sync_log.php            # Sync log viewer (Tomo QMS sync history)
 └── router.php              # URL router for PHP built-in server
 ```
@@ -123,6 +125,8 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-13: Changed sync to manual - added "Sinchronizacija" button tile in order detail, removed automatic sync from all save handlers
+- 2026-02-13: Added sinchronizuoti.php endpoint for on-demand full data sync (orders, tests, components, PDFs, etc.)
 - 2026-02-13: Redesigned kokybiniai rodikliai (index.php) with 3-tab navigation: 30 dienų rodikliai, Ketvirčių palyginimas, Išplėstinė statistika su filtrais
 - 2026-02-13: Added kr-tabs CSS component for tab switching UI
 - 2026-02-13: Embedded extended statistics (from mt_statistika.php) as tab 3 in dashboard with filter support

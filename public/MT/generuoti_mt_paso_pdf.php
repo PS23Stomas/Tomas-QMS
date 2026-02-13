@@ -334,8 +334,6 @@ try {
     $stmt->bindParam('id', $gaminio_id);
     $stmt->execute();
 
-    try { TomoQMS::sinchPDF($conn, (int)$gaminio_id, 'mt_paso_pdf', 'mt_paso_failas'); } catch (Throwable $e2) { error_log('Sinch PDF klaida: ' . $e2->getMessage()); }
-
     $params = http_build_query([
         'gaminio_id' => $gaminio_id,
         'uzsakymo_numeris' => $uzsakymo_numeris,

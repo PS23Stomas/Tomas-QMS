@@ -103,8 +103,6 @@ try {
     // Transakcijos patvirtinimas – visi duomenys sėkmingai išsaugoti
     $conn->commit();
 
-    try { TomoQMS::sinchDielektriniai($conn, $gaminys_id); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
-
 } catch (Throwable $e) {
     // Klaidos atveju – transakcijos atšaukimas (rollback)
     if ($conn->inTransaction()) $conn->rollBack();

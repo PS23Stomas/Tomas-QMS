@@ -202,8 +202,6 @@ try {
     /* Transakcijos patvirtinimas - visi pakeitimai įrašomi */
     $conn->commit();
 
-    try { TomoQMS::sinchFunkciniai($conn, $gaminio_id); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
-
     $qs = http_build_query([
         'uzsakymo_numeris' => $uzsakymo_numeris,
         'uzsakovas'        => $uzsakovas,

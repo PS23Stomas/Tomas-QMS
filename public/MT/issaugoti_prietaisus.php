@@ -60,8 +60,6 @@ try {
         ]);
     }
 
-    try { TomoQMS::sinchPrietaisus($conn, $gaminio_id); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
-
     header("Location: /MT/mt_dielektriniai.php?gaminys_id=" . $gaminio_id .
            "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) .
            "&uzsakovas=" . urlencode($uzsakovas) .

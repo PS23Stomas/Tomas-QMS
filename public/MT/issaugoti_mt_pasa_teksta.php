@@ -56,8 +56,6 @@ try {
         ':tekstas'    => $tekstas
     ]);
 
-    try { TomoQMS::sinchPasoTeksta($conn, (int)$gaminio_id, $field_key, $lang, $tekstas); } catch (Throwable $e2) { error_log('Sinch klaida: ' . $e2->getMessage()); }
-
     $response['success'] = true;
     $response['message'] = 'Tekstas išsaugotas sėkmingai';
 

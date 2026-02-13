@@ -51,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$_POST['objektas_id']]);
             $obj_pav = $st->fetchColumn() ?: '';
         }
-        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr_val, $uzs_pav, $obj_pav, (int)($_POST['kiekis'] ?: 1), (int)$_SESSION['vartotojas_id'], 1); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
         $message = 'Užsakymas sukurtas sėkmingai.';
     // Užsakymo duomenų atnaujinimas ir MT gaminio pavadinimo įrašymas
     } elseif ($action === 'update') {
@@ -87,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upd_row = $st_r->fetch(PDO::FETCH_ASSOC);
         $rusis_id_upd = $upd_row['gaminiu_rusis_id'] ?? null;
         $sukurtas_upd = $upd_row['sukurtas'] ?? null;
-        try { TomoQMS::sinchronizuotiUzsakyma($uzs_nr ?: ($_POST['uzsakymo_numeris'] ?? ''), $uzs_pav_upd, $obj_pav_upd, (int)($_POST['kiekis'] ?: 1), 1, $rusis_id_upd ? (int)$rusis_id_upd : null, $sukurtas_upd); } catch (Throwable $e) { error_log('Sinch klaida: ' . $e->getMessage()); }
         $message = 'Užsakymas atnaujintas.';
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
@@ -419,6 +417,15 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Užsakymo duomenys</div>
                 </div>
             </div>
+            <div class="mt-tile" id="syncTile" onclick="sinchronizuoti(<?= $view_id ?>, <?= $gaminio_id_mt ?>)" data-testid="tile-sinchronizacija" style="cursor: pointer;">
+                <div class="mt-tile-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Sinchronizacija</div>
+                    <div class="mt-tile-desc" id="syncStatus">Siųsti į Tomo QMS</div>
+                </div>
+            </div>
             <?php else: ?>
             <div class="mt-tile mt-tile-disabled">
                 <div class="mt-tile-icon mt-tile-icon-muted">
@@ -463,6 +470,15 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Redaguoti</div>
                     <div class="mt-tile-desc">Užsakymo duomenys</div>
+                </div>
+            </div>
+            <div class="mt-tile" id="syncTile2" onclick="sinchronizuoti(<?= $view_id ?>, 0)" data-testid="tile-sinchronizacija-2" style="cursor: pointer;">
+                <div class="mt-tile-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Sinchronizacija</div>
+                    <div class="mt-tile-desc" id="syncStatus2">Siųsti į Tomo QMS</div>
                 </div>
             </div>
             <?php endif; ?>
@@ -771,6 +787,39 @@ function atidarytiTrynima(id, nr) {
 document.getElementById('deleteConfirmInput').addEventListener('input', function() {
     document.getElementById('deleteConfirmBtn').disabled = (this.value.trim() !== _deleteNr.trim());
 });
+function sinchronizuoti(uzsakymoId, gaminioId) {
+    var statusEl = document.getElementById('syncStatus') || document.getElementById('syncStatus2');
+    var tileEl = document.getElementById('syncTile') || document.getElementById('syncTile2');
+    if (!statusEl || !tileEl) return;
+    statusEl.innerHTML = '<span style="color:var(--warning);">Sinchronizuojama...</span>';
+    tileEl.style.pointerEvents = 'none';
+    tileEl.style.opacity = '0.7';
+    var iconEl = tileEl.querySelector('.mt-tile-icon svg');
+    if (iconEl) iconEl.style.animation = 'spin 1s linear infinite';
+    var fd = new FormData();
+    fd.append('uzsakymo_id', uzsakymoId);
+    fd.append('gaminio_id', gaminioId);
+    fetch('/sinchronizuoti.php', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                statusEl.innerHTML = '<span style="color:var(--success);">Sinchronizuota (' + data.sinchronizuota_viso + ')</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--danger);">' + (data.message || 'Klaida') + '</span>';
+            }
+            tileEl.style.pointerEvents = '';
+            tileEl.style.opacity = '';
+            if (iconEl) iconEl.style.animation = '';
+            setTimeout(function() { statusEl.textContent = 'Siųsti į Tomo QMS'; }, 5000);
+        })
+        .catch(function(err) {
+            statusEl.innerHTML = '<span style="color:var(--danger);">Ryšio klaida</span>';
+            tileEl.style.pointerEvents = '';
+            tileEl.style.opacity = '';
+            if (iconEl) iconEl.style.animation = '';
+            setTimeout(function() { statusEl.textContent = 'Siųsti į Tomo QMS'; }, 5000);
+        });
+}
 </script>
 <?php endif; ?>
 
