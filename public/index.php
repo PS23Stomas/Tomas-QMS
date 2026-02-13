@@ -241,82 +241,6 @@ require_once __DIR__ . '/includes/header.php';
   </div>
 </div>
 
-<div class="dashboard-panels" data-testid="panels-container">
-  <div class="dashboard-panel" data-testid="panel-chart">
-    <div class="dashboard-panel-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-      Mėnesinė Suvestinė
-    </div>
-    <div class="chart-container">
-      <canvas id="weeklyChart"></canvas>
-    </div>
-  </div>
-  
-  <div class="dashboard-panel" data-testid="panel-top-klaidos">
-    <div class="dashboard-panel-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      TOP 5 Klaidos
-    </div>
-    <?php if (empty($top_klaidos)): ?>
-      <div class="klaidos-empty" data-testid="text-no-defects">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        Defektų nerasta - puikus darbas!
-      </div>
-    <?php else: ?>
-      <div class="klaidos-list">
-        <?php foreach ($top_klaidos as $idx => $t): 
-          $pct = $max_kiekis > 0 ? round((int)$t['kiekis'] / $max_kiekis * 100) : 0;
-        ?>
-          <div class="klaidos-item" data-testid="klaida-<?= $idx ?>">
-            <div class="klaidos-header">
-              <span class="klaidos-text">
-                <strong>#<?= $idx+1 ?></strong> Kl. <?= (int)$t['eil_nr'] ?>: <?= h(mb_substr($t['reikalavimas'] ?? '', 0, 60)) ?><?= mb_strlen($t['reikalavimas'] ?? '') > 60 ? '...' : '' ?>
-              </span>
-              <span class="klaidos-count-badge"><?= (int)$t['kiekis'] ?></span>
-            </div>
-            <div class="klaidos-bar-bg">
-              <div class="klaidos-bar-fill" style="width:<?= $pct ?>%"></div>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-  </div>
-</div>
-
-<div class="dashboard-panel aktyvus-panel-wrapper" data-testid="panel-aktyvus-defektai">
-  <div class="dashboard-panel-title">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Aktyvūs Nepataisyti Defektai
-    <?php if ($aktyvus_count > 0): ?>
-      <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
-    <?php endif; ?>
-  </div>
-  
-  <?php if (empty($aktyvus_defektai)): ?>
-    <div class="klaidos-empty" data-testid="text-no-active-defects">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      Puiku! Visi defektai pataisyti.
-    </div>
-  <?php else: ?>
-    <div class="defekt-grid" data-testid="defekt-grid">
-      <?php foreach ($aktyvus_defektai as $i => $d): ?>
-        <div class="defekt-card" data-testid="defekt-<?= $i ?>">
-          <div class="defekt-dot-indicator"></div>
-          <div class="defekt-content">
-            <div class="defekt-meta-row">
-              <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
-              <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
-              <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
-            </div>
-            <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-</div>
-
 <?php if ($kp_rodyti): ?>
 <?php
 $p_uzs = kp_pokytis($kp_q1['uzsakymai'], $kp_q2['uzsakymai']);
@@ -326,7 +250,7 @@ $p_def = kp_defPokytis($kp_q1['defektai'], $kp_q2['defektai']);
 $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
 ?>
 
-<div class="dashboard-panel kp-section" data-testid="panel-ketvirciu-palyginimas" style="margin-top:8px;">
+<div class="dashboard-panel kp-section" data-testid="panel-ketvirciu-palyginimas">
   <div class="dashboard-panel-title">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     Ketvirciu palyginimas: <?= h($kp_q1['periodas']) ?> vs <?= h($kp_q2['periodas']) ?>
@@ -471,6 +395,82 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
   </div>
 </div>
 <?php endif; ?>
+
+<div class="dashboard-panels" data-testid="panels-container">
+  <div class="dashboard-panel" data-testid="panel-chart">
+    <div class="dashboard-panel-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+      Mėnesinė Suvestinė
+    </div>
+    <div class="chart-container">
+      <canvas id="weeklyChart"></canvas>
+    </div>
+  </div>
+  
+  <div class="dashboard-panel" data-testid="panel-top-klaidos">
+    <div class="dashboard-panel-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      TOP 5 Klaidos
+    </div>
+    <?php if (empty($top_klaidos)): ?>
+      <div class="klaidos-empty" data-testid="text-no-defects">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Defektų nerasta - puikus darbas!
+      </div>
+    <?php else: ?>
+      <div class="klaidos-list">
+        <?php foreach ($top_klaidos as $idx => $t): 
+          $pct = $max_kiekis > 0 ? round((int)$t['kiekis'] / $max_kiekis * 100) : 0;
+        ?>
+          <div class="klaidos-item" data-testid="klaida-<?= $idx ?>">
+            <div class="klaidos-header">
+              <span class="klaidos-text">
+                <strong>#<?= $idx+1 ?></strong> Kl. <?= (int)$t['eil_nr'] ?>: <?= h(mb_substr($t['reikalavimas'] ?? '', 0, 60)) ?><?= mb_strlen($t['reikalavimas'] ?? '') > 60 ? '...' : '' ?>
+              </span>
+              <span class="klaidos-count-badge"><?= (int)$t['kiekis'] ?></span>
+            </div>
+            <div class="klaidos-bar-bg">
+              <div class="klaidos-bar-fill" style="width:<?= $pct ?>%"></div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<div class="dashboard-panel aktyvus-panel-wrapper" data-testid="panel-aktyvus-defektai">
+  <div class="dashboard-panel-title">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Aktyvūs Nepataisyti Defektai
+    <?php if ($aktyvus_count > 0): ?>
+      <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
+    <?php endif; ?>
+  </div>
+  
+  <?php if (empty($aktyvus_defektai)): ?>
+    <div class="klaidos-empty" data-testid="text-no-active-defects">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Puiku! Visi defektai pataisyti.
+    </div>
+  <?php else: ?>
+    <div class="defekt-grid" data-testid="defekt-grid">
+      <?php foreach ($aktyvus_defektai as $i => $d): ?>
+        <div class="defekt-card" data-testid="defekt-<?= $i ?>">
+          <div class="defekt-dot-indicator"></div>
+          <div class="defekt-content">
+            <div class="defekt-meta-row">
+              <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
+              <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
+              <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
+            </div>
+            <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>
 
 <div class="dashboard-footer-info" data-testid="text-dashboard-footer">
   Duomenys atnaujinami automatiskai kas 5 minutes
