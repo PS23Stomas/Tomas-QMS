@@ -117,7 +117,9 @@ $combined_workers = $pdo->query("
 
 $combined_errors = $pdo->query("
     SELECT fb.darba_atliko AS vardas,
-        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
+        COUNT(*) AS bandymu,
+        COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
     FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
     $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
@@ -196,7 +198,7 @@ $html .= '</tbody></table>
 
 <h3 style="color:#dc2626;">TOP 11 daugiausiai klydo &mdash; ' . htmlspecialchars($men_periodas) . '</h3>
 <table>
-    <thead><tr><th>#</th><th>Darbuotojas</th><th class="tc">Bandymu</th><th class="tc">Def.</th><th class="tc">%</th></tr></thead>
+    <thead><tr><th>#</th><th>Darbuotojas</th><th class="tc">Bandymu</th><th class="tc">Be def.</th><th class="tc">Def.</th><th class="tc">%</th></tr></thead>
     <tbody>';
 $i = 1;
 foreach ($combined_errors as $d) {
@@ -204,12 +206,13 @@ foreach ($combined_errors as $d) {
         <td style="color:#dc2626;">' . $i++ . '</td>
         <td>' . htmlspecialchars($d['vardas']) . '</td>
         <td class="tc">' . $d['bandymu'] . '</td>
+        <td class="tc green">' . $d['be_defektu'] . '</td>
         <td class="tc red">' . $d['defektai'] . '</td>
         <td class="tc">' . $d['defektu_proc'] . '%</td>
     </tr>';
 }
 if (empty($combined_errors)) {
-    $html .= '<tr><td colspan="5" class="tc" style="color:#999;padding:10px;">Defektu nerasta</td></tr>';
+    $html .= '<tr><td colspan="6" class="tc" style="color:#999;padding:10px;">Defektu nerasta</td></tr>';
 }
 $html .= '</tbody></table>
 

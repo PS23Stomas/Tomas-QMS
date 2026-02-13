@@ -202,7 +202,9 @@ $men_top_darbuotojai = $pdo->query("
 
 $men_top_klydusieji = $pdo->query("
     SELECT fb.darba_atliko AS vardas,
-        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
+        COUNT(*) AS bandymu,
+        COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
     FROM mt_funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
@@ -619,19 +621,20 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
       <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#dc2626;">TOP 11 daugiausiai klydo — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
         <table data-testid="table-kp-top-errors">
-          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
+          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Be def.</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
           <tbody>
             <?php $i = 1; foreach ($men_top_klydusieji as $d): ?>
             <tr>
               <td style="font-weight:600;color:#dc2626;"><?= $i++ ?></td>
               <td style="font-weight:500;"><?= h($d['vardas']) ?></td>
               <td style="text-align:center;"><?= $d['bandymu'] ?></td>
+              <td style="text-align:center;font-weight:600;color:#16a34a;"><?= $d['be_defektu'] ?></td>
               <td style="text-align:center;font-weight:600;color:#dc2626;"><?= $d['defektai'] ?></td>
               <td style="text-align:center;"><?= $d['defektu_proc'] ?>%</td>
             </tr>
             <?php endforeach; ?>
             <?php if (empty($men_top_klydusieji)): ?>
-            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:12px;">Defektų nerasta</td></tr>
+            <tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:12px;">Defektų nerasta</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
