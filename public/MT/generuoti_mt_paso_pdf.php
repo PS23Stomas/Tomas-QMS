@@ -154,7 +154,6 @@ if (file_exists($parasas_path)) {
 }
 
 function generuotiSaugikliuHtml($duomenys, $pozicijos) {
-    if (empty($duomenys)) return '';
     $saug_map = [];
     foreach ($duomenys as $s) {
         $saug_map[(int)$s['pozicijos_numeris']] = $s;

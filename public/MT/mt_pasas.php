@@ -690,7 +690,6 @@ require_once __DIR__ . '/../includes/header.php';
             </td>
         </tr>
 
-        <?php if (!empty($mt_saugikliai)): ?>
         <?php
         $saug_map = [];
         foreach ($mt_saugikliai as $s) {
@@ -727,16 +726,8 @@ require_once __DIR__ . '/../includes/header.php';
                 </table>
             </td>
         </tr>
-        <?php else: ?>
-        <tr>
-            <td class="nr-col">3.5</td>
-            <td class="desc-col"><?= htmlspecialchars($trafo_kiekis == 1 ? 'SI-0,4 sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:' : 'S1-0,4 (ir S3-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:') ?></td>
-            <td class="val-col highlight">Duomenys nesuvesti</td>
-        </tr>
-        <?php endif; ?>
 
         <?php if ($trafo_kiekis >= 2): ?>
-        <?php if (!empty($mt_saugikliai_36)): ?>
         <?php
         $saug_map_36 = [];
         foreach ($mt_saugikliai_36 as $s) {
@@ -767,13 +758,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </table>
             </td>
         </tr>
-        <?php else: ?>
-        <tr>
-            <td class="nr-col">3.6</td>
-            <td class="desc-col">S2-0,4 (ir S4-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:</td>
-            <td class="val-col highlight">Duomenys nesuvesti</td>
-        </tr>
-        <?php endif; ?>
         <?php endif; ?>
 
         <?php
