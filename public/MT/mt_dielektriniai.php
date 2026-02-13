@@ -38,12 +38,16 @@ $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
-$stmt = $conn->prepare("SELECT id, protokolo_nr, mt_dielektriniu_failas FROM gaminiai WHERE id=?");
+$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, g.pavadinimas AS gam_pav FROM gaminiai g WHERE g.id=?");
 $stmt->execute([$gaminys_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_numeris = $gaminys['protokolo_nr'] ?? '';
 $turi_dielektriniu_pdf = !empty($gaminys['mt_dielektriniu_failas']);
+
+if (empty($gaminio_pavadinimas) && !empty($gaminys['gam_pav'])) {
+    $gaminio_pavadinimas = $gaminys['gam_pav'];
+}
 
 // === Prietaisų CRUD operacijos ===
 // Naujo prietaiso pridėjimas
@@ -274,6 +278,17 @@ document.querySelector('form').addEventListener('submit', function(e) {
     }
 });
 </script>
+
+<!-- Saugikliu ideklu blokas (3.5 / 3.6) -->
+<h5 class="mt-5 text-uppercase fw-bold">SAUGIKLIU IDEKLAI</h5>
+<table class="table table-bordered">
+<tbody>
+<?php
+$gaminio_id = $gaminys_id;
+include __DIR__ . '/mt_saugikliai_blokas.php';
+?>
+</tbody>
+</table>
 
 <form action="/MT/issaugoti_mt_dielektriniai.php" method="post">
    <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">

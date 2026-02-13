@@ -75,6 +75,10 @@ public/                     # Web root served by PHP
 │   ├── mt_dielektriniu_pdf.php        # Dielectric tests PDF viewing/download
 │   ├── generuoti_mt_funkciniu_pdf.php # Functional tests PDF generation
 │   ├── mt_funkciniu_pdf.php           # Functional tests PDF viewing/download
+│   ├── mt_saugikliai_blokas.php       # Fuse holder block controller (1x/2x transformer logic)
+│   ├── mt_saugikliai_3_5_vienas.php   # Fuse holder 3.5 form for 1x type (positions 1-15)
+│   ├── mt_saugikliai_3_5_dviejosek.php # Fuse holder 3.5 form for 2x type (positions 101-106, 301-304)
+│   ├── mt_saugikliai_3_6_dviejosek.php # Fuse holder 3.6 form for 2x type (positions 201-206, 401-404)
 │   ├── issaugoti_mt_saugiklius.php    # Save handler for fuse holders (transactional)
 │   ├── issaugoti_prietaisus.php       # Save handler for test instruments
 │   ├── issaugoti_protokolo_nr.php     # Save handler for protocol number
@@ -125,6 +129,10 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-13: Added saugikliu ideklu (3.5/3.6) formos su 1x/2x transformatoriu logika (mt_saugikliai_blokas.php)
+- 2026-02-13: Integruotas saugikliu blokas i dielektriniu bandymu puslapi (mt_dielektriniai.php)
+- 2026-02-13: Atnaujintas mt_pasas.php ir PDF generavimas su 3.6 sekcijos palaikymu (2x tipas)
+- 2026-02-13: Added quarter selection filters and PDF export to Tab 2 (Ketvirciu palyginimas)
 - 2026-02-13: Replaced individual sync tile with mass sync button "Sinchronizuoti visus" in orders list page
 - 2026-02-13: Updated sinchronizuoti.php to support mass sync (masinis=1 parameter iterates all orders)
 - 2026-02-13: Changed sync to manual - removed automatic sync from all save handlers
