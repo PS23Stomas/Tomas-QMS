@@ -139,11 +139,25 @@ function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND) {
     return $r;
 }
 
+$kp_q1_metai = $_GET['kp_q1_metai'] ?? '';
+$kp_q1_ketv  = $_GET['kp_q1_ketvirtis'] ?? '';
+$kp_q2_metai = $_GET['kp_q2_metai'] ?? '';
+$kp_q2_ketv  = $_GET['kp_q2_ketvirtis'] ?? '';
+
 $kp_q1 = $kp_q2 = null;
 $kp_rodyti = false;
-if (count($ketvirciu_sarasas) >= 2) {
-    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $ketvirciu_sarasas[0]['metai'], $ketvirciu_sarasas[0]['ketvirtis'], $DEFECT_COND);
-    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $ketvirciu_sarasas[1]['metai'], $ketvirciu_sarasas[1]['ketvirtis'], $DEFECT_COND);
+
+if ($kp_q1_metai !== '' && $kp_q1_ketv !== '' && $kp_q2_metai !== '' && $kp_q2_ketv !== '') {
+    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND);
+    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND);
+    $kp_rodyti = true;
+} elseif (count($ketvirciu_sarasas) >= 2) {
+    $kp_q2_metai = $ketvirciu_sarasas[0]['metai'];
+    $kp_q2_ketv = $ketvirciu_sarasas[0]['ketvirtis'];
+    $kp_q1_metai = $ketvirciu_sarasas[1]['metai'];
+    $kp_q1_ketv = $ketvirciu_sarasas[1]['ketvirtis'];
+    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND);
+    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND);
     $kp_rodyti = true;
 }
 
@@ -384,6 +398,69 @@ require_once __DIR__ . '/includes/header.php';
 
 <!-- ==================== TAB 2: Ketvirčių palyginimas ==================== -->
 <div id="tab-content-ketv" class="kr-tab-content" style="<?= $active_tab !== 'ketv' ? 'display:none;' : '' ?>" data-testid="tab-content-ketv">
+
+<?php
+$kp_metai_sarasas = array_values(array_unique(array_column($ketvirciu_sarasas, 'metai')));
+rsort($kp_metai_sarasas);
+$kp_ketv_sarasas = [];
+foreach ($ketvirciu_sarasas as $ks) {
+    $kp_ketv_sarasas[$ks['metai'] . '-' . $ks['ketvirtis']] = true;
+}
+?>
+<div class="filter-bar" data-testid="filter-bar-quarters" style="margin-bottom:16px;">
+    <form method="GET" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;width:100%;">
+        <input type="hidden" name="tab" value="ketv">
+        <div class="form-group">
+            <label class="form-label">Senesnis ketvirtis</label>
+            <div style="display:flex;gap:6px;">
+                <select name="kp_q1_metai" class="form-control" data-testid="select-kp-q1-year" style="width:auto;">
+                    <option value="">Metai</option>
+                    <?php foreach($kp_metai_sarasas as $m): ?>
+                    <option value="<?= $m ?>" <?= ($kp_q1_metai==$m)?'selected':'' ?>><?= $m ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="kp_q1_ketvirtis" class="form-control" data-testid="select-kp-q1-quarter" style="width:auto;">
+                    <option value="">Q</option>
+                    <?php for($i=1;$i<=4;$i++): ?>
+                    <option value="<?= $i ?>" <?= ($kp_q1_ketv==$i)?'selected':'' ?>>Q<?= $i ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;">
+            <span style="font-size:20px;color:var(--text-secondary);margin:0 4px;">vs</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Naujesnis ketvirtis</label>
+            <div style="display:flex;gap:6px;">
+                <select name="kp_q2_metai" class="form-control" data-testid="select-kp-q2-year" style="width:auto;">
+                    <option value="">Metai</option>
+                    <?php foreach($kp_metai_sarasas as $m): ?>
+                    <option value="<?= $m ?>" <?= ($kp_q2_metai==$m)?'selected':'' ?>><?= $m ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="kp_q2_ketvirtis" class="form-control" data-testid="select-kp-q2-quarter" style="width:auto;">
+                    <option value="">Q</option>
+                    <?php for($i=1;$i<=4;$i++): ?>
+                    <option value="<?= $i ?>" <?= ($kp_q2_ketv==$i)?'selected':'' ?>>Q<?= $i ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary" data-testid="button-kp-compare">Palyginti</button>
+        </div>
+        <?php if ($kp_rodyti): ?>
+        <div class="form-group">
+            <a href="/generuoti_ketvirciu_pdf.php?kp_q1_metai=<?= $kp_q1_metai ?>&kp_q1_ketvirtis=<?= $kp_q1_ketv ?>&kp_q2_metai=<?= $kp_q2_metai ?>&kp_q2_ketvirtis=<?= $kp_q2_ketv ?>" 
+               target="_blank" class="btn btn-secondary" data-testid="button-kp-pdf" style="display:inline-flex;align-items:center;gap:5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                PDF
+            </a>
+        </div>
+        <?php endif; ?>
+    </form>
+</div>
 
 <?php if ($kp_rodyti): ?>
 <?php
