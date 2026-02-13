@@ -5,7 +5,8 @@ requireLogin();
 $page_title = 'Kokybės rodikliai';
 $active_tab = $_GET['tab'] ?? '30d';
 
-$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) <> 'atitinka')";
+$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
+$ACTIVE_DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) = 'neatitinka')";
 
 // ==================== TAB 1: 30 dienų duomenys ====================
 $where_sql_30d = "WHERE gt.grupe = 'MT' AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
@@ -46,7 +47,7 @@ $sql_aktyvus = "
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  WHERE gt.grupe = 'MT' AND $DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
+  WHERE gt.grupe = 'MT' AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
   ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr LIMIT 50
 ";
 $aktyvus_defektai = $pdo->query($sql_aktyvus)->fetchAll(PDO::FETCH_ASSOC);

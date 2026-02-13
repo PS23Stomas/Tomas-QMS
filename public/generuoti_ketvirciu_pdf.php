@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();
 
-$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) <> 'atitinka')";
+$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
 $q1_metai = (int)($_GET['kp_q1_metai'] ?? 0);
 $q1_ketv  = (int)($_GET['kp_q1_ketvirtis'] ?? 0);

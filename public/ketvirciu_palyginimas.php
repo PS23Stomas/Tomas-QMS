@@ -4,7 +4,7 @@ requireLogin();
 
 $page_title = 'Ketvirčių palyginimas';
 
-$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) <> 'atitinka')";
+$DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
 $ketvirciu_sarasas = $pdo->query("
     SELECT DISTINCT
