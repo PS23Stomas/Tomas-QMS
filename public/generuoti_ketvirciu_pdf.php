@@ -36,7 +36,7 @@ function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND) {
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
-        GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 5
+        GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
     $r['top_klydusieji'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas,
@@ -45,7 +45,7 @@ function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
-        ORDER BY defektai DESC, defektu_proc DESC LIMIT 5
+        ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
     $r['problemines_operacijos'] = $pdo->query("
         SELECT fb.reikalavimas,
@@ -54,7 +54,7 @@ function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
-        ORDER BY defektai DESC LIMIT 5
+        ORDER BY defektai DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
     return $r;
 }
@@ -102,13 +102,13 @@ $combined_workers = [];
 foreach ($q2['top_darbuotojai'] as $d) $combined_workers[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'bandymu'=>(int)$d['bandymu'], 'ketvirtis'=>$q2['periodas']];
 foreach ($q1['top_darbuotojai'] as $d) { if (!isset($combined_workers[$d['vardas']]) || (int)$d['be_defektu'] > $combined_workers[$d['vardas']]['be_defektu']) $combined_workers[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'bandymu'=>(int)$d['bandymu'], 'ketvirtis'=>$q1['periodas']]; }
 usort($combined_workers, fn($a,$b) => $b['be_defektu'] <=> $a['be_defektu']);
-$combined_workers = array_slice($combined_workers, 0, 5);
+$combined_workers = array_slice($combined_workers, 0, 11);
 
 $combined_errors = [];
 foreach ($q2['top_klydusieji'] as $d) $combined_errors[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$q2['periodas']];
 foreach ($q1['top_klydusieji'] as $d) { if (!isset($combined_errors[$d['vardas']]) || (int)$d['defektai'] > $combined_errors[$d['vardas']]['defektai']) $combined_errors[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$q1['periodas']]; }
 usort($combined_errors, fn($a,$b) => $b['defektai'] <=> $a['defektai']);
-$combined_errors = array_slice($combined_errors, 0, 5);
+$combined_errors = array_slice($combined_errors, 0, 11);
 
 $html = '
 <style>
@@ -159,7 +159,7 @@ $html = '
 
 <table class="two-col"><tr><td>
 
-<h3>TOP 5 darbuotojai (daugiausiai punktu)</h3>
+<h3>TOP 11 darbuotojai (daugiausiai punktu)</h3>
 <table>
     <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th class="tc">Bandymu</th><th class="tc">Be def.</th></tr></thead>
     <tbody>';
@@ -180,7 +180,7 @@ $html .= '</tbody></table>
 
 </td><td>
 
-<h3 style="color:#dc2626;">TOP 5 daugiausiai klydo</h3>
+<h3 style="color:#dc2626;">TOP 11 daugiausiai klydo</h3>
 <table>
     <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th class="tc">Def.</th><th class="tc">%</th></tr></thead>
     <tbody>';

@@ -85,7 +85,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko
         ORDER BY be_defektu DESC
-        LIMIT 5
+        LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     $r['top_klydusieji'] = $pdo->query("
@@ -101,7 +101,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         GROUP BY fb.darba_atliko
         HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC, defektu_proc DESC
-        LIMIT 5
+        LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     $r['problemines_operacijos'] = $pdo->query("
@@ -117,7 +117,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         GROUP BY fb.reikalavimas
         HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC
-        LIMIT 5
+        LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     return $r;
@@ -273,7 +273,7 @@ $p_proc = defPokytis($q1['defektu_proc'], $q2['defektu_proc']);
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
     <div class="card" data-testid="card-top-workers">
-        <div class="card-header"><span class="card-title">TOP 5 darbuotojai (daugiausiai punktu)</span></div>
+        <div class="card-header"><span class="card-title">TOP 11 darbuotojai (daugiausiai punktu)</span></div>
         <div class="card-body" style="padding:0;">
             <div class="table-wrapper">
                 <table data-testid="table-top-workers">
@@ -292,7 +292,7 @@ $p_proc = defPokytis($q1['defektu_proc'], $q2['defektu_proc']);
                             }
                         }
                         usort($combined, fn($a,$b) => $b['be_defektu'] <=> $a['be_defektu']);
-                        $combined = array_slice($combined, 0, 5);
+                        $combined = array_slice($combined, 0, 11);
                         $i = 1;
                         foreach ($combined as $d): ?>
                         <tr>
@@ -313,7 +313,7 @@ $p_proc = defPokytis($q1['defektu_proc'], $q2['defektu_proc']);
     </div>
 
     <div class="card" data-testid="card-top-errors">
-        <div class="card-header" style="border-color:#fecaca;"><span class="card-title" style="color:#dc2626;">TOP 5 daugiausiai klydo</span></div>
+        <div class="card-header" style="border-color:#fecaca;"><span class="card-title" style="color:#dc2626;">TOP 11 daugiausiai klydo</span></div>
         <div class="card-body" style="padding:0;">
             <div class="table-wrapper">
                 <table data-testid="table-top-errors">
@@ -332,7 +332,7 @@ $p_proc = defPokytis($q1['defektu_proc'], $q2['defektu_proc']);
                             }
                         }
                         usort($err_combined, fn($a,$b) => $b['defektai'] <=> $a['defektai']);
-                        $err_combined = array_slice($err_combined, 0, 5);
+                        $err_combined = array_slice($err_combined, 0, 11);
                         $i = 1;
                         foreach ($err_combined as $d): ?>
                         <tr>
