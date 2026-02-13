@@ -123,6 +123,9 @@ public/                     # Web root served by PHP
 
 ## Recent Changes
 
+- 2026-02-13: Added ketvirciu_palyginimas.php - quarterly comparison page with summary, TOP 5 workers, TOP 5 error-makers, problem operations, Chart.js visualization
+- 2026-02-13: Added pokytis-badge CSS styles for change indicators (geriau/blogiau)
+- 2026-02-13: Added "Ketvirciu palyginimas" link to sidebar navigation
 - 2026-02-12: Added sync_log.php page for viewing Tomo QMS sync history with filtering (status, order Nr.) and pagination
 - 2026-02-12: Added sync logging to all 9 TomoQMS sync methods (orders, functional tests, components, dielectrics, fuse holders, instruments, protocol Nr., passport text, PDFs)
 - 2026-02-12: Added Tomo QMS cross-database sync (TomoQMS.php) - auto-syncs all data to external database
