@@ -410,38 +410,30 @@ require_once __DIR__ . '/includes/header.php';
   </div>
 </div>
 
+<?php if (!empty($aktyvus_defektai)): ?>
 <div class="dashboard-panel aktyvus-panel-wrapper" data-testid="panel-aktyvus-defektai">
   <div class="dashboard-panel-title">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     Aktyvus Nepataisyti Defektai
-    <?php if ($aktyvus_count > 0): ?>
-      <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
-    <?php endif; ?>
+    <span class="aktyvus-badge"><?= $aktyvus_count ?></span>
   </div>
-  
-  <?php if (empty($aktyvus_defektai)): ?>
-    <div class="klaidos-empty" data-testid="text-no-active-defects">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      Puiku! Visi defektai pataisyti.
-    </div>
-  <?php else: ?>
-    <div class="defekt-grid" data-testid="defekt-grid">
-      <?php foreach ($aktyvus_defektai as $i => $d): ?>
-        <div class="defekt-card" data-testid="defekt-<?= $i ?>">
-          <div class="defekt-dot-indicator"></div>
-          <div class="defekt-content">
-            <div class="defekt-meta-row">
-              <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
-              <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
-              <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
-            </div>
-            <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
+  <div class="defekt-grid" data-testid="defekt-grid">
+    <?php foreach ($aktyvus_defektai as $i => $d): ?>
+      <div class="defekt-card" data-testid="defekt-<?= $i ?>">
+        <div class="defekt-dot-indicator"></div>
+        <div class="defekt-content">
+          <div class="defekt-meta-row">
+            <span class="defekt-order-nr"><?= h($d['uzsakymo_nr'] ?? '') ?></span>
+            <span class="defekt-type-badge"><?= h($d['gaminio_tipas'] ?? '') ?></span>
+            <span class="defekt-punkt-nr">Pkt. <?= (int)($d['punkto_nr'] ?? 0) ?></span>
           </div>
+          <div class="defekt-description"><?= h(mb_substr($d['defekto_aprasymas'] ?? '', 0, 100)) ?><?= mb_strlen($d['defekto_aprasymas'] ?? '') > 100 ? '...' : '' ?></div>
         </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
+  </div>
 </div>
+<?php endif; ?>
 
 </div><!-- /tab-content-30d -->
 
