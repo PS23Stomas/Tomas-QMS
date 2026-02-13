@@ -185,7 +185,7 @@ $men_menuo = (int)$men_menuo;
 
 $men_pradzia = sprintf('%04d-%02d-01', $men_metai, $men_menuo);
 $men_pabaiga = date('Y-m-t', strtotime($men_pradzia));
-$men_where = "WHERE u.sukurtas::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
+$men_where = "WHERE u.sukurtas IS NOT NULL AND u.sukurtas <> '' AND u.sukurtas::timestamp::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
 
 $men_top_darbuotojai = $pdo->query("
     SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
@@ -215,10 +215,10 @@ $men_top_klydusieji = $pdo->query("
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $men_turimi_metai = $pdo->query("
-    SELECT DISTINCT EXTRACT(YEAR FROM u.sukurtas)::int AS metai
+    SELECT DISTINCT EXTRACT(YEAR FROM u.sukurtas::timestamp)::int AS metai
     FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id
     JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
-    WHERE u.sukurtas IS NOT NULL
+    WHERE u.sukurtas IS NOT NULL AND u.sukurtas <> ''
     ORDER BY metai DESC
 ")->fetchAll(PDO::FETCH_COLUMN);
 if (empty($men_turimi_metai)) $men_turimi_metai = [(int)date('Y')];
