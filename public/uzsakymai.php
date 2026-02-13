@@ -534,6 +534,10 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="massSyncIcon"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                 <span id="massSyncText">Sinchronizuoti visus</span>
             </button>
+            <button class="btn btn-sm" id="btnStopSync" onclick="sustabdytiSinchronizacija()" data-testid="button-stop-sync" style="background:#dc2626; color:#fff; border:none; display:none; align-items:center; gap:5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                <span>Sustabdyti</span>
+            </button>
             <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
@@ -686,8 +690,17 @@ function filterOrders() {
     });
 }
 
-function masineSinchronizacija() {
+var syncSustabdyta = false;
+
+function sustabdytiSinchronizacija() {
+    syncSustabdyta = true;
+    document.getElementById('btnStopSync').disabled = true;
+    document.getElementById('massSyncLabel').innerHTML = '<span style="color:#f59e0b;">Stabdoma...</span>';
+}
+
+async function masineSinchronizacija() {
     var btn = document.getElementById('btnMasSync');
+    var stopBtn = document.getElementById('btnStopSync');
     var icon = document.getElementById('massSyncIcon');
     var text = document.getElementById('massSyncText');
     var progress = document.getElementById('massSyncProgress');
@@ -696,61 +709,90 @@ function masineSinchronizacija() {
     var countEl = document.getElementById('massSyncCount');
     var details = document.getElementById('massSyncDetails');
 
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-    btn.style.pointerEvents = 'none';
-    icon.style.animation = 'spin 1s linear infinite';
-    text.textContent = 'Sinchronizuojama...';
+    syncSustabdyta = false;
+    btn.style.display = 'none';
+    stopBtn.style.display = 'inline-flex';
+    stopBtn.disabled = false;
     progress.style.display = 'block';
     bar.style.width = '0%';
-    label.textContent = 'Sinchronizuojama...';
+    bar.style.background = 'linear-gradient(90deg, #0ea5e9, #2563eb)';
+    label.textContent = 'Gaunamas užsakymų sąrašas...';
     countEl.textContent = '';
     details.textContent = '';
 
-    var fd = new FormData();
-    fd.append('masinis', '1');
+    try {
+        var fd0 = new FormData();
+        fd0.append('masinis_sarasas', '1');
+        var resp = await fetch('/sinchronizuoti.php', { method: 'POST', body: fd0 });
+        var sarasas = await resp.json();
+        if (!sarasas.success || !sarasas.uzsakymai) {
+            throw new Error('Nepavyko gauti užsakymų sąrašo');
+        }
 
-    fetch('/sinchronizuoti.php', { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            icon.style.animation = '';
-            btn.disabled = false;
-            btn.style.opacity = '';
-            btn.style.pointerEvents = '';
+        var uzsakymai = sarasas.uzsakymai;
+        var viso = uzsakymai.length;
+        var sinchronizuota = 0;
+        var klaiduViso = 0;
+        var klaiduSarasas = [];
 
-            if (data.success) {
-                bar.style.width = '100%';
-                bar.style.background = 'var(--success)';
-                label.innerHTML = '<span style="color:var(--success);">Sinchronizacija baigta!</span>';
-                countEl.textContent = 'Užsakymų: ' + data.uzsakymu_viso + ', sinchronizuota elementų: ' + data.sinchronizuota_viso;
-                text.textContent = 'Sinchronizuoti visus';
-                if (data.klaidos && data.klaidos.length > 0) {
-                    details.innerHTML = '<span style="color:var(--danger);">Klaidos: ' + data.klaidos.join('; ') + '</span>';
+        for (var i = 0; i < viso; i++) {
+            if (syncSustabdyta) break;
+
+            var uzs = uzsakymai[i];
+            var proc = Math.round(((i) / viso) * 100);
+            bar.style.width = proc + '%';
+            label.textContent = 'Sinchronizuojama ' + (i + 1) + ' / ' + viso + '...';
+            countEl.textContent = 'Užsakymas: ' + (uzs.uzsakymo_numeris || uzs.id);
+
+            try {
+                var fd = new FormData();
+                fd.append('uzsakymo_id', uzs.id);
+                var r = await fetch('/sinchronizuoti.php', { method: 'POST', body: fd });
+                var data = await r.json();
+                if (data.success) {
+                    sinchronizuota += (data.sinchronizuota_viso || 1);
                 } else {
-                    details.textContent = 'Visos operacijos sėkmingos.';
+                    klaiduViso++;
+                    klaiduSarasas.push(uzs.uzsakymo_numeris + ': ' + (data.message || 'klaida'));
                 }
-            } else {
-                bar.style.width = '100%';
-                bar.style.background = 'var(--danger)';
-                label.innerHTML = '<span style="color:var(--danger);">Klaida</span>';
-                details.textContent = data.message || 'Nežinoma klaida';
-                text.textContent = 'Sinchronizuoti visus';
+            } catch (e) {
+                klaiduViso++;
+                klaiduSarasas.push(uzs.uzsakymo_numeris + ': ' + e.message);
             }
+        }
 
-            setTimeout(function() {
-                bar.style.background = 'linear-gradient(90deg, #0ea5e9, #2563eb)';
-            }, 5000);
-        })
-        .catch(function(err) {
-            icon.style.animation = '';
-            btn.disabled = false;
-            btn.style.opacity = '';
-            btn.style.pointerEvents = '';
-            bar.style.width = '100%';
+        bar.style.width = '100%';
+        stopBtn.style.display = 'none';
+        btn.style.display = 'inline-flex';
+
+        if (syncSustabdyta) {
+            bar.style.background = '#f59e0b';
+            label.innerHTML = '<span style="color:#f59e0b;">Sinchronizacija sustabdyta</span>';
+            countEl.textContent = 'Atlikta ' + (i) + ' iš ' + viso + ' užsakymų, sinchronizuota elementų: ' + sinchronizuota;
+        } else if (klaiduViso === 0) {
+            bar.style.background = 'var(--success)';
+            label.innerHTML = '<span style="color:var(--success);">Sinchronizacija baigta!</span>';
+            countEl.textContent = 'Užsakymų: ' + viso + ', sinchronizuota elementų: ' + sinchronizuota;
+            details.textContent = 'Visos operacijos sėkmingos.';
+        } else {
             bar.style.background = 'var(--danger)';
-            label.innerHTML = '<span style="color:var(--danger);">Ryšio klaida</span>';
-            text.textContent = 'Sinchronizuoti visus';
-        });
+            label.innerHTML = '<span style="color:var(--danger);">Sinchronizacija baigta su klaidomis</span>';
+            countEl.textContent = 'Užsakymų: ' + viso + ', klaidų: ' + klaiduViso;
+            details.innerHTML = '<span style="color:var(--danger);">' + klaiduSarasas.slice(0, 10).join('; ') + '</span>';
+        }
+
+        setTimeout(function() {
+            bar.style.background = 'linear-gradient(90deg, #0ea5e9, #2563eb)';
+        }, 5000);
+
+    } catch (err) {
+        stopBtn.style.display = 'none';
+        btn.style.display = 'inline-flex';
+        bar.style.width = '100%';
+        bar.style.background = 'var(--danger)';
+        label.innerHTML = '<span style="color:var(--danger);">Ryšio klaida</span>';
+        details.textContent = err.message || 'Nežinoma klaida';
+    }
 }
 </script>
 

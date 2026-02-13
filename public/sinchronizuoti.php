@@ -12,7 +12,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $masinis = ($_POST['masinis'] ?? '') === '1';
+$masinis_sarasas = ($_POST['masinis_sarasas'] ?? '') === '1';
 $conn = $pdo;
+
+if ($masinis_sarasas) {
+    $uzsakymai = $conn->query("
+        SELECT u.id, u.uzsakymo_numeris
+        FROM uzsakymai u
+        ORDER BY u.id ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode(['success' => true, 'uzsakymai' => $uzsakymai]);
+    exit;
+}
 
 if ($masinis) {
     $rezultatai = [];
