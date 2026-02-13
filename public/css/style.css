@@ -1413,3 +1413,38 @@ textarea.form-control {
         justify-content: center;
     }
 }
+
+.pokytis-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.pokytis-up {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.pokytis-down {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.pokytis-geriau {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.pokytis-blogiau {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+@media (max-width: 768px) {
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
