@@ -98,17 +98,32 @@ if ($q2['defektu_proc'] < $q1['defektu_proc']) {
     $apibendrinimas = "defektu procentas <b>nepasikete ({$q1['defektu_proc']}%)</b>";
 }
 
-$combined_workers = [];
-foreach ($q2['top_darbuotojai'] as $d) $combined_workers[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'bandymu'=>(int)$d['bandymu'], 'ketvirtis'=>$q2['periodas']];
-foreach ($q1['top_darbuotojai'] as $d) { if (!isset($combined_workers[$d['vardas']]) || (int)$d['be_defektu'] > $combined_workers[$d['vardas']]['be_defektu']) $combined_workers[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'bandymu'=>(int)$d['bandymu'], 'ketvirtis'=>$q1['periodas']]; }
-usort($combined_workers, fn($a,$b) => $b['be_defektu'] <=> $a['be_defektu']);
-$combined_workers = array_slice($combined_workers, 0, 11);
+$menesiu_pav = [1=>'Sausis',2=>'Vasaris',3=>'Kovas',4=>'Balandis',5=>'Gegužė',6=>'Birželis',7=>'Liepa',8=>'Rugpjūtis',9=>'Rugsėjis',10=>'Spalis',11=>'Lapkritis',12=>'Gruodis'];
+$men_metai = (int)($_GET['men_metai'] ?? date('Y'));
+$men_menuo = (int)($_GET['men_menuo'] ?? date('n'));
+$men_pradzia = sprintf('%04d-%02d-01', $men_metai, $men_menuo);
+$men_pabaiga = date('Y-m-t', strtotime($men_pradzia));
+$men_where = "WHERE u.sukurtas IS NOT NULL AND u.sukurtas <> '' AND u.sukurtas::timestamp::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
+$men_periodas = $menesiu_pav[$men_menuo] . ' ' . $men_metai;
 
-$combined_errors = [];
-foreach ($q2['top_klydusieji'] as $d) $combined_errors[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$q2['periodas']];
-foreach ($q1['top_klydusieji'] as $d) { if (!isset($combined_errors[$d['vardas']]) || (int)$d['defektai'] > $combined_errors[$d['vardas']]['defektai']) $combined_errors[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$q1['periodas']]; }
-usort($combined_errors, fn($a,$b) => $b['defektai'] <=> $a['defektai']);
-$combined_errors = array_slice($combined_errors, 0, 11);
+$combined_workers = $pdo->query("
+    SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
+        COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
+    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$combined_errors = $pdo->query("
+    SELECT fb.darba_atliko AS vardas,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
+        ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
+    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
+    ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
+")->fetchAll(PDO::FETCH_ASSOC);
 
 $html = '
 <style>
@@ -159,37 +174,36 @@ $html = '
 
 <table class="two-col"><tr><td>
 
-<h3>TOP 11 darbuotojai (daugiausiai punktu)</h3>
+<h3>TOP 11 darbuotojai (daugiausiai punktu) &mdash; ' . htmlspecialchars($men_periodas) . '</h3>
 <table>
-    <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th class="tc">Bandymu</th><th class="tc">Be def.</th></tr></thead>
+    <thead><tr><th>#</th><th>Darbuotojas</th><th class="tc">Bandymu</th><th class="tc">Be def.</th></tr></thead>
     <tbody>';
 $i = 1;
 foreach ($combined_workers as $d) {
     $html .= '<tr>
         <td>' . $i++ . '</td>
         <td>' . htmlspecialchars($d['vardas']) . '</td>
-        <td>' . htmlspecialchars($d['ketvirtis']) . '</td>
         <td class="tc">' . $d['bandymu'] . '</td>
         <td class="tc green">' . $d['be_defektu'] . '</td>
     </tr>';
 }
 if (empty($combined_workers)) {
-    $html .= '<tr><td colspan="5" class="tc" style="color:#999;padding:10px;">Duomenu nerasta</td></tr>';
+    $html .= '<tr><td colspan="4" class="tc" style="color:#999;padding:10px;">Duomenu nerasta</td></tr>';
 }
 $html .= '</tbody></table>
 
 </td><td>
 
-<h3 style="color:#dc2626;">TOP 11 daugiausiai klydo</h3>
+<h3 style="color:#dc2626;">TOP 11 daugiausiai klydo &mdash; ' . htmlspecialchars($men_periodas) . '</h3>
 <table>
-    <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th class="tc">Def.</th><th class="tc">%</th></tr></thead>
+    <thead><tr><th>#</th><th>Darbuotojas</th><th class="tc">Bandymu</th><th class="tc">Def.</th><th class="tc">%</th></tr></thead>
     <tbody>';
 $i = 1;
 foreach ($combined_errors as $d) {
     $html .= '<tr>
         <td style="color:#dc2626;">' . $i++ . '</td>
         <td>' . htmlspecialchars($d['vardas']) . '</td>
-        <td>' . htmlspecialchars($d['ketvirtis']) . '</td>
+        <td class="tc">' . $d['bandymu'] . '</td>
         <td class="tc red">' . $d['defektai'] . '</td>
         <td class="tc">' . $d['defektu_proc'] . '%</td>
     </tr>';
