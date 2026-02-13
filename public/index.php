@@ -176,6 +176,53 @@ function kp_defPokytis($senas, $naujas) {
     return $p;
 }
 
+// ==================== TAB 2 mėnesinė darbuotojų statistika ====================
+$menesiu_pav = [1=>'Sausis',2=>'Vasaris',3=>'Kovas',4=>'Balandis',5=>'Gegužė',6=>'Birželis',7=>'Liepa',8=>'Rugpjūtis',9=>'Rugsėjis',10=>'Spalis',11=>'Lapkritis',12=>'Gruodis'];
+$men_metai = $_GET['men_metai'] ?? date('Y');
+$men_menuo = $_GET['men_menuo'] ?? date('n');
+$men_metai = (int)$men_metai;
+$men_menuo = (int)$men_menuo;
+
+$men_pradzia = sprintf('%04d-%02d-01', $men_metai, $men_menuo);
+$men_pabaiga = date('Y-m-t', strtotime($men_pradzia));
+$men_where = "WHERE u.sukurtas::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
+
+$men_top_darbuotojai = $pdo->query("
+    SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
+        COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
+    FROM mt_funkciniai_bandymai fb
+    JOIN gaminiai g ON g.id = fb.gaminio_id
+    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    GROUP BY fb.darba_atliko
+    ORDER BY be_defektu DESC
+    LIMIT 11
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$men_top_klydusieji = $pdo->query("
+    SELECT fb.darba_atliko AS vardas,
+        COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
+        ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
+    FROM mt_funkciniai_bandymai fb
+    JOIN gaminiai g ON g.id = fb.gaminio_id
+    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    GROUP BY fb.darba_atliko
+    HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
+    ORDER BY defektai DESC, defektu_proc DESC
+    LIMIT 11
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$men_turimi_metai = $pdo->query("
+    SELECT DISTINCT EXTRACT(YEAR FROM u.sukurtas)::int AS metai
+    FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id
+    JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+    WHERE u.sukurtas IS NOT NULL
+    ORDER BY metai DESC
+")->fetchAll(PDO::FETCH_COLUMN);
+if (empty($men_turimi_metai)) $men_turimi_metai = [(int)date('Y')];
+
 // ==================== TAB 3: Išplėstinė statistika ====================
 $ist_uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $ist_periodas         = $_GET['periodas'] ?? 'visi';
@@ -523,30 +570,45 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     </table>
   </div>
 
+  <div style="margin-top:20px;margin-bottom:12px;padding:12px 16px;background:var(--bg-light);border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;" data-testid="filter-bar-monthly">
+    <span style="font-weight:600;font-size:14px;color:var(--text-primary);">Darbuotojų mėnesinė statistika:</span>
+    <form method="GET" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <input type="hidden" name="tab" value="ketv">
+      <input type="hidden" name="kp_q1_metai" value="<?= h($kp_q1_metai) ?>">
+      <input type="hidden" name="kp_q1_ketvirtis" value="<?= h($kp_q1_ketv) ?>">
+      <input type="hidden" name="kp_q2_metai" value="<?= h($kp_q2_metai) ?>">
+      <input type="hidden" name="kp_q2_ketvirtis" value="<?= h($kp_q2_ketv) ?>">
+      <select name="men_menuo" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text-primary);font-size:13px;" data-testid="select-men-month">
+        <?php for ($m = 1; $m <= 12; $m++): ?>
+        <option value="<?= $m ?>" <?= $m == $men_menuo ? 'selected' : '' ?>><?= $menesiu_pav[$m] ?></option>
+        <?php endfor; ?>
+      </select>
+      <select name="men_metai" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text-primary);font-size:13px;" data-testid="select-men-year">
+        <?php foreach ($men_turimi_metai as $m): ?>
+        <option value="<?= $m ?>" <?= $m == $men_metai ? 'selected' : '' ?>><?= $m ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button type="submit" class="btn btn-primary" style="padding:5px 14px;font-size:13px;" data-testid="button-men-filter">Rodyti</button>
+    </form>
+  </div>
+
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
     <div data-testid="kp-top-workers">
-      <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--text-primary);">TOP 11 darbuotojai (daugiausiai punktu)</div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--text-primary);">TOP 11 darbuotojai (daugiausiai punktu) — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
         <table data-testid="table-kp-top-workers">
-          <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th style="text-align:center;">Be def.</th></tr></thead>
+          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Be def.</th></tr></thead>
           <tbody>
-            <?php
-            $combined = [];
-            foreach ($kp_q2['top_darbuotojai'] as $d) $combined[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'ketvirtis'=>$kp_q2['periodas']];
-            foreach ($kp_q1['top_darbuotojai'] as $d) { if (!isset($combined[$d['vardas']]) || (int)$d['be_defektu'] > $combined[$d['vardas']]['be_defektu']) $combined[$d['vardas']] = ['vardas'=>$d['vardas'], 'be_defektu'=>(int)$d['be_defektu'], 'ketvirtis'=>$kp_q1['periodas']]; }
-            usort($combined, fn($a,$b) => $b['be_defektu'] <=> $a['be_defektu']);
-            $combined = array_slice($combined, 0, 11);
-            $i = 1;
-            foreach ($combined as $d): ?>
+            <?php $i = 1; foreach ($men_top_darbuotojai as $d): ?>
             <tr>
               <td style="font-weight:600;color:<?= $i<=3?'#f59e0b':'var(--text-secondary)' ?>;"><?= $i++ ?></td>
               <td style="font-weight:500;"><?= h($d['vardas']) ?></td>
-              <td><span class="badge badge-primary" style="font-size:11px;"><?= h($d['ketvirtis']) ?></span></td>
+              <td style="text-align:center;"><?= $d['bandymu'] ?></td>
               <td style="text-align:center;font-weight:600;color:#16a34a;"><?= $d['be_defektu'] ?></td>
             </tr>
             <?php endforeach; ?>
-            <?php if (empty($combined)): ?>
-            <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:12px;">Duomenu nerasta</td></tr>
+            <?php if (empty($men_top_darbuotojai)): ?>
+            <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:12px;">Duomenų nerasta</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -554,29 +616,22 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     </div>
 
     <div data-testid="kp-top-errors">
-      <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#dc2626;">TOP 11 daugiausiai klydo</div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#dc2626;">TOP 11 daugiausiai klydo — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
         <table data-testid="table-kp-top-errors">
-          <thead><tr><th>#</th><th>Darbuotojas</th><th>Ketv.</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
+          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
           <tbody>
-            <?php
-            $err_combined = [];
-            foreach ($kp_q2['top_klydusieji'] as $d) $err_combined[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$kp_q2['periodas']];
-            foreach ($kp_q1['top_klydusieji'] as $d) { if (!isset($err_combined[$d['vardas']]) || (int)$d['defektai'] > $err_combined[$d['vardas']]['defektai']) $err_combined[$d['vardas']] = ['vardas'=>$d['vardas'], 'defektai'=>(int)$d['defektai'], 'defektu_proc'=>$d['defektu_proc'], 'ketvirtis'=>$kp_q1['periodas']]; }
-            usort($err_combined, fn($a,$b) => $b['defektai'] <=> $a['defektai']);
-            $err_combined = array_slice($err_combined, 0, 11);
-            $i = 1;
-            foreach ($err_combined as $d): ?>
+            <?php $i = 1; foreach ($men_top_klydusieji as $d): ?>
             <tr>
               <td style="font-weight:600;color:#dc2626;"><?= $i++ ?></td>
               <td style="font-weight:500;"><?= h($d['vardas']) ?></td>
-              <td><span class="badge badge-primary" style="font-size:11px;"><?= h($d['ketvirtis']) ?></span></td>
+              <td style="text-align:center;"><?= $d['bandymu'] ?></td>
               <td style="text-align:center;font-weight:600;color:#dc2626;"><?= $d['defektai'] ?></td>
               <td style="text-align:center;"><?= $d['defektu_proc'] ?>%</td>
             </tr>
             <?php endforeach; ?>
-            <?php if (empty($err_combined)): ?>
-            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:12px;">Defektu nerasta</td></tr>
+            <?php if (empty($men_top_klydusieji)): ?>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:12px;">Defektų nerasta</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
