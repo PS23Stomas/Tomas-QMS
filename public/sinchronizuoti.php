@@ -13,7 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $masinis = ($_POST['masinis'] ?? '') === '1';
 $masinis_sarasas = ($_POST['masinis_sarasas'] ?? '') === '1';
+$importas = ($_POST['importas'] ?? '') === '1';
 $conn = $pdo;
+
+if ($importas) {
+    try {
+        $rezultatas = TomoQMS::importuotiILocalDB($conn);
+        $success = empty($rezultatas['klaidos']);
+        echo json_encode([
+            'success' => $success,
+            'message' => $success
+                ? 'Importas sėkmingas! Nauji: ' . $rezultatas['nauji'] . ', Atnaujinti: ' . $rezultatas['atnaujinti'] . ', Gaminiai: ' . $rezultatas['gaminiai'] . ', Bandymai: ' . $rezultatas['bandymai'] . ', Komponentai: ' . $rezultatas['komponentai']
+                : 'Importas baigtas su klaidomis.',
+            'rezultatas' => $rezultatas
+        ]);
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'message' => 'Importo klaida: ' . $e->getMessage()]);
+    }
+    exit;
+}
 
 if ($masinis_sarasas) {
     $uzsakymai = $conn->query("

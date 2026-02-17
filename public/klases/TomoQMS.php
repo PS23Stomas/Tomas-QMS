@@ -490,6 +490,230 @@ class TomoQMS {
         }
     }
 
+    public static function importuotiILocalDB(PDO $localConn): array {
+        $qt = self::getQualityTomasConnection();
+        if (!$qt) return ['klaida' => 'Nepavyko prisijungti prie quality_tomas duomenų bazės'];
+
+        $rezultatas = ['nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'bandymai' => 0, 'komponentai' => 0, 'klaidos' => []];
+
+        try {
+            $qt_cols_check = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'uzsakymai' AND table_schema = 'public'")->fetchAll(PDO::FETCH_COLUMN);
+            $has_rusis = in_array('gaminiu_rusis_id', $qt_cols_check);
+
+            $rusis_filter = $has_rusis ? "WHERE u.gaminiu_rusis_id = 2" : "";
+
+            $stmt = $qt->query("
+                SELECT u.id as qt_id, u.uzsakymo_numeris, u.sukurtas, u.kiekis,
+                       " . ($has_rusis ? "u.gaminiu_rusis_id," : "2 as gaminiu_rusis_id,") . "
+                       u.vartotojas_id,
+                       uz.uzsakovas, o.pavadinimas as objektas
+                FROM uzsakymai u
+                LEFT JOIN uzsakovai uz ON uz.id = u.uzsakovas_id
+                LEFT JOIN objektai o ON o.id = u.objektas_id
+                $rusis_filter
+                ORDER BY u.id
+            ");
+            $mt_uzsakymai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $existing_local = [];
+            $st = $localConn->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
+            foreach ($st as $r) $existing_local[trim($r['uzsakymo_numeris'])] = (int)$r['id'];
+
+            $uzsakovai_cache = [];
+            $objektai_cache = [];
+
+            foreach ($mt_uzsakymai as $uzs) {
+                $nr = trim($uzs['uzsakymo_numeris'] ?? '');
+                if ($nr === '') continue;
+
+                $uzs_id_val = null;
+                if (!empty($uzs['uzsakovas'])) {
+                    if (!isset($uzsakovai_cache[$uzs['uzsakovas']])) {
+                        $chk = $localConn->prepare("SELECT id FROM uzsakovai WHERE TRIM(uzsakovas) = TRIM(?)");
+                        $chk->execute([$uzs['uzsakovas']]);
+                        $uid = $chk->fetchColumn();
+                        if (!$uid) {
+                            $ins = $localConn->prepare("INSERT INTO uzsakovai (uzsakovas) VALUES (?) RETURNING id");
+                            $ins->execute([$uzs['uzsakovas']]);
+                            $uid = $ins->fetchColumn();
+                        }
+                        $uzsakovai_cache[$uzs['uzsakovas']] = (int)$uid;
+                    }
+                    $uzs_id_val = $uzsakovai_cache[$uzs['uzsakovas']];
+                }
+
+                $obj_id_val = null;
+                if (!empty($uzs['objektas'])) {
+                    if (!isset($objektai_cache[$uzs['objektas']])) {
+                        $chk = $localConn->prepare("SELECT id FROM objektai WHERE TRIM(pavadinimas) = TRIM(?)");
+                        $chk->execute([$uzs['objektas']]);
+                        $oid = $chk->fetchColumn();
+                        if (!$oid) {
+                            $ins = $localConn->prepare("INSERT INTO objektai (pavadinimas) VALUES (?) RETURNING id");
+                            $ins->execute([$uzs['objektas']]);
+                            $oid = $ins->fetchColumn();
+                        }
+                        $objektai_cache[$uzs['objektas']] = (int)$oid;
+                    }
+                    $obj_id_val = $objektai_cache[$uzs['objektas']];
+                }
+
+                if (isset($existing_local[$nr])) {
+                    $localConn->prepare("UPDATE uzsakymai SET kiekis=?,uzsakovas_id=?,objektas_id=?,gaminiu_rusis_id=?,sukurtas=? WHERE id=?")
+                        ->execute([$uzs['kiekis'], $uzs_id_val, $obj_id_val, $uzs['gaminiu_rusis_id'], $uzs['sukurtas'], $existing_local[$nr]]);
+                    $rezultatas['atnaujinti']++;
+                } else {
+                    $vart_id = $uzs['vartotojas_id'] ?? 1;
+                    $chk_vart = $localConn->prepare("SELECT id FROM vartotojai WHERE id = ?");
+                    $chk_vart->execute([$vart_id]);
+                    if (!$chk_vart->fetchColumn()) {
+                        $vart_id = (int)$localConn->query("SELECT id FROM vartotojai ORDER BY id LIMIT 1")->fetchColumn() ?: 1;
+                    }
+
+                    $ins = $localConn->prepare("INSERT INTO uzsakymai (uzsakymo_numeris,kiekis,uzsakovas_id,objektas_id,vartotojas_id,gaminiu_rusis_id,sukurtas) VALUES (?,?,?,?,?,?,?) RETURNING id");
+                    $ins->execute([$nr, $uzs['kiekis'], $uzs_id_val, $obj_id_val, $vart_id, $uzs['gaminiu_rusis_id'], $uzs['sukurtas']]);
+                    $new_id = (int)$ins->fetchColumn();
+                    $existing_local[$nr] = $new_id;
+                    $rezultatas['nauji']++;
+                }
+            }
+
+            $qt_type_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminio_tipai'")->fetchAll(PDO::FETCH_COLUMN);
+            $has_atitikmuo = in_array('atitikmuo_kodas', $qt_type_cols);
+
+            $type_select = "id, gaminio_tipas, grupe" . ($has_atitikmuo ? ", atitikmuo_kodas" : ", NULL as atitikmuo_kodas");
+            $types = $qt->query("SELECT $type_select FROM gaminio_tipai WHERE grupe = 'MT'")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($types as $t) {
+                $exists = $localConn->prepare("SELECT id FROM gaminio_tipai WHERE id = ?");
+                $exists->execute([$t['id']]);
+                if (!$exists->fetchColumn()) {
+                    $localConn->prepare("INSERT INTO gaminio_tipai (id, gaminio_tipas, grupe, atitikmuo_kodas) VALUES (?,?,?,?)")
+                        ->execute([$t['id'], $t['gaminio_tipas'], $t['grupe'], $t['atitikmuo_kodas']]);
+                }
+            }
+
+            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
+            $qt_mk_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_komponentai'")->fetchAll(PDO::FETCH_COLUMN);
+            $has_parinkta = in_array('parinkta_projektui', $qt_mk_cols);
+
+            foreach ($mt_uzsakymai as $uzs) {
+                $nr = trim($uzs['uzsakymo_numeris'] ?? '');
+                if ($nr === '' || !isset($existing_local[$nr])) continue;
+                $local_uzs_id = $existing_local[$nr];
+
+                $gam_stmt = $qt->prepare("SELECT id as qt_gam_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
+                $gam_stmt->execute([$uzs['qt_id']]);
+                $gaminiai = $gam_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($gaminiai as $gam) {
+                    $local_gid = false;
+                    if ($gam['gaminio_numeris'] !== null && $gam['gaminio_numeris'] !== '') {
+                        $chk = $localConn->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris=?");
+                        $chk->execute([$local_uzs_id, $gam['gaminio_numeris']]);
+                        $local_gid = $chk->fetchColumn();
+                    }
+                    if (!$local_gid) {
+                        $chk2 = $localConn->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris IS NULL LIMIT 1");
+                        $chk2->execute([$local_uzs_id]);
+                        $local_gid = $chk2->fetchColumn();
+                    }
+
+                    if ($local_gid) {
+                        $sets = [];
+                        $params = [':id' => $local_gid];
+                        if ($gam['gaminio_numeris'] !== null) { $sets[] = "gaminio_numeris = :gn"; $params[':gn'] = $gam['gaminio_numeris']; }
+                        if ($gam['gaminio_tipas_id'] !== null) { $sets[] = "gaminio_tipas_id = :gti"; $params[':gti'] = $gam['gaminio_tipas_id']; }
+                        if ($gam['protokolo_nr'] !== null) { $sets[] = "protokolo_nr = :pnr"; $params[':pnr'] = $gam['protokolo_nr']; }
+                        if (!empty($sets)) {
+                            $localConn->prepare("UPDATE gaminiai SET " . implode(', ', $sets) . " WHERE id = :id")->execute($params);
+                        }
+                    } else {
+                        $ins = $localConn->prepare("INSERT INTO gaminiai (uzsakymo_id,gaminio_numeris,gaminio_tipas_id,protokolo_nr) VALUES (?,?,?,?) RETURNING id");
+                        $ins->execute([$local_uzs_id, $gam['gaminio_numeris'], $gam['gaminio_tipas_id'], $gam['protokolo_nr']]);
+                        $local_gid = (int)$ins->fetchColumn();
+                    }
+                    $rezultatas['gaminiai']++;
+
+                    $sel_cols = "eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas";
+                    if ($has_photo) $sel_cols .= ", defekto_nuotrauka, defekto_nuotraukos_pavadinimas";
+
+                    $fb_stmt = $qt->prepare("SELECT $sel_cols FROM mt_funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr");
+                    $fb_stmt->execute([$gam['qt_gam_id']]);
+                    $fb_rows = $fb_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    if (!empty($fb_rows)) {
+                        try {
+                            $localConn->beginTransaction();
+                            $localConn->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?")->execute([$local_gid]);
+                            foreach ($fb_rows as $r) {
+                                if ($has_photo) {
+                                    $fb_ins = $localConn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
+                                    $foto = $r['defekto_nuotrauka'] ?? null;
+                                    $fb_ins->bindValue(1, $local_gid);
+                                    $fb_ins->bindValue(2, $r['eil_nr']);
+                                    $fb_ins->bindValue(3, $r['reikalavimas']);
+                                    $fb_ins->bindValue(4, $r['isvada']);
+                                    $fb_ins->bindValue(5, $r['defektas']);
+                                    $fb_ins->bindValue(6, $r['darba_atliko']);
+                                    $fb_ins->bindValue(7, $r['irase_vartotojas']);
+                                    $fb_ins->bindValue(8, $foto, $foto !== null ? PDO::PARAM_LOB : PDO::PARAM_NULL);
+                                    $fb_ins->bindValue(9, $r['defekto_nuotraukos_pavadinimas'] ?? null);
+                                    $fb_ins->execute();
+                                } else {
+                                    $localConn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)")
+                                        ->execute([$local_gid, $r['eil_nr'], $r['reikalavimas'], $r['isvada'], $r['defektas'], $r['darba_atliko'], $r['irase_vartotojas']]);
+                                }
+                            }
+                            $localConn->commit();
+                            $rezultatas['bandymai'] += count($fb_rows);
+                        } catch (Exception $e) {
+                            if ($localConn->inTransaction()) $localConn->rollBack();
+                            $rezultatas['klaidos'][] = "Bandymai uzs=$nr: {$e->getMessage()}";
+                        }
+                    }
+
+                    $mk_sel = "eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas" . ($has_parinkta ? ", parinkta_projektui" : ", NULL as parinkta_projektui");
+
+                    $mk_stmt = $qt->prepare("SELECT $mk_sel FROM mt_komponentai WHERE gaminio_id = ? ORDER BY eiles_numeris");
+                    $mk_stmt->execute([$gam['qt_gam_id']]);
+                    $mk_rows = $mk_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    if (!empty($mk_rows)) {
+                        try {
+                            $localConn->beginTransaction();
+                            $localConn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$local_gid]);
+                            $mk_ins = $localConn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
+                            foreach ($mk_rows as $r) {
+                                $mk_ins->execute([$local_gid, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
+                            }
+                            $localConn->commit();
+                            $rezultatas['komponentai'] += count($mk_rows);
+                        } catch (Exception $e) {
+                            if ($localConn->inTransaction()) $localConn->rollBack();
+                            $rezultatas['klaidos'][] = "Komponentai uzs=$nr: {$e->getMessage()}";
+                        }
+                    }
+                }
+            }
+
+            self::irasytLog(
+                'Importas iš quality_tomas į local DB',
+                'uzsakymai+gaminiai+bandymai',
+                null,
+                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['gaminiai'] + $rezultatas['bandymai'] + $rezultatas['komponentai'],
+                empty($rezultatas['klaidos']) ? 'ok' : 'klaida',
+                empty($rezultatas['klaidos']) ? null : implode('; ', array_slice($rezultatas['klaidos'], 0, 5))
+            );
+
+        } catch (Exception $e) {
+            $rezultatas['klaidos'][] = $e->getMessage();
+            self::irasytLog('Importo klaida (local)', 'uzsakymai', null, 0, 'klaida', $e->getMessage());
+        }
+
+        return $rezultatas;
+    }
+
     public static function importuotiIsQualityTomas(): array {
         $qt = self::getQualityTomasConnection();
         $tomo = self::getConnection();

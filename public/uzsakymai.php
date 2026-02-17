@@ -530,6 +530,10 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
+            <button class="btn btn-sm" id="btnImport" onclick="importuotiIsQualityTomas()" data-testid="button-import" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span id="importText">Importuoti naujus</span>
+            </button>
             <button class="btn btn-sm" id="btnMasSync" onclick="masineSinchronizacija()" data-testid="button-mass-sync" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="massSyncIcon"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                 <span id="massSyncText">Sinchronizuoti visus</span>
@@ -696,6 +700,40 @@ function sustabdytiSinchronizacija() {
     syncSustabdyta = true;
     document.getElementById('btnStopSync').disabled = true;
     document.getElementById('massSyncLabel').innerHTML = '<span style="color:#f59e0b;">Stabdoma...</span>';
+}
+
+async function importuotiIsQualityTomas() {
+    var btn = document.getElementById('btnImport');
+    var text = document.getElementById('importText');
+    btn.disabled = true;
+    text.textContent = 'Importuojama...';
+
+    try {
+        var fd = new FormData();
+        fd.append('importas', '1');
+        var resp = await fetch('/sinchronizuoti.php', { method: 'POST', body: fd });
+        var data = await resp.json();
+
+        if (data.success) {
+            var rez = data.rezultatas || {};
+            var msg = 'Importas baigtas!\n\nNauji užsakymai: ' + (rez.nauji || 0) +
+                      '\nAtnaujinti: ' + (rez.atnaujinti || 0) +
+                      '\nGaminiai: ' + (rez.gaminiai || 0) +
+                      '\nBandymai: ' + (rez.bandymai || 0) +
+                      '\nKomponentai: ' + (rez.komponentai || 0);
+            alert(msg);
+            if (rez.nauji > 0) {
+                location.reload();
+            }
+        } else {
+            alert('Importo klaida: ' + (data.message || 'Nežinoma klaida'));
+        }
+    } catch (e) {
+        alert('Importo klaida: ' + e.message);
+    }
+
+    btn.disabled = false;
+    text.textContent = 'Importuoti naujus';
 }
 
 async function masineSinchronizacija() {

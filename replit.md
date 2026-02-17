@@ -135,6 +135,9 @@ public/                     # Web root served by PHP
 - 2026-02-13: Added quarter selection filters and PDF export to Tab 2 (Ketvirciu palyginimas)
 - 2026-02-13: Replaced individual sync tile with mass sync button "Sinchronizuoti visus" in orders list page
 - 2026-02-13: Updated sinchronizuoti.php to support mass sync (masinis=1 parameter iterates all orders)
+- 2026-02-17: Added importuotiILocalDB() - imports new orders from quality_tomas into local database (uzsakymai, gaminiai, funkciniai bandymai, komponentai)
+- 2026-02-17: Added "Importuoti naujus" button in uzsakymai.php for triggering quality_tomas → local DB import
+- 2026-02-17: Added importas endpoint in sinchronizuoti.php for import trigger
 - 2026-02-13: Changed sync to manual - removed automatic sync from all save handlers
 - 2026-02-13: Added sinchronizuoti.php endpoint for on-demand full data sync (orders, tests, components, PDFs, etc.)
 - 2026-02-13: Redesigned kokybiniai rodikliai (index.php) with 3-tab navigation: 30 dienų rodikliai, Ketvirčių palyginimas, Išplėstinė statistika su filtrais
