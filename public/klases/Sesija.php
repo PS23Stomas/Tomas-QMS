@@ -4,20 +4,42 @@
  */
 class Sesija {
 
-    /** Pradeda sesiją su 8 val. galiojimo laiku, atnaujina veiklą ir kartais išvalo neaktyvius */
+    const SESIJOS_GALIOJIMAS = 1800; // 30 minučių sekundėmis
+
     public static function pradzia(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            ini_set('session.gc_maxlifetime', 28800);
-            ini_set('session.cookie_lifetime', 28800);
+            ini_set('session.gc_maxlifetime', self::SESIJOS_GALIOJIMAS);
+            ini_set('session.cookie_lifetime', 0);
 
             session_set_cookie_params([
-                'lifetime' => 28800,
+                'lifetime' => 0,
                 'path' => '/',
                 'secure' => true,
                 'httponly' => true,
                 'samesite' => 'Lax'
             ]);
             session_start();
+        }
+
+        if (isset($_SESSION['vartotojas_id']) && isset($_SESSION['paskutine_veikla'])) {
+            $neaktyvumo_laikas = time() - $_SESSION['paskutine_veikla'];
+            if ($neaktyvumo_laikas > self::SESIJOS_GALIOJIMAS) {
+                $session_id = session_id();
+                try {
+                    $pdo = Database::getConnection();
+                    $pdo->prepare("DELETE FROM aktyvus_vartotojai WHERE session_id = ?")->execute([$session_id]);
+                } catch (Exception $e) {}
+                session_unset();
+                session_destroy();
+                session_start();
+                $_SESSION['sesija_pasibaige'] = true;
+                header('Location: /login.php?sesija_pasibaige=1');
+                exit;
+            }
+        }
+
+        if (isset($_SESSION['vartotojas_id'])) {
+            $_SESSION['paskutine_veikla'] = time();
         }
 
         self::atnaujintiVeikla();
@@ -32,10 +54,13 @@ class Sesija {
         return $_SESSION[$raktas] ?? '';
     }
 
-    /** Tikrina, ar vartotojas prisijungęs; jei ne - nukreipia į prisijungimo puslapį */
     public static function tikrintiPrisijungima(): void {
         if (!isset($_SESSION['vartotojas_id'])) {
-            header('Location: /login.php');
+            $pasibaige = isset($_SESSION['sesija_pasibaige']) && $_SESSION['sesija_pasibaige'];
+            if ($pasibaige) {
+                unset($_SESSION['sesija_pasibaige']);
+            }
+            header('Location: /login.php' . ($pasibaige ? '?sesija_pasibaige=1' : ''));
             exit;
         }
     }
@@ -73,12 +98,11 @@ class Sesija {
         }
     }
 
-    /** Išvalo neaktyvius vartotojus, kurių paskutinė veikla senesnė nei 8 valandos */
     public static function isvalytiNeaktyvius(): void {
         try {
             $pdo = Database::getConnection();
             $stmt = $pdo->prepare("DELETE FROM aktyvus_vartotojai 
-                                  WHERE paskutine_veikla < CURRENT_TIMESTAMP - INTERVAL '8 hours'");
+                                  WHERE paskutine_veikla < CURRENT_TIMESTAMP - INTERVAL '30 minutes'");
             $stmt->execute();
         } catch (Exception $e) {
         }

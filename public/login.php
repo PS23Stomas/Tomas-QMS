@@ -9,15 +9,14 @@
  * - Aktyvių vartotojų (aktyvus_vartotojai) sekimas
  */
 
-// Sesijos slapuko parametrų nustatymas (8 val. galiojimas, saugūs parametrai)
 session_set_cookie_params([
-    'lifetime' => 28800,
+    'lifetime' => 0,
     'path' => '/',
     'secure' => true,
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
-ini_set('session.gc_maxlifetime', 28800);
+ini_set('session.gc_maxlifetime', 1800);
 session_start();
 
 // Duomenų bazės prisijungimas per DATABASE_URL aplinkos kintamąjį
@@ -54,8 +53,8 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
             $_SESSION['vardas'] = $user['vardas'];
             $_SESSION['pavarde'] = $user['pavarde'];
             $_SESSION['role'] = $user['role'] ?? '';
+            $_SESSION['paskutine_veikla'] = time();
             
-            // Įrašomas aktyvus vartotojas į aktyvus_vartotojai lentelę
             $session_id = session_id();
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
             $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
@@ -113,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['vardas'] = $naudotojas['vardas'];
             $_SESSION['pavarde'] = $naudotojas['pavarde'];
             $_SESSION['role'] = $naudotojas['role'] ?? '';
+            $_SESSION['paskutine_veikla'] = time();
             
             // Aktyvaus vartotojo įrašymas (sesijos sekimas)
             $session_id = session_id();
@@ -305,6 +305,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-card">
         <h2>MT Modulis</h2>
         <p class="login-subtitle">Gamybos valdymo sistema</p>
+        <?php if (isset($_GET['sesija_pasibaige']) && $_GET['sesija_pasibaige'] == '1'): ?>
+            <div class="alert alert-warning" data-testid="text-session-expired" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.75rem 1rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.9rem;">
+                Jūsų sesija baigėsi dėl neaktyvumo. Prašome prisijungti iš naujo.
+            </div>
+        <?php endif; ?>
         <?php if ($klaida): ?>
             <div class="alert alert-danger" data-testid="text-login-error"><?= htmlspecialchars($klaida) ?></div>
         <?php endif; ?>
