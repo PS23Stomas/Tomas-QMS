@@ -254,6 +254,41 @@ require_once __DIR__ . '/../includes/header.php';
     vertical-align: middle;
     min-width: 28px;
 }
+.saug-input {
+    width: 100%;
+    min-width: 24px;
+    max-width: 80px;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: center;
+    font-size: 11px;
+    padding: 2px 1px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+}
+.saug-input:hover {
+    border-color: #adb5bd;
+    background: #f8f9fa;
+}
+.saug-input:focus {
+    border-color: #0d6efd;
+    background: #fff;
+    box-shadow: 0 0 0 1px #0d6efd33;
+}
+.saug-save-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    background: #f8f9fa;
+    border-top: 1px solid #000;
+}
+.saug-save-status {
+    font-size: 11px;
+    color: #198754;
+    font-weight: 500;
+}
 .saugikliu-sub .sub-header {
     background: #f0f0f0;
     font-weight: 600;
@@ -384,6 +419,8 @@ require_once __DIR__ . '/../includes/header.php';
     .paso-page { border: none; box-shadow: none; max-width: 100%; padding: 10mm; }
     .print-only { display: block !important; }
     body { background: #fff !important; }
+    .saug-input { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+    .saug-save-row { display: none !important; }
 }
 </style>
 
@@ -706,8 +743,8 @@ require_once __DIR__ . '/../includes/header.php';
         <tr>
             <td class="nr-col" style="vertical-align: top;">3.5</td>
             <td class="desc-col" style="vertical-align: top;"><?= htmlspecialchars($label_35) ?></td>
-            <td class="val-col" style="padding: 0;">
-                <table class="saugikliu-sub">
+            <td class="val-col" style="padding: 0; position: relative;">
+                <table class="saugikliu-sub" id="saugikliai-35-table">
                     <tr class="sub-header">
                         <?php foreach ($poz_35 as $p): ?>
                         <td><?= $p ?></td>
@@ -715,15 +752,23 @@ require_once __DIR__ . '/../includes/header.php';
                     </tr>
                     <tr>
                         <?php foreach ($poz_35 as $p): ?>
-                        <td><?= htmlspecialchars($saug_map[$p]['gabaritas'] ?? '') ?></td>
+                        <td>
+                            <input type="text" class="saug-input" name="gabaritas_35_<?= $p ?>" value="<?= htmlspecialchars($saug_map[$p]['gabaritas'] ?? '') ?>" data-poz="<?= $p ?>" data-field="gabaritas" data-sekcija="3.5" placeholder="-" data-testid="input-gabaritas-35-<?= $p ?>">
+                        </td>
                         <?php endforeach; ?>
                     </tr>
                     <tr>
                         <?php foreach ($poz_35 as $p): ?>
-                        <td><?= htmlspecialchars($saug_map[$p]['nominalas'] ?? '') ?></td>
+                        <td>
+                            <input type="text" class="saug-input" name="nominalas_35_<?= $p ?>" value="<?= htmlspecialchars($saug_map[$p]['nominalas'] ?? '') ?>" data-poz="<?= $p ?>" data-field="nominalas" data-sekcija="3.5" placeholder="-" data-testid="input-nominalas-35-<?= $p ?>">
+                        </td>
                         <?php endforeach; ?>
                     </tr>
                 </table>
+                <div class="saug-save-row no-print">
+                    <button type="button" class="btn btn-success btn-sm" onclick="issaugotiSaugiklius('3.5')" data-testid="button-save-35">Išsaugoti 3.5</button>
+                    <span class="saug-save-status" id="save-status-35"></span>
+                </div>
             </td>
         </tr>
 
@@ -738,8 +783,8 @@ require_once __DIR__ . '/../includes/header.php';
         <tr>
             <td class="nr-col" style="vertical-align: top;">3.6</td>
             <td class="desc-col" style="vertical-align: top;">S2-0,4 (ir S4-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:</td>
-            <td class="val-col" style="padding: 0;">
-                <table class="saugikliu-sub">
+            <td class="val-col" style="padding: 0; position: relative;">
+                <table class="saugikliu-sub" id="saugikliai-36-table">
                     <tr class="sub-header">
                         <?php foreach ($poz_36 as $p): ?>
                         <td><?= $p ?></td>
@@ -747,15 +792,23 @@ require_once __DIR__ . '/../includes/header.php';
                     </tr>
                     <tr>
                         <?php foreach ($poz_36 as $p): ?>
-                        <td><?= htmlspecialchars($saug_map_36[$p]['gabaritas'] ?? '') ?></td>
+                        <td>
+                            <input type="text" class="saug-input" name="gabaritas_36_<?= $p ?>" value="<?= htmlspecialchars($saug_map_36[$p]['gabaritas'] ?? '') ?>" data-poz="<?= $p ?>" data-field="gabaritas" data-sekcija="3.6" placeholder="-" data-testid="input-gabaritas-36-<?= $p ?>">
+                        </td>
                         <?php endforeach; ?>
                     </tr>
                     <tr>
                         <?php foreach ($poz_36 as $p): ?>
-                        <td><?= htmlspecialchars($saug_map_36[$p]['nominalas'] ?? '') ?></td>
+                        <td>
+                            <input type="text" class="saug-input" name="nominalas_36_<?= $p ?>" value="<?= htmlspecialchars($saug_map_36[$p]['nominalas'] ?? '') ?>" data-poz="<?= $p ?>" data-field="nominalas" data-sekcija="3.6" placeholder="-" data-testid="input-nominalas-36-<?= $p ?>">
+                        </td>
                         <?php endforeach; ?>
                     </tr>
                 </table>
+                <div class="saug-save-row no-print">
+                    <button type="button" class="btn btn-success btn-sm" onclick="issaugotiSaugiklius('3.6')" data-testid="button-save-36">Išsaugoti 3.6</button>
+                    <span class="saug-save-status" id="save-status-36"></span>
+                </div>
             </td>
         </tr>
         <?php endif; ?>
@@ -915,6 +968,52 @@ function saveEditModal() {
 document.getElementById('editModalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
 });
+
+function issaugotiSaugiklius(sekcija) {
+    var sekcijaKey = sekcija.replace('.', '');
+    var inputs = document.querySelectorAll('.saug-input[data-sekcija="' + sekcija + '"]');
+    var pozicijosMap = {};
+
+    inputs.forEach(function(input) {
+        var poz = input.getAttribute('data-poz');
+        var field = input.getAttribute('data-field');
+        if (!pozicijosMap[poz]) {
+            pozicijosMap[poz] = { pozicijos_numeris: parseInt(poz), gabaritas: '', nominalas: '' };
+        }
+        pozicijosMap[poz][field] = input.value.trim();
+    });
+
+    var pozicijos = Object.values(pozicijosMap);
+
+    var formData = new FormData();
+    formData.append('gaminio_id', '<?= htmlspecialchars($gaminio_id) ?>');
+    formData.append('sekcija', sekcija);
+    formData.append('pozicijos', JSON.stringify(pozicijos));
+
+    var statusEl = document.getElementById('save-status-' + sekcijaKey);
+    statusEl.textContent = 'Saugoma...';
+    statusEl.style.color = '#6c757d';
+
+    fetch('/MT/issaugoti_mt_paso_saugiklius.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            statusEl.textContent = 'Išsaugota!';
+            statusEl.style.color = '#198754';
+            setTimeout(function() { statusEl.textContent = ''; }, 3000);
+        } else {
+            statusEl.textContent = 'Klaida: ' + data.message;
+            statusEl.style.color = '#dc3545';
+        }
+    })
+    .catch(function(e) {
+        statusEl.textContent = 'Klaida: ' + e.message;
+        statusEl.style.color = '#dc3545';
+    });
+}
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
