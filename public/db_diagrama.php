@@ -122,50 +122,57 @@ require_once __DIR__ . '/includes/header.php';
     padding: 6px 14px; font-size: 12px; font-weight: 600;
     border: 1px solid #e2e8f0; border-radius: 6px; background: #fff;
     color: #475569; cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: background 0.15s;
 }
 .er-btn:hover { background: #f1f5f9; }
+.er-btn.active { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
 .er-zoom { font-size: 12px; color: #64748b; font-weight: 600; min-width: 40px; text-align: center; }
 
 .er-canvas-wrap {
     position: relative; overflow: hidden; background: #f8fafc;
     border: 1px solid #e2e8f0; border-radius: 8px; cursor: grab;
-    height: 700px;
+    height: calc(100vh - 200px); min-height: 500px;
 }
 .er-canvas-wrap:active { cursor: grabbing; }
+.er-canvas-wrap.fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; height: 100vh; border-radius: 0; }
 .er-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 .er-grid {
-    position: absolute; top: 0; left: 0; width: 10000px; height: 10000px;
-    background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    position: absolute; top: 0; left: 0; width: 12000px; height: 12000px;
+    background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
     background-size: 40px 40px; pointer-events: none;
 }
-svg.er-lines { position: absolute; top: 0; left: 0; width: 10000px; height: 10000px; pointer-events: none; overflow: visible; }
-svg.er-lines path { fill: none; stroke-width: 2; }
-svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64748b; pointer-events: none; }
+svg.er-lines { position: absolute; top: 0; left: 0; width: 12000px; height: 12000px; pointer-events: none; overflow: visible; }
+svg.er-lines line { stroke-width: 1.5; }
+svg.er-lines polyline { fill: none; stroke-width: 1.5; }
+svg.er-lines text { font-size: 9px; font-family: 'Inter', sans-serif; fill: #475569; pointer-events: none; }
 
 .er-table {
     position: absolute; background: #fff; border: 2px solid #cbd5e1;
-    border-radius: 8px; min-width: 190px; max-width: 260px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: move; user-select: none; z-index: 2;
+    border-radius: 8px; min-width: 210px; max-width: 280px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: move; user-select: none; z-index: 2;
+    transition: box-shadow 0.15s;
 }
-.er-table:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.14); z-index: 10; }
+.er-table:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 10; }
 .er-table.dragging { box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 100; opacity: 0.92; }
-.er-table.highlight { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+.er-table.highlight { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.25); z-index: 11; }
 
 .er-tbl-header {
-    padding: 7px 10px; font-size: 11px; font-weight: 700; color: #fff;
+    padding: 8px 12px; font-size: 12px; font-weight: 700; color: #fff;
     border-radius: 6px 6px 0 0; display: flex; align-items: center; gap: 6px;
+    letter-spacing: 0.3px;
 }
 .er-tbl-cols { padding: 0; margin: 0; list-style: none; }
 .er-tbl-col {
-    display: flex; align-items: center; gap: 5px;
-    padding: 3px 8px; font-size: 10px; border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9;
 }
 .er-tbl-col:last-child { border-bottom: none; }
 .col-icon.pk { color: #f59e0b; }
 .col-icon.fk { color: #3b82f6; }
 .col-icon.normal { color: #cbd5e1; }
 .er-tbl-col .col-name { font-weight: 500; color: #1e293b; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.er-tbl-col .col-type { font-size: 9px; color: #94a3b8; font-family: monospace; white-space: nowrap; }
+.er-tbl-col .col-type { font-size: 10px; color: #94a3b8; font-family: 'Courier New', monospace; white-space: nowrap; }
+.er-tbl-col .col-fk-ref { font-size: 9px; color: #3b82f6; white-space: nowrap; }
 
 .er-legend {
     position: absolute; bottom: 12px; left: 12px; background: #fff;
@@ -177,6 +184,17 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
 .er-legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .er-legend-item:last-child { margin-bottom: 0; }
 .er-legend-swatch { width: 24px; height: 4px; border-radius: 2px; flex-shrink: 0; }
+
+.er-minimap {
+    position: absolute; bottom: 12px; right: 12px; width: 180px; height: 120px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+    z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;
+}
+.er-minimap canvas { width: 100%; height: 100%; }
+.er-minimap-viewport {
+    position: absolute; border: 2px solid #3b82f6; background: rgba(59,130,246,0.08);
+    pointer-events: none;
+}
 
 .er-fallback { margin-top: 20px; }
 .er-fallback summary { font-size: 14px; font-weight: 700; color: #1e293b; cursor: pointer; padding: 10px 0; }
@@ -208,9 +226,12 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
         </h2>
         <div class="sep"></div>
         <button class="er-btn" onclick="erZoomIn()" data-testid="btn-zoom-in">+ Priartinti</button>
-        <span class="er-zoom" id="zoomLevel">75%</span>
+        <span class="er-zoom" id="zoomLevel">65%</span>
         <button class="er-btn" onclick="erZoomOut()" data-testid="btn-zoom-out">- Nutolinti</button>
+        <button class="er-btn" onclick="erFitAll()" data-testid="btn-fit-all">Tilpti viskas</button>
         <button class="er-btn" onclick="erResetView()" data-testid="btn-reset-view">Pradinis vaizdas</button>
+        <div class="sep"></div>
+        <button class="er-btn" onclick="erToggleFullscreen()" id="btnFullscreen" data-testid="btn-fullscreen">Visas ekranas</button>
         <div class="sep"></div>
         <span style="font-size:11px; color:#94a3b8;"><?= count($tables) ?> lentelių | <?= count($all_fk) ?> ryšių | Vilkite lenteles pele</span>
     </div>
@@ -224,36 +245,31 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
             <h4>Legenda</h4>
             <div class="er-legend-item">
                 <svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#f59e0b" stroke="#b45309" stroke-width="1"/></svg>
-                <span><b>PK</b> - Pirminis raktas (unikalus ID)</span>
+                <span><b>PK</b> - Pirminis raktas</span>
             </div>
             <div class="er-legend-item">
                 <svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1"/></svg>
-                <span><b>FK</b> - Išorinis raktas (nuoroda į kitą lentelę)</span>
+                <span><b>FK</b> - Išorinis raktas</span>
             </div>
             <div class="er-legend-item">
-                <div class="er-legend-swatch" style="background:#64748b;"></div>
-                <span><b>Linija su rodykle</b> - FK ryšys (rodyklė rodo į tėvinę lentelę)</span>
+                <svg width="20" height="14" viewBox="0 0 24 14"><line x1="2" y1="7" x2="16" y2="7" stroke="#64748b" stroke-width="1.5"/><polygon points="16,3 22,7 16,11" fill="#64748b"/></svg>
+                <span>Ryšys FK &rarr; PK</span>
             </div>
-            <div class="er-legend-item">
-                <svg width="20" height="14" viewBox="0 0 20 14"><line x1="2" y1="7" x2="18" y2="7" stroke="#64748b" stroke-width="2"/><polygon points="16,3 20,7 16,11" fill="#64748b"/></svg>
-                <span><b>Kryptis</b> - iš vaikinės lentelės (FK) į tėvinę (PK)</span>
-            </div>
-            <div class="er-legend-item" style="margin-top:4px; padding-top:4px; border-top:1px solid #e2e8f0;">
-                <span style="font-size:10px; color:#94a3b8;">Vilkite lenteles pele | Slinkite rateliu priartinti</span>
-            </div>
+            <div style="margin-top:6px; padding-top:6px; border-top:1px solid #e2e8f0;">
             <?php foreach ($group_defs as $gi => $gd): ?>
             <?php if (count($gd['tables']) > 0): ?>
             <div class="er-legend-item">
                 <div class="er-legend-swatch" style="background:<?= $gd['color'] ?>;"></div>
-                <span><?= htmlspecialchars($gd['name']) ?></span>
+                <span><?= htmlspecialchars($gd['name']) ?> (<?= count($gd['tables']) ?>)</span>
             </div>
             <?php endif; ?>
             <?php endforeach; ?>
+            </div>
         </div>
     </div>
 
     <div class="er-fallback">
-        <details open>
+        <details>
             <summary>Lentelių ir ryšių sąrašas (tekstinis vaizdas)</summary>
             <div class="er-fb-grid">
                 <?php foreach ($tables as $tbl): ?>
@@ -312,11 +328,15 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
     var wrap = document.getElementById('canvasWrap');
     var svgLines = document.getElementById('erLines');
 
-    var scale = 0.75, panX = 30, panY = 30;
+    var scale = 0.65, panX = 40, panY = 40;
     var tableEls = {};
-
     var tableNames = Object.keys(schema);
     var positions = {};
+
+    var COL_W = 280;
+    var GAP_X = 80;
+    var GAP_Y = 50;
+    var MAX_COLS = 3;
 
     function layoutTables() {
         var groups = {};
@@ -326,45 +346,32 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
             groups[g].push(t);
         });
 
-        var groupOrder = [0, 2, 1, 3, 4];
-        var curY = 40;
-        var colWidth = 260;
-        var maxCols = 4;
-        var gapX = 30;
-        var gapY = 40;
+        var groupOrder = [0, 1, 2, 3, 4];
+        var curX = 40;
 
         groupOrder.forEach(function(gi) {
             if (!groups[gi]) return;
             var tbls = groups[gi];
+            var cols = Math.min(tbls.length, MAX_COLS);
+            var curY = 40;
+            var colHeights = [];
+            for (var c = 0; c < cols; c++) colHeights.push(40);
 
-            var rows = [];
-            var currentRow = [];
-            tbls.forEach(function(t) {
-                currentRow.push(t);
-                if (currentRow.length >= maxCols) {
-                    rows.push(currentRow);
-                    currentRow = [];
-                }
-            });
-            if (currentRow.length > 0) rows.push(currentRow);
+            tbls.forEach(function(t, idx) {
+                var col = idx % cols;
+                var numCols = (schema[t] || []).length;
+                var shown = Math.min(numCols, 20);
+                var h = 34 + shown * 22 + (numCols > 20 ? 22 : 0) + 4;
 
-            rows.forEach(function(row) {
-                var maxH = 0;
-                row.forEach(function(t, col) {
-                    var numCols = (schema[t] || []).length;
-                    var shown = Math.min(numCols, 15);
-                    var h = 28 + shown * 18 + (numCols > 15 ? 18 : 0);
-
-                    positions[t] = {
-                        x: 40 + col * (colWidth + gapX),
-                        y: curY
-                    };
-                    if (h > maxH) maxH = h;
-                });
-                curY += maxH + gapY;
+                positions[t] = {
+                    x: curX + col * (COL_W + GAP_X),
+                    y: colHeights[col]
+                };
+                colHeights[col] += h + GAP_Y;
             });
 
-            curY += 30;
+            var maxH = Math.max.apply(null, colHeights);
+            curX += cols * (COL_W + GAP_X) + 60;
         });
     }
 
@@ -388,11 +395,12 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
             el.style.top = pos.y + 'px';
 
             var html = '<div class="er-tbl-header" style="background:' + getHeaderColor(tbl) + ';">' +
-                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>' +
-                '<span>' + tbl + '</span></div>';
+                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>' +
+                '<span>' + tbl + '</span>' +
+                '<span style="margin-left:auto;font-size:10px;opacity:0.7;">' + cols.length + '</span></div>';
 
             html += '<ul class="er-tbl-cols">';
-            var maxShow = 15;
+            var maxShow = 20;
             var shown = 0;
             cols.forEach(function(col) {
                 if (shown >= maxShow) return;
@@ -401,20 +409,22 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
                 var isFk = fks[col.column_name] !== undefined;
                 var iconSvg;
                 if (isPk) {
-                    iconSvg = '<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#f59e0b" stroke="#b45309" stroke-width="1"/></svg>';
+                    iconSvg = '<svg width="11" height="11" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#f59e0b" stroke="#b45309" stroke-width="1"/></svg>';
                 } else if (isFk) {
-                    iconSvg = '<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1"/></svg>';
+                    iconSvg = '<svg width="11" height="11" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1"/></svg>';
                 } else {
-                    iconSvg = '<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#cbd5e1"/></svg>';
+                    iconSvg = '<svg width="11" height="11" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#cbd5e1"/></svg>';
                 }
-                html += '<li class="er-tbl-col">' +
+                var fkRef = isFk ? '<span class="col-fk-ref">&rarr; ' + fks[col.column_name] + '</span>' : '';
+                html += '<li class="er-tbl-col" data-col="' + col.column_name + '">' +
                     '<span class="col-icon">' + iconSvg + '</span>' +
                     '<span class="col-name">' + col.column_name + '</span>' +
                     '<span class="col-type">' + col.data_type + '</span>' +
+                    fkRef +
                     '</li>';
             });
             if (cols.length > maxShow) {
-                html += '<li class="er-tbl-col" style="color:#94a3b8; font-style:italic;">...ir dar ' + (cols.length - maxShow) + ' stulp.</li>';
+                html += '<li class="er-tbl-col" style="color:#94a3b8; font-style:italic; justify-content:center;">...ir dar ' + (cols.length - maxShow) + ' stulp.</li>';
             }
             html += '</ul>';
 
@@ -422,6 +432,21 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
             canvas.appendChild(el);
             tableEls[tbl] = el;
             makeDraggable(el, tbl);
+
+            el.addEventListener('mouseenter', function() { highlightRelated(tbl, true); });
+            el.addEventListener('mouseleave', function() { highlightRelated(tbl, false); });
+        });
+    }
+
+    function highlightRelated(tbl, on) {
+        allFk.forEach(function(fk) {
+            if (fk.table_name === tbl || fk.foreign_table_name === tbl) {
+                var other = fk.table_name === tbl ? fk.foreign_table_name : fk.table_name;
+                if (tableEls[other]) {
+                    if (on) tableEls[other].classList.add('highlight');
+                    else tableEls[other].classList.remove('highlight');
+                }
+            }
         });
     }
 
@@ -462,6 +487,16 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
         header.addEventListener('touchstart', onDown, { passive: false });
     }
 
+    function getColY(tbl, colName) {
+        var el = tableEls[tbl];
+        if (!el) return 0;
+        var colEl = el.querySelector('[data-col="' + colName + '"]');
+        if (colEl) {
+            return parseInt(el.style.top) + colEl.offsetTop + colEl.offsetHeight / 2;
+        }
+        return parseInt(el.style.top) + el.offsetHeight / 2;
+    }
+
     function getTableRect(tbl) {
         var el = tableEls[tbl];
         if (!el) return null;
@@ -469,31 +504,38 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
         var y = parseInt(el.style.top) || 0;
         var w = el.offsetWidth;
         var h = el.offsetHeight;
-        return { x: x, y: y, w: w, h: h, cx: x + w/2, cy: y + h/2 };
+        return { x: x, y: y, w: w, h: h, cx: x + w / 2, cy: y + h / 2 };
     }
 
     function drawLines() {
         while (svgLines.firstChild) svgLines.removeChild(svgLines.firstChild);
 
-        var colors = ['#94a3b8', '#059669', '#7c3aed', '#dc2626', '#d97706', '#0284c7'];
+        var groupColors = {
+            0: '#64748b',
+            1: '#059669',
+            2: '#7c3aed',
+            3: '#dc2626',
+            4: '#d97706'
+        };
 
         var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        colors.forEach(function(color, i) {
+        Object.keys(groupColors).forEach(function(gi) {
             var marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-            marker.setAttribute('id', 'arrow-' + i);
+            marker.setAttribute('id', 'arrowG' + gi);
             marker.setAttribute('viewBox', '0 0 10 10');
             marker.setAttribute('refX', '9'); marker.setAttribute('refY', '5');
-            marker.setAttribute('markerWidth', '7'); marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '8');
             marker.setAttribute('orient', 'auto-start-reverse');
             var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            p.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-            p.setAttribute('fill', color);
+            p.setAttribute('d', 'M 0 1 L 8 5 L 0 9 z');
+            p.setAttribute('fill', groupColors[gi]);
             marker.appendChild(p);
             defs.appendChild(marker);
         });
         svgLines.appendChild(defs);
 
-        var pairOffsets = {};
+        var pairCounter = {};
+
         allFk.forEach(function(fk) {
             var fromTbl = fk.table_name;
             var toTbl = fk.foreign_table_name;
@@ -502,66 +544,76 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
             if (!rectFrom || !rectTo) return;
 
             var pairKey = [fromTbl, toTbl].sort().join('|');
-            if (!pairOffsets[pairKey]) pairOffsets[pairKey] = 0;
-            var offset = pairOffsets[pairKey]++;
+            if (!pairCounter[pairKey]) pairCounter[pairKey] = 0;
+            var pairIdx = pairCounter[pairKey]++;
 
-            var dx = rectTo.cx - rectFrom.cx;
-            var dy = rectTo.cy - rectFrom.cy;
+            var fromColY = getColY(fromTbl, fk.column_name);
+            var toColY = getColY(toTbl, fk.foreign_column_name);
+
+            var fromIsLeft = rectFrom.cx < rectTo.cx;
             var fx, fy, tx, ty;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 0) {
-                    fx = rectFrom.x + rectFrom.w; fy = rectFrom.cy + offset * 10;
-                    tx = rectTo.x; ty = rectTo.cy + offset * 10;
-                } else {
-                    fx = rectFrom.x; fy = rectFrom.cy + offset * 10;
-                    tx = rectTo.x + rectTo.w; ty = rectTo.cy + offset * 10;
-                }
-            } else {
-                if (dy > 0) {
-                    fx = rectFrom.cx + offset * 20; fy = rectFrom.y + rectFrom.h;
-                    tx = rectTo.cx + offset * 20; ty = rectTo.y;
-                } else {
-                    fx = rectFrom.cx + offset * 20; fy = rectFrom.y;
-                    tx = rectTo.cx + offset * 20; ty = rectTo.y + rectTo.h;
-                }
-            }
 
-            var isHoriz = Math.abs(fx - tx) > Math.abs(fy - ty);
-            var cp1x, cp1y, cp2x, cp2y;
-            if (isHoriz) {
-                cp1x = fx + (tx - fx) * 0.4; cp1y = fy;
-                cp2x = fx + (tx - fx) * 0.6; cp2y = ty;
+            if (Math.abs(rectFrom.cx - rectTo.cx) > 80) {
+                if (fromIsLeft) {
+                    fx = rectFrom.x + rectFrom.w;
+                    tx = rectTo.x;
+                } else {
+                    fx = rectFrom.x;
+                    tx = rectTo.x + rectTo.w;
+                }
+                fy = fromColY;
+                ty = toColY;
             } else {
-                cp1x = fx; cp1y = fy + (ty - fy) * 0.4;
-                cp2x = tx; cp2y = fy + (ty - fy) * 0.6;
+                var side = (rectFrom.x > 200) ? 'left' : 'right';
+                if (side === 'left') {
+                    fx = rectFrom.x;
+                    tx = rectTo.x;
+                } else {
+                    fx = rectFrom.x + rectFrom.w;
+                    tx = rectTo.x + rectTo.w;
+                }
+                fy = fromColY;
+                ty = toColY;
             }
 
             var gFrom = groupMap[fromTbl] !== undefined ? groupMap[fromTbl] : 4;
-            var colorIdx = gFrom < colors.length ? gFrom : 0;
+            var lineColor = groupColors[gFrom] || '#94a3b8';
 
-            var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M' + fx + ',' + fy + ' C' + cp1x + ',' + cp1y + ' ' + cp2x + ',' + cp2y + ' ' + tx + ',' + ty);
-            path.setAttribute('stroke', colors[colorIdx]);
-            path.setAttribute('marker-end', 'url(#arrow-' + colorIdx + ')');
-            svgLines.appendChild(path);
+            var midX;
+            if (Math.abs(rectFrom.cx - rectTo.cx) > 80) {
+                midX = (fx + tx) / 2 + pairIdx * 12;
+            } else {
+                var offset = (fx === rectFrom.x) ? -30 - pairIdx * 15 : 30 + pairIdx * 15;
+                midX = fx + offset;
+            }
 
-            var midX = (fx + tx) / 2;
-            var midY = (fy + ty) / 2;
+            var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            var points = fx + ',' + fy + ' ' + midX + ',' + fy + ' ' + midX + ',' + ty + ' ' + tx + ',' + ty;
+            polyline.setAttribute('points', points);
+            polyline.setAttribute('stroke', lineColor);
+            polyline.setAttribute('marker-end', 'url(#arrowG' + gFrom + ')');
+            polyline.setAttribute('opacity', '0.7');
+            svgLines.appendChild(polyline);
+
+            var labelX = midX;
+            var labelY = (fy + ty) / 2;
             var labelText = fk.column_name;
 
             var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            var tw = labelText.length * 5 + 10;
+            var tw = labelText.length * 5.5 + 10;
             var bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            bg.setAttribute('x', midX - tw/2); bg.setAttribute('y', midY - 7);
-            bg.setAttribute('width', tw); bg.setAttribute('height', 13);
+            bg.setAttribute('x', labelX - tw / 2); bg.setAttribute('y', labelY - 8);
+            bg.setAttribute('width', tw); bg.setAttribute('height', 15);
             bg.setAttribute('rx', '3'); bg.setAttribute('fill', '#fff');
             bg.setAttribute('stroke', '#e2e8f0'); bg.setAttribute('stroke-width', '1');
+            bg.setAttribute('opacity', '0.95');
             g.appendChild(bg);
 
             var txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            txt.setAttribute('x', midX); txt.setAttribute('y', midY + 3);
-            txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '8');
-            txt.setAttribute('fill', '#475569'); txt.textContent = labelText;
+            txt.setAttribute('x', labelX); txt.setAttribute('y', labelY + 4);
+            txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '9');
+            txt.setAttribute('fill', '#475569'); txt.setAttribute('font-weight', '500');
+            txt.textContent = labelText;
             g.appendChild(txt);
             svgLines.appendChild(g);
         });
@@ -589,16 +641,75 @@ svg.er-lines text { font-size: 10px; font-family: 'Inter', sans-serif; fill: #64
 
     wrap.addEventListener('wheel', function(e) {
         e.preventDefault();
-        scale = Math.max(0.2, Math.min(2, scale + (e.deltaY > 0 ? -0.08 : 0.08)));
+        var rect = wrap.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        var oldScale = scale;
+        scale = Math.max(0.15, Math.min(2.5, scale + (e.deltaY > 0 ? -0.08 : 0.08)));
+
+        panX = mx - (mx - panX) * (scale / oldScale);
+        panY = my - (my - panY) * (scale / oldScale);
+
         updateTransform();
     }, { passive: false });
 
-    window.erZoomIn = function() { scale = Math.min(2, scale + 0.15); updateTransform(); };
-    window.erZoomOut = function() { scale = Math.max(0.2, scale - 0.15); updateTransform(); };
-    window.erResetView = function() { scale = 0.75; panX = 30; panY = 30; updateTransform(); };
+    window.erZoomIn = function() {
+        scale = Math.min(2.5, scale + 0.15);
+        updateTransform();
+    };
+    window.erZoomOut = function() {
+        scale = Math.max(0.15, scale - 0.15);
+        updateTransform();
+    };
+    window.erResetView = function() {
+        scale = 0.65; panX = 40; panY = 40;
+        updateTransform();
+    };
+
+    window.erFitAll = function() {
+        var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        tableNames.forEach(function(tbl) {
+            var r = getTableRect(tbl);
+            if (!r) return;
+            if (r.x < minX) minX = r.x;
+            if (r.y < minY) minY = r.y;
+            if (r.x + r.w > maxX) maxX = r.x + r.w;
+            if (r.y + r.h > maxY) maxY = r.y + r.h;
+        });
+        var contentW = maxX - minX + 80;
+        var contentH = maxY - minY + 80;
+        var wrapRect = wrap.getBoundingClientRect();
+        var scaleX = wrapRect.width / contentW;
+        var scaleY = wrapRect.height / contentH;
+        scale = Math.min(scaleX, scaleY, 1.5);
+        scale = Math.max(0.15, scale);
+        panX = (wrapRect.width - contentW * scale) / 2 - minX * scale + 40;
+        panY = (wrapRect.height - contentH * scale) / 2 - minY * scale + 40;
+        updateTransform();
+    };
+
+    window.erToggleFullscreen = function() {
+        wrap.classList.toggle('fullscreen');
+        var btn = document.getElementById('btnFullscreen');
+        if (wrap.classList.contains('fullscreen')) {
+            btn.textContent = 'Išeiti iš viso ekrano';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = 'Visas ekranas';
+            btn.classList.remove('active');
+        }
+        setTimeout(function() { erFitAll(); drawLines(); }, 100);
+    };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && wrap.classList.contains('fullscreen')) {
+            erToggleFullscreen();
+        }
+    });
 
     renderTables();
-    setTimeout(function() { updateTransform(); drawLines(); }, 100);
+    setTimeout(function() { drawLines(); erFitAll(); }, 150);
 })();
 </script>
 
