@@ -78,8 +78,15 @@ preg_match('/(\d+x\d+)\((\d+)\)/', $gaminio_pavadinimas, $match_full);
 $transformatoriu_aprasas = $match_full[1] ?? $transformatoriai_kva;
 $galingumas_kva = $match_full[2] ?? ($match_kva[2] ?? '');
 
-preg_match('/-(\d+)x\d{3,}/', $gaminio_pavadinimas, $match_trafo);
-$trafo_kiekis = isset($match_trafo[1]) ? intval($match_trafo[1]) : 1;
+$trafo_kiekis = 1;
+if (preg_match_all('/(\d+)x(\d+)/', $gaminio_pavadinimas, $all_matches, PREG_SET_ORDER)) {
+    foreach ($all_matches as $m) {
+        if (intval($m[2]) >= 100) {
+            $trafo_kiekis = intval($m[1]);
+            break;
+        }
+    }
+}
 
 $stmt = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
 $stmt->execute([$gaminio_id]);
@@ -734,10 +741,10 @@ require_once __DIR__ . '/../includes/header.php';
         }
         if ($trafo_kiekis == 1) {
             $poz_35 = range(1, 15);
-            $label_35 = 'SI-0,4 sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:';
+            $label_35 = 'ŠĮ-0,4 sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
         } else {
-            $poz_35 = array_merge(range(101, 106), range(301, 304));
-            $label_35 = 'S1-0,4 (ir S3-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:';
+            $poz_35 = array_merge(range(301, 304), range(102, 107));
+            $label_35 = 'Š1-0,4 (ir Š3-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
         }
         ?>
         <tr>
@@ -778,11 +785,11 @@ require_once __DIR__ . '/../includes/header.php';
         foreach ($mt_saugikliai_36 as $s) {
             $saug_map_36[(int)$s['pozicijos_numeris']] = $s;
         }
-        $poz_36 = array_merge(range(201, 206), range(401, 404));
+        $poz_36 = array_merge(range(202, 206), range(401, 404));
         ?>
         <tr>
             <td class="nr-col" style="vertical-align: top;">3.6</td>
-            <td class="desc-col" style="vertical-align: top;">S2-0,4 (ir S4-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:</td>
+            <td class="desc-col" style="vertical-align: top;">Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:</td>
             <td class="val-col" style="padding: 0; position: relative;">
                 <table class="saugikliu-sub" id="saugikliai-36-table">
                     <tr class="sub-header">
