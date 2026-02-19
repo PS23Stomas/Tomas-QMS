@@ -59,8 +59,15 @@ preg_match('/(\d+x\d+)\((\d+)\)/', $gaminio_pavadinimas, $match_full);
 $transformatoriu_aprasas = $match_full[1] ?? $transformatoriai_kva;
 $galingumas_kva = $match_full[2] ?? ($match_kva[2] ?? '');
 
-preg_match('/-(\d+)x\d{3,}/', $gaminio_pavadinimas, $match_trafo);
-$trafo_kiekis = isset($match_trafo[1]) ? intval($match_trafo[1]) : 1;
+$trafo_kiekis = 1;
+if (preg_match_all('/(\d+)x(\d+)/', $gaminio_pavadinimas, $all_matches, PREG_SET_ORDER)) {
+    foreach ($all_matches as $m) {
+        if (intval($m[2]) >= 100) {
+            $trafo_kiekis = intval($m[1]);
+            break;
+        }
+    }
+}
 
 $stmt = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
 $stmt->execute([$gaminio_id]);
@@ -174,16 +181,16 @@ function generuotiSaugikliuHtml($duomenys, $pozicijos) {
 
 if ($trafo_kiekis == 1) {
     $poz_35 = range(1, 15);
-    $label_35 = 'SI-0,4 sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:';
+    $label_35 = 'ŠĮ-0,4 sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
 } else {
-    $poz_35 = array_merge(range(101, 106), range(301, 304));
-    $label_35 = 'S1-0,4 (ir S3-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:';
+    $poz_35 = array_merge(range(301, 304), range(102, 107));
+    $label_35 = 'Š1-0,4 (ir Š3-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
 }
 $saugikliu_html = generuotiSaugikliuHtml($mt_saugikliai, $poz_35);
 
 $saugikliu_36_html = '';
 if ($trafo_kiekis >= 2) {
-    $poz_36 = array_merge(range(201, 206), range(401, 404));
+    $poz_36 = array_merge(range(202, 206), range(401, 404));
     $saugikliu_36_html = generuotiSaugikliuHtml($mt_saugikliai_36, $poz_36);
 }
 
@@ -295,7 +302,7 @@ body {
     <tr><td class="nr-col">3.3</td><td class="desc-col">Linijinis saugiklių-kirtiklių blokas (gamintojas, tipas, vnt.)</td><td>' . htmlspecialchars($text_33 ?: 'Duomenys nesuvesti') . '</td></tr>
     <tr><td class="nr-col">3.4</td><td class="desc-col">0,4 kV saugiklių lydieji įdėklai</td><td>' . htmlspecialchars($text_34 ?: 'Duomenys nesuvesti') . '</td></tr>
     <tr><td class="nr-col">3.5</td><td class="desc-col">' . htmlspecialchars($label_35) . '</td><td style="padding:0;">' . ($saugikliu_html ?: 'Duomenys nesuvesti') . '</td></tr>
-    ' . ($trafo_kiekis >= 2 ? '<tr><td class="nr-col">3.6</td><td class="desc-col">S2-0,4 (ir S4-0,4 pagal schema) sekcijos komplektuojamu saugikliu-lydzujuju ideklu gabaritas, nominalas:</td><td style="padding:0;">' . ($saugikliu_36_html ?: 'Duomenys nesuvesti') . '</td></tr>' : '') . '
+    ' . ($trafo_kiekis >= 2 ? '<tr><td class="nr-col">3.6</td><td class="desc-col">Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:</td><td style="padding:0;">' . ($saugikliu_36_html ?: 'Duomenys nesuvesti') . '</td></tr>' : '') . '
     <tr><td class="nr-col">3.9</td><td class="desc-col">0,4 kV sekcinis komutacinis aparatas (gamintojas, tipas, vardinė srovė, gr. Nr.)</td><td>' . htmlspecialchars($text_39 ?: 'Nėra, -') . '</td></tr>
     <tr><td class="nr-col">3.10</td><td class="desc-col">Sekcinio saugiklio įdėklas (gamintojas, tipas)</td><td>' . htmlspecialchars($text_310 ?: 'Nėra') . '</td></tr>
     <tr><td class="nr-col">3.11</td><td class="desc-col">Komercinė apskaita</td><td>' . htmlspecialchars($text_311 ?: 'Nėra') . '</td></tr>
