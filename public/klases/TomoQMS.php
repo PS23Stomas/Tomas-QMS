@@ -575,6 +575,12 @@ class TomoQMS {
                     $new_id = (int)$ins->fetchColumn();
                     $existing_local[$nr] = $new_id;
                     $rezultatas['nauji']++;
+
+                    $chk_gam = $localConn->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ?");
+                    $chk_gam->execute([$new_id]);
+                    if (!$chk_gam->fetchColumn()) {
+                        $localConn->prepare("INSERT INTO gaminiai (uzsakymo_id) VALUES (?)")->execute([$new_id]);
+                    }
                 }
             }
 

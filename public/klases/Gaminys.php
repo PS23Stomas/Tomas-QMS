@@ -79,6 +79,13 @@ class Gaminys {
         $stmtGaminys->execute([$uzsakymo_id]);
         $gaminys = $stmtGaminys->fetch();
 
+        if (!$gaminys) {
+            $stmtCreate = $this->conn->prepare("INSERT INTO gaminiai (uzsakymo_id) VALUES (?) RETURNING id");
+            $stmtCreate->execute([$uzsakymo_id]);
+            $new_gid = $stmtCreate->fetchColumn();
+            $gaminys = ['id' => $new_gid, 'gaminio_tipas_id' => null];
+        }
+
         if ($gaminys && $gaminys['gaminio_tipas_id']) {
             $sqlExists = "SELECT id FROM gaminio_tipai WHERE id = ?";
             $stmtExists = $this->conn->prepare($sqlExists);
