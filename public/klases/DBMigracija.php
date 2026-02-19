@@ -12,6 +12,7 @@ class DBMigracija {
     /** Paleidžia visas migracijas: sukuria trūkstamas lenteles, prideda stulpelius ir pataiso varchar laukus */
     public function paleisti(): void {
         $this->sukurtiTrukstamasLenteles();
+        $this->sukurtiFunkciniuSablona();
         $this->pridetiMtPasoStulpelius();
         $this->pridetiMtDielektriniuStulpelius();
         $this->pridetiDefektoNuotraukuStulpelius();
@@ -46,6 +47,37 @@ class DBMigracija {
                     isvada TEXT
                 )
             ");
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Sukuria funkcinių bandymų šablono lentelę su numatytais reikalavimais */
+    private function sukurtiFunkciniuSablona(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS mt_funkciniu_sablonas (
+                    id SERIAL PRIMARY KEY,
+                    eil_nr INTEGER NOT NULL,
+                    pavadinimas TEXT NOT NULL
+                )
+            ");
+            $stmt = $this->conn->query("SELECT COUNT(*) FROM mt_funkciniu_sablonas");
+            if ((int)$stmt->fetchColumn() === 0) {
+                $numatytieji = [
+                    'MT korpuso surinkimas','MT sienų surinkimas','MT stogo surinkimas','MT stogo tvirtinimas',
+                    'Pagrindo (pamato) surinkimas įžeminimo ženklų prikniedijimas','10 kV kabelių gaminimas',
+                    '0,4 kV kabelių gaminimas','10 kV kabelių sumontavimas į MT ir movų komplektacija',
+                    '0,4 kV kabelių sumontavimas į MT','MT durų surinkimas','MT durų sumontavimas sureguliavimas',
+                    '10 kV narvelio sumontavimas','10 kV šynų , skardos, laikikliai montavimas',
+                    '0,4 kV komutacinių aparatų montavimas,šynų montavimas','Apskaitos ir antrinių grandinių montavimas',
+                    'Komplektacija','MT sumontavimas ant pamato','Pagalbinių grandinių (apšvietimas, ventiliacija) montavimas',
+                    '0,4 kV įrenginių izoliacijos varža (atitiktis)','Lipdukai pagal projektą suklijavimas','Išvalymas'
+                ];
+                $ins = $this->conn->prepare("INSERT INTO mt_funkciniu_sablonas (eil_nr, pavadinimas) VALUES (?, ?)");
+                foreach ($numatytieji as $i => $pav) {
+                    $ins->execute([$i + 1, $pav]);
+                }
+            }
         } catch (PDOException $e) {
         }
     }

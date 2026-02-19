@@ -19,32 +19,6 @@ $vardas = htmlspecialchars($_SESSION['vardas']);
 $pavarde = htmlspecialchars($_SESSION['pavarde']);
 $pilnas_vardas = $vardas . ' ' . $pavarde;
 
-/* --- 21 gamybos reikalavimų sąrašas --- */
-/* Kiekvienas elementas atitinka vieną eilutę funkcinių bandymų formoje */
-$reikalavimai = [
-    "MT korpuso surinkimas",
-    "MT sienų surinkimas",
-    "MT stogo surinkimas",
-    "MT stogo tvirtinimas",
-    "Pagrindo (pamato) surinkimas įžeminimo ženklų prikniedijimas",
-    "10 kV kabelių gaminimas",
-    "0,4 kV kabelių gaminimas",
-    "10 kV kabelių sumontavimas į MT ir movų komplektacija",
-    "0,4 kV kabelių sumontavimas į MT",
-    "MT durų surinkimas",
-    "MT durų sumontavimas sureguliavimas",
-    "10 kV narvelio sumontavimas",
-    "10 kV šynų , skardos, laikikliai montavimas",
-    "0,4 kV komutacinių aparatų montavimas,šynų montavimas ",
-    "Apskaitos ir antrinių grandinių montavimas",
-    "Komplektacija",
-    "MT sumontavimas ant pamato",
-    "Pagalbinių grandinių (apšvietimas, ventiliacija) montavimas",
-    "0,4 kV įrenginių izoliacijos varža (atitiktis)",
-    "Lipdukai pagal projektą suklijavimas",
-    "Išvalymas"
-];
-
 /* GET parametrų nuskaitymas */
 $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_GET['uzsakovas'] ?? '';
@@ -52,6 +26,13 @@ $gaminio_id       = (int)($_GET['gaminio_id'] ?? 0);
 $uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
 
 $conn = Database::getConnection();
+
+/* --- Gamybos reikalavimų sąrašas iš šablono lentelės --- */
+$stmt_sab = $conn->query("SELECT pavadinimas FROM mt_funkciniu_sablonas ORDER BY eil_nr ASC");
+$reikalavimai = $stmt_sab->fetchAll(PDO::FETCH_COLUMN);
+if (empty($reikalavimai)) {
+    $reikalavimai = ["MT korpuso surinkimas"];
+}
 $gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
