@@ -530,10 +530,22 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
-            <button class="btn btn-sm" id="btnImport" onclick="importuotiIsQualityTomas()" data-testid="button-import" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span id="importText">Importuoti naujus</span>
-            </button>
+            <div style="position:relative;display:inline-flex;align-items:center;" id="importWrap">
+                <button class="btn btn-sm" id="btnImport" onclick="importuotiIsQualityTomas()" data-testid="button-import" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span id="importText">Importuoti naujus</span>
+                </button>
+                <div id="importProgress" style="display:none;width:var(--import-btn-w,140px);margin-left:8px;" data-testid="import-progress">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+                        <span style="font-size:11px;color:var(--text-secondary);" id="importLabel">Importuojama...</span>
+                        <span style="font-size:12px;font-weight:700;color:var(--primary);" id="importProc">0%</span>
+                    </div>
+                    <div style="width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                        <div id="importBar" style="height:100%;width:0%;background:linear-gradient(90deg,#10b981,#059669);border-radius:3px;transition:width 0.3s ease;"></div>
+                    </div>
+                    <div id="importDetails" style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                </div>
+            </div>
             <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
@@ -659,16 +671,6 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<div id="importProgress" style="display:none; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-secondary);" data-testid="import-progress">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-        <span style="font-size:13px; font-weight:600;" id="importLabel">Importuojama...</span>
-        <span style="font-size:14px; font-weight:700; color:var(--primary);" id="importProc">0%</span>
-    </div>
-    <div style="width:100%; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
-        <div id="importBar" style="height:100%; width:0%; background: linear-gradient(90deg, #10b981, #059669); border-radius:4px; transition: width 0.3s ease;"></div>
-    </div>
-    <div id="importDetails" style="font-size:11px; color:var(--text-secondary); margin-top:6px;"></div>
-</div>
 
 <script>
 function filterOrders() {
@@ -695,12 +697,15 @@ async function importuotiIsQualityTomas() {
     var proc = document.getElementById('importProc');
     var details = document.getElementById('importDetails');
 
+    var btnW = btn.offsetWidth;
+    progress.style.width = btnW + 'px';
+
     btn.disabled = true;
     text.textContent = 'Importuojama...';
     progress.style.display = 'block';
     bar.style.width = '0%';
     bar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-    label.textContent = 'Jungiamasi prie duomenų bazės...';
+    label.textContent = 'Importuojama...';
     proc.textContent = '0%';
     proc.style.color = 'var(--primary)';
     details.textContent = '';
@@ -742,32 +747,32 @@ async function importuotiIsQualityTomas() {
             if (finalData.success) {
                 var rez = finalData.rezultatas || {};
                 bar.style.background = 'var(--success, #10b981)';
-                label.innerHTML = '<span style="color:var(--success, #10b981);">Importas baigtas!</span>';
+                label.innerHTML = '<span style="color:var(--success,#10b981);">Baigta!</span>';
                 proc.style.color = 'var(--success, #10b981)';
-                details.textContent = 'Nauji: ' + (rez.nauji || 0) + ', Atnaujinti: ' + (rez.atnaujinti || 0) + ', Gaminiai: ' + (rez.gaminiai || 0) + ', Bandymai: ' + (rez.bandymai || 0) + ', Komponentai: ' + (rez.komponentai || 0);
+                details.textContent = '+' + (rez.nauji || 0) + ' nauji';
                 if (rez.nauji > 0) {
                     setTimeout(function() { location.reload(); }, 2000);
                 }
             } else {
                 bar.style.background = 'var(--danger, #dc2626)';
-                label.innerHTML = '<span style="color:var(--danger, #dc2626);">Importo klaida</span>';
+                label.innerHTML = '<span style="color:var(--danger,#dc2626);">Klaida</span>';
                 proc.style.color = 'var(--danger, #dc2626)';
-                details.textContent = finalData.klaida || 'Nežinoma klaida';
+                details.textContent = finalData.klaida || '';
             }
         }
     } catch (e) {
         bar.style.width = '100%';
         bar.style.background = 'var(--danger, #dc2626)';
-        label.innerHTML = '<span style="color:var(--danger, #dc2626);">Ryšio klaida</span>';
+        label.innerHTML = '<span style="color:var(--danger,#dc2626);">Klaida</span>';
         proc.textContent = '';
-        details.textContent = e.message || 'Nežinoma klaida';
+        details.textContent = e.message || '';
     }
 
     btn.disabled = false;
     text.textContent = 'Importuoti naujus';
     setTimeout(function() {
         progress.style.display = 'none';
-    }, 8000);
+    }, 5000);
 }
 
 </script>
