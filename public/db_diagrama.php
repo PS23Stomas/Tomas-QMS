@@ -54,7 +54,6 @@ $fk_implicit = [
     ['table_name' => 'mt_izeminimo_tikrinimas', 'column_name' => 'gaminys_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
     ['table_name' => 'mt_saugikliu_ideklai', 'column_name' => 'gaminio_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
     ['table_name' => 'mt_paso_teksto_korekcijos', 'column_name' => 'gaminio_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
-    ['table_name' => 'antriniu_grandiniu_bandymai', 'column_name' => 'gaminys_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
     ['table_name' => 'bandymai_prietaisai', 'column_name' => 'gaminys_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
     ['table_name' => 'pretenzijos', 'column_name' => 'uzsakymo_id', 'foreign_table_name' => 'uzsakymai', 'foreign_column_name' => 'id'],
     ['table_name' => 'pretenzijos', 'column_name' => 'gaminio_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
@@ -79,7 +78,7 @@ foreach ($all_fk as $fk) {
 $table_group_map = [];
 $group_defs = [
     ['name' => 'Pagrindinės lentelės', 'tables' => ['uzsakymai', 'gaminiai', 'uzsakovai', 'objektai', 'gaminio_tipai', 'gaminiu_rusys'], 'color' => '#1e293b'],
-    ['name' => 'MT Bandymai ir komponentai', 'tables' => ['mt_funkciniai_bandymai', 'mt_komponentai', 'mt_dielektriniai_bandymai', 'mt_izeminimo_tikrinimas', 'mt_saugikliu_ideklai', 'mt_paso_teksto_korekcijos', 'antriniu_grandiniu_bandymai', 'bandymai_prietaisai'], 'color' => '#059669'],
+    ['name' => 'MT Bandymai ir komponentai', 'tables' => ['mt_funkciniai_bandymai', 'mt_komponentai', 'mt_dielektriniai_bandymai', 'mt_izeminimo_tikrinimas', 'mt_saugikliu_ideklai', 'mt_paso_teksto_korekcijos', 'bandymai_prietaisai'], 'color' => '#059669'],
     ['name' => 'Vartotojai', 'tables' => ['vartotojai', 'aktyvus_vartotojai'], 'color' => '#7c3aed'],
     ['name' => 'Pretenzijos', 'tables' => ['pretenzijos', 'pretenzijos_nuotraukos'], 'color' => '#dc2626'],
     ['name' => 'Kita', 'tables' => [], 'color' => '#d97706'],

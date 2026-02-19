@@ -115,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo->prepare('DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?')->execute([$gid]);
                         $pdo->prepare('DELETE FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ?')->execute([$gid]);
                         $pdo->prepare('DELETE FROM bandymai_prietaisai WHERE gaminio_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM antriniu_grandiniu_bandymai WHERE gaminio_id = ?')->execute([$gid]);
                         $pret_ids = $pdo->prepare('SELECT id FROM pretenzijos WHERE gaminio_id = ?');
                         $pret_ids->execute([$gid]);
                         foreach ($pret_ids->fetchAll(PDO::FETCH_COLUMN) as $pid) {

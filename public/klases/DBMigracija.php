@@ -13,6 +13,7 @@ class DBMigracija {
     public function paleisti(): void {
         $this->sukurtiTrukstamasLenteles();
         $this->sukurtiFunkciniuSablona();
+        $this->pridetiDielektriniuVidutinesStulpelius();
         $this->pridetiMtPasoStulpelius();
         $this->pridetiMtDielektriniuStulpelius();
         $this->pridetiDefektoNuotraukuStulpelius();
@@ -20,7 +21,7 @@ class DBMigracija {
         $this->pataisytiVarcharLaukus();
     }
 
-    /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai, antriniu_grandiniu_bandymai) */
+    /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
     private function sukurtiTrukstamasLenteles(): void {
         try {
             $this->conn->exec("
@@ -34,19 +35,23 @@ class DBMigracija {
                     sertifikato_nr VARCHAR(255)
                 )
             ");
-            $this->conn->exec("
-                CREATE TABLE IF NOT EXISTS antriniu_grandiniu_bandymai (
-                    id SERIAL PRIMARY KEY,
-                    gaminys_id INTEGER NOT NULL,
-                    eiles_nr INTEGER,
-                    grandines_pavadinimas TEXT,
-                    grandines_itampa VARCHAR(50),
-                    bandymo_schema VARCHAR(255),
-                    bandymo_itampa_kV VARCHAR(50),
-                    bandymo_trukme VARCHAR(50),
-                    isvada TEXT
-                )
-            ");
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda vidutinės įtampos stulpelius prie mt_dielektriniai_bandymai lentelės */
+    private function pridetiDielektriniuVidutinesStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_dielektriniai_bandymai' AND column_name = 'tipas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN tipas VARCHAR(20) DEFAULT 'mazos_itampos'");
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN grandines_pavadinimas TEXT");
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN grandines_itampa VARCHAR(50)");
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_schema VARCHAR(255)");
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_itampa_kv VARCHAR(50)");
+                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_trukme VARCHAR(50)");
+            }
         } catch (PDOException $e) {
         }
     }

@@ -33,11 +33,11 @@ $stmt = $conn->prepare("SELECT * FROM bandymai_prietaisai WHERE gaminys_id=? ORD
 $stmt->execute([$gaminio_id]);
 $prietaisai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt = $conn->prepare("SELECT * FROM antriniu_grandiniu_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
+$stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos' ORDER BY eiles_nr");
 $stmt->execute([$gaminio_id]);
 $vid_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? ORDER BY eiles_nr");
+$stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL) ORDER BY eiles_nr");
 $stmt->execute([$gaminio_id]);
 $maz_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

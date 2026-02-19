@@ -29,14 +29,14 @@ try {
     // Transakcijos pradžia – užtikrinamas duomenų vientisumas
     $conn->beginTransaction();
 
-    // Esamų vidutinės įtampos bandymų trynimas prieš pakartotinį įrašymą
-    $conn->prepare("DELETE FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
+    // Esamų visų dielektrinių bandymų trynimas prieš pakartotinį įrašymą
+    $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
-    // Vidutinės įtampos bandymų duomenų pakartotinis įrašymas
+    // Vidutinės įtampos bandymų duomenų įrašymas (tipas = vidutines_itampos)
     if (!empty($_POST['vid_itampa']['aprasymas'])) {
-        $stmt_vid = $conn->prepare("INSERT INTO antriniu_grandiniu_bandymai 
-            (gaminys_id, eiles_nr, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kV, bandymo_trukme, isvada) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt_vid = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai 
+            (gaminys_id, eiles_nr, aprasymas, itampa, isvada, tipas, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme) 
+            VALUES (?, ?, ?, ?, ?, 'vidutines_itampos', ?, ?, ?, ?, ?)");
 
         foreach ($_POST['vid_itampa']['aprasymas'] as $i => $apras) {
             $stmt_vid->execute([
@@ -44,22 +44,21 @@ try {
                 $_POST['vid_itampa']['eiles_nr'][$i] ?? '',
                 $apras,
                 $_POST['vid_itampa']['itampa'][$i] ?? '',
+                $_POST['vid_itampa']['isvada'] ?? '',
+                $apras,
+                $_POST['vid_itampa']['itampa'][$i] ?? '',
                 $_POST['vid_itampa']['schema1'][$i] ?? '',
                 $_POST['vid_itampa']['band_itampa'][$i] ?? '',
-                $_POST['vid_itampa']['trukme'][$i] ?? '',
-                $_POST['vid_itampa']['isvada'] ?? ''
+                $_POST['vid_itampa']['trukme'][$i] ?? ''
             ]);
         }
     }
 
-    // Esamų žemos įtampos bandymų trynimas prieš pakartotinį įrašymą
-    $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
-
-    // Žemos įtampos bandymų duomenų pakartotinis įrašymas
+    // Žemos įtampos bandymų duomenų įrašymas (tipas = mazos_itampos)
     if (!empty($_POST['maz_itampa']['aprasymas'])) {
         $stmt2 = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai 
-            (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada, tipas) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'mazos_itampos')");
 
         foreach ($_POST['maz_itampa']['aprasymas'] as $i => $apras) {
             $stmt2->execute([

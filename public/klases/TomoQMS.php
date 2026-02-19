@@ -346,22 +346,22 @@ class TomoQMS {
         try {
             $conn->beginTransaction();
 
-            $stmt = $localConn->prepare("SELECT eiles_nr, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme, isvada FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?");
+            $stmt = $localConn->prepare("SELECT eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada, tipas, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
             $stmt->execute([$local_gaminys_id]);
-            $vid_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $all_diel_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
             $conn->prepare("DELETE FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?")->execute([$tomo_gid]);
             $ins1 = $conn->prepare("INSERT INTO antriniu_grandiniu_bandymai (gaminys_id, eiles_nr, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme, isvada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            foreach ($vid_rows as $r) {
-                $ins1->execute([$tomo_gid, $r['eiles_nr'], $r['grandines_pavadinimas'], $r['grandines_itampa'], $r['bandymo_schema'], $r['bandymo_itampa_kv'], $r['bandymo_trukme'], $r['isvada']]);
-            }
 
-            $stmt = $localConn->prepare("SELECT eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
-            $stmt->execute([$local_gaminys_id]);
-            $maz_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$tomo_gid]);
             $ins2 = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            foreach ($maz_rows as $r) {
-                $ins2->execute([$tomo_gid, $r['eiles_nr'], $r['aprasymas'], $r['itampa'], $r['schema1'], $r['schema2'], $r['schema3'], $r['schema4'], $r['schema5'], $r['schema6'], $r['isvada']]);
+
+            foreach ($all_diel_rows as $r) {
+                if (($r['tipas'] ?? '') === 'vidutines_itampos') {
+                    $ins1->execute([$tomo_gid, $r['eiles_nr'], $r['grandines_pavadinimas'], $r['grandines_itampa'], $r['bandymo_schema'], $r['bandymo_itampa_kv'], $r['bandymo_trukme'], $r['isvada']]);
+                } else {
+                    $ins2->execute([$tomo_gid, $r['eiles_nr'], $r['aprasymas'], $r['itampa'], $r['schema1'], $r['schema2'], $r['schema3'], $r['schema4'], $r['schema5'], $r['schema6'], $r['isvada']]);
+                }
             }
 
             $stmt = $localConn->prepare("SELECT eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?");
