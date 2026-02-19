@@ -490,7 +490,7 @@ class TomoQMS {
         }
     }
 
-    public static function importuotiILocalDB(PDO $localConn): array {
+    public static function importuotiILocalDB(PDO $localConn, ?callable $progressCallback = null): array {
         $qt = self::getQualityTomasConnection();
         if (!$qt) return ['klaida' => 'Nepavyko prisijungti prie quality_tomas duomenų bazės'];
 
@@ -514,6 +514,9 @@ class TomoQMS {
                 ORDER BY u.id
             ");
             $mt_uzsakymai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $viso_uzsakymu = count($mt_uzsakymai);
+
+            if ($progressCallback) $progressCallback(0, $viso_uzsakymu, 'Jungiamasi prie duomenų bazės...');
 
             $existing_local = [];
             $st = $localConn->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
@@ -522,7 +525,11 @@ class TomoQMS {
             $uzsakovai_cache = [];
             $objektai_cache = [];
 
-            foreach ($mt_uzsakymai as $uzs) {
+            foreach ($mt_uzsakymai as $idx => $uzs) {
+                if ($progressCallback) {
+                    $proc = (int)(($idx / max($viso_uzsakymu, 1)) * 50);
+                    $progressCallback($proc, $viso_uzsakymu, 'Užsakymai: ' . ($idx + 1) . ' / ' . $viso_uzsakymu);
+                }
                 $nr = trim($uzs['uzsakymo_numeris'] ?? '');
                 if ($nr === '') continue;
 
@@ -603,7 +610,11 @@ class TomoQMS {
             $qt_mk_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_komponentai'")->fetchAll(PDO::FETCH_COLUMN);
             $has_parinkta = in_array('parinkta_projektui', $qt_mk_cols);
 
-            foreach ($mt_uzsakymai as $uzs) {
+            foreach ($mt_uzsakymai as $idx2 => $uzs) {
+                if ($progressCallback) {
+                    $proc = 50 + (int)(($idx2 / max($viso_uzsakymu, 1)) * 50);
+                    $progressCallback($proc, $viso_uzsakymu, 'Gaminiai/bandymai: ' . ($idx2 + 1) . ' / ' . $viso_uzsakymu);
+                }
                 $nr = trim($uzs['uzsakymo_numeris'] ?? '');
                 if ($nr === '' || !isset($existing_local[$nr])) continue;
                 $local_uzs_id = $existing_local[$nr];
@@ -702,6 +713,8 @@ class TomoQMS {
                     }
                 }
             }
+
+            if ($progressCallback) $progressCallback(100, $viso_uzsakymu, 'Baigta!');
 
             self::irasytLog(
                 'Importas iš quality_tomas į local DB',

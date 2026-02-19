@@ -16,6 +16,44 @@ $masinis_sarasas = ($_POST['masinis_sarasas'] ?? '') === '1';
 $importas = ($_POST['importas'] ?? '') === '1';
 $conn = $pdo;
 
+$importas_stream = ($_POST['importas_stream'] ?? '') === '1';
+
+if ($importas_stream) {
+    header('Content-Type: text/event-stream; charset=utf-8');
+    header('Cache-Control: no-cache');
+    header('Connection: keep-alive');
+    header('X-Accel-Buffering: no');
+    if (function_exists('apache_setenv')) apache_setenv('no-gzip', '1');
+    ini_set('output_buffering', 'off');
+    ini_set('zlib.output_compression', false);
+    if (function_exists('ob_implicit_flush')) ob_implicit_flush(true);
+    while (ob_get_level()) ob_end_flush();
+
+    $lastProc = -1;
+    $progressCallback = function(int $proc, int $viso, string $zinute) use (&$lastProc) {
+        if ($proc === $lastProc && $proc < 100) return;
+        $lastProc = $proc;
+        echo "data: " . json_encode(['proc' => $proc, 'viso' => $viso, 'zinute' => $zinute]) . "\n\n";
+        flush();
+    };
+
+    try {
+        $rezultatas = TomoQMS::importuotiILocalDB($conn, $progressCallback);
+        $success = empty($rezultatas['klaidos']);
+        echo "data: " . json_encode([
+            'proc' => 100,
+            'baigta' => true,
+            'success' => $success,
+            'rezultatas' => $rezultatas
+        ]) . "\n\n";
+        flush();
+    } catch (Throwable $e) {
+        echo "data: " . json_encode(['proc' => 100, 'baigta' => true, 'success' => false, 'klaida' => $e->getMessage()]) . "\n\n";
+        flush();
+    }
+    exit;
+}
+
 if ($importas) {
     try {
         $rezultatas = TomoQMS::importuotiILocalDB($conn);
