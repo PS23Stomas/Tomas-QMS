@@ -1703,8 +1703,153 @@ textarea.form-control {
     color: #dc2626;
 }
 
+/* ==========================================================================
+   41. KETVIRČIŲ PALYGINIMO SEKCIJA (mobilusis pritaikymas)
+   Naudojama: index.php (dashboard) – ketvirčių filtras, dviejų stulpelių
+   lentelės (darbuotojai, operacijos), mėnesinė statistika
+   ========================================================================== */
+
+.kp-filter-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.kp-select-pair {
+    display: flex;
+    gap: 6px;
+}
+
+.kp-vs-label {
+    display: flex;
+    align-items: center;
+}
+
+.kp-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kp-two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.kp-monthly-bar {
+    margin-top: 20px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.kp-monthly-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.kp-monthly-form select {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.kp-summary {
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
 @media (max-width: 768px) {
-    [style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
+    .kp-filter-form {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .kp-filter-form .form-group {
+        width: 100%;
+    }
+
+    .kp-select-pair {
+        width: 100%;
+    }
+
+    .kp-select-pair select {
+        flex: 1;
+        width: auto !important;
+    }
+
+    .kp-vs-label {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .kp-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .kp-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .kp-two-col-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .kp-monthly-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .kp-monthly-form {
+        width: 100%;
+    }
+
+    .kp-monthly-form select {
+        flex: 1;
+    }
+
+    .kp-monthly-form .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .kp-summary {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
+    .kp-section .table-wrapper {
+        font-size: 12px;
+    }
+
+    .kp-section table th,
+    .kp-section table td {
+        padding: 6px 8px;
+        font-size: 12px;
     }
 }

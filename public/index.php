@@ -449,12 +449,12 @@ foreach ($ketvirciu_sarasas as $ks) {
     $kp_ketv_sarasas[$ks['metai'] . '-' . $ks['ketvirtis']] = true;
 }
 ?>
-<div class="filter-bar" data-testid="filter-bar-quarters" style="margin-bottom:16px;">
-    <form method="GET" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;width:100%;">
+<div class="filter-bar kp-filter-bar" data-testid="filter-bar-quarters" style="margin-bottom:16px;">
+    <form method="GET" class="kp-filter-form">
         <input type="hidden" name="tab" value="ketv">
         <div class="form-group">
             <label class="form-label">Senesnis ketvirtis</label>
-            <div style="display:flex;gap:6px;">
+            <div class="kp-select-pair">
                 <select name="kp_q1_metai" class="form-control" data-testid="select-kp-q1-year" style="width:auto;">
                     <option value="">Metai</option>
                     <?php foreach($kp_metai_sarasas as $m): ?>
@@ -469,12 +469,12 @@ foreach ($ketvirciu_sarasas as $ks) {
                 </select>
             </div>
         </div>
-        <div class="form-group" style="display:flex;align-items:center;">
-            <span style="font-size:20px;color:var(--text-secondary);margin:0 4px;">vs</span>
+        <div class="form-group kp-vs-label">
+            <span style="font-size:20px;color:var(--text-secondary);">vs</span>
         </div>
         <div class="form-group">
             <label class="form-label">Naujesnis ketvirtis</label>
-            <div style="display:flex;gap:6px;">
+            <div class="kp-select-pair">
                 <select name="kp_q2_metai" class="form-control" data-testid="select-kp-q2-year" style="width:auto;">
                     <option value="">Metai</option>
                     <?php foreach($kp_metai_sarasas as $m): ?>
@@ -489,18 +489,16 @@ foreach ($ketvirciu_sarasas as $ks) {
                 </select>
             </div>
         </div>
-        <div class="form-group">
+        <div class="form-group kp-actions">
             <button type="submit" class="btn btn-primary" data-testid="button-kp-compare">Palyginti</button>
-        </div>
-        <?php if ($kp_rodyti): ?>
-        <div class="form-group">
+            <?php if ($kp_rodyti): ?>
             <a href="/generuoti_ketvirciu_pdf.php?kp_q1_metai=<?= $kp_q1_metai ?>&kp_q1_ketvirtis=<?= $kp_q1_ketv ?>&kp_q2_metai=<?= $kp_q2_metai ?>&kp_q2_ketvirtis=<?= $kp_q2_ketv ?>&men_metai=<?= $men_metai ?>&men_menuo=<?= $men_menuo ?>" 
                target="_blank" class="btn btn-secondary" data-testid="button-kp-pdf" style="display:inline-flex;align-items:center;gap:5px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 PDF
             </a>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </form>
 </div>
 
@@ -519,7 +517,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     Ketvirciu palyginimas: <?= h($kp_q1['periodas']) ?> vs <?= h($kp_q2['periodas']) ?>
   </div>
 
-  <div class="kp-summary" data-testid="kp-summary" style="padding:12px 16px;font-size:14px;line-height:1.7;color:var(--text-primary);background:var(--bg-light);border-radius:8px;margin-bottom:16px;">
+  <div class="kp-summary" data-testid="kp-summary">
     <strong><?= h($kp_q2['periodas']) ?></strong> palyginti su <strong><?= h($kp_q1['periodas']) ?></strong>:
     <?php if ($kp_q2['defektu_proc'] < $kp_q1['defektu_proc']): ?>
       defektu procentas <span style="color:#16a34a;font-weight:600;">sumazejo nuo <?= $kp_q1['defektu_proc'] ?>% iki <?= $kp_q2['defektu_proc'] ?>%</span>.
@@ -565,20 +563,20 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     </table>
   </div>
 
-  <div style="margin-top:20px;margin-bottom:12px;padding:12px 16px;background:var(--bg-light);border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;" data-testid="filter-bar-monthly">
+  <div class="kp-monthly-bar" data-testid="filter-bar-monthly">
     <span style="font-weight:600;font-size:14px;color:var(--text-primary);">Darbuotojų mėnesinė statistika:</span>
-    <form method="GET" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <form method="GET" class="kp-monthly-form">
       <input type="hidden" name="tab" value="ketv">
       <input type="hidden" name="kp_q1_metai" value="<?= h($kp_q1_metai) ?>">
       <input type="hidden" name="kp_q1_ketvirtis" value="<?= h($kp_q1_ketv) ?>">
       <input type="hidden" name="kp_q2_metai" value="<?= h($kp_q2_metai) ?>">
       <input type="hidden" name="kp_q2_ketvirtis" value="<?= h($kp_q2_ketv) ?>">
-      <select name="men_menuo" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text-primary);font-size:13px;" data-testid="select-men-month">
+      <select name="men_menuo" data-testid="select-men-month">
         <?php for ($m = 1; $m <= 12; $m++): ?>
         <option value="<?= $m ?>" <?= $m == $men_menuo ? 'selected' : '' ?>><?= $menesiu_pav[$m] ?></option>
         <?php endfor; ?>
       </select>
-      <select name="men_metai" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text-primary);font-size:13px;" data-testid="select-men-year">
+      <select name="men_metai" data-testid="select-men-year">
         <?php foreach ($men_turimi_metai as $m): ?>
         <option value="<?= $m ?>" <?= $m == $men_metai ? 'selected' : '' ?>><?= $m ?></option>
         <?php endforeach; ?>
@@ -587,7 +585,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     </form>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+  <div class="kp-two-col-grid">
     <div data-testid="kp-top-workers">
       <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--text-primary);">TOP 11 darbuotojai (daugiausiai punktu) — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
@@ -635,7 +633,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+  <div class="kp-two-col-grid">
     <?php foreach ([$kp_q1, $kp_q2] as $q): ?>
     <div>
       <div style="font-weight:600;font-size:14px;margin-bottom:8px;">Problemingiausios operacijos (<?= h($q['periodas']) ?>)</div>
