@@ -3,54 +3,7 @@
  * Apima kintamuosius (spalvos, šriftai), maketo stilius,
  * šoninės navigacijos, kortelių, lentelių, formų, mygtukų,
  * modalinių langų, KPI rodiklių ir defektų skydelio stilius.
- *
- * TURINYS:
- * 1.  Globalus resetinimas ir CSS kintamieji (:root)     — Visi puslapiai
- * 2.  Pagrindinis maketas (body, a, .app-layout)          — Visi puslapiai
- * 3.  Šoninė navigacija (.sidebar, .nav-item)             — header.php / footer.php (visi autentifikuoti puslapiai)
- * 4.  Vartotojo info šoninėje (.user-info, .user-avatar)  — header.php (sidebar footer)
- * 5.  Pagrindinis turinys (.main-content, .top-header)    — header.php / footer.php (visi autentifikuoti puslapiai)
- * 6.  Kortelės (.card, .card-header, .card-body)          — uzsakymai.php, uzsakovai.php, objektai.php, prietaisai.php, pretenzijos.php, vartotojai.php
- * 7.  Statistikos tinklelis (.stats-grid, .stat-card)     — index.php (dashboard – 30d rodikliai)
- * 8.  Lentelės (table, th, td, .table-wrapper)            — uzsakymai.php, uzsakovai.php, objektai.php, prietaisai.php, pretenzijos.php, vartotojai.php, sync_log.php, sablonas_funkciniai.php
- * 9.  Mygtukai (.btn, .btn-primary, .btn-danger ir kt.)  — Visi puslapiai (formos, veiksmai, modaliniai langai)
- * 10. Formos (.form-group, .form-control, select, textarea) — Modaliniai langai, filtrai, profilis.php
- * 11. Žymekliai (.badge, .badge-success ir kt.)           — uzsakymai.php (būsenos), pretenzijos.php, index.php
- * 12. Klaidos eilutė (.row-error)                        — uzsakymai.php (eilutės su defektais)
- * 13. Prisijungimo puslapis (.login-page, .login-card)    — login.php, slaptazodis_atstatymas.php, slaptazodis_keitimas.php
- * 14. Pranešimai (.alert, .alert-danger, .alert-success)  — Visi puslapiai (sėkmės/klaidos žinutės)
- * 15. Modaliniai langai (.modal-overlay, .modal)          — uzsakymai.php, uzsakovai.php, objektai.php, prietaisai.php, vartotojai.php
- * 16. Tuščia būsena (.empty-state)                       — uzsakymai.php, uzsakovai.php, objektai.php (kai nėra duomenų)
- * 17. Dviejų stulpelių tinklelis (.grid-2)               — Modalinių langų formos (dviejų laukų eilutė)
- * 18. Veiksmo mygtukai (.actions)                        — Lentelių paskutinis stulpelis (redagavimo/trynimo mygtukai)
- * 19. Kokybės rodikliai (.quality-section, .progress-bar) — index.php (dashboard – progreso juostos ir paskutinių užsakymų sąrašas)
- * 20. Grupių kortelės (.group-card, .mt-card, .gvx-card)  — uzsakymai.php (gaminio tipo pasirinkimas: MT, GVX, KV10)
- * 21. Filtravimo juosta (.filter-bar)                    — index.php (dashboard), mt_statistika.php (datos ir tipo filtrai)
- * 22. Grįžimo nuoroda (.back-link)                       — mt_statistika.php, sablonas_funkciniai.php
- * 23. Statistikos santrauka (.stats-summary)             — mt_statistika.php (sutrauktos statistikos kortelės)
- * 24. Informacinis pranešimas (.alert-info)              — mt_statistika.php, index.php
- * 25. TOP defektų sąrašas (.top-defektai-list)           — index.php (dashboard – dažniausių defektų reitingas)
- * 26. Aktyvūs defektai (.aktyvus-defektai-card, .aktyvus-dot) — index.php (dashboard – neištaisytų defektų lentelė su pulsuojančiu tašku)
- * 27. Dashboard viršutinė juosta (.dashboard-top-bar)    — index.php (dashboard – pavadinimas + importo mygtukas)
- * 28. Dashboard KPI (.kpi-grid, .kpi-card, .kpi-value)   — index.php (dashboard – 4 pagrindiniai rodikliai viršuje)
- * 29. Dashboard panelės (.dashboard-panels, .chart-container) — index.php (dashboard – grafiko ir klaidų panelės)
- * 30. TOP Klaidos (.klaidos-item, .klaidos-bar-fill)     — index.php (dashboard – TOP klaidų sąrašas su progreso juostomis)
- * 31. Aktyvus panelė (.aktyvus-panel-wrapper, .aktyvus-badge) — index.php (dashboard – aktyvių defektų sekcija)
- * 32. Defektų tinklelis (.defekt-grid, .defekt-card)     — index.php (dashboard – defektų kortelės su pulsuojančiais taškais)
- * 33. Dashboard poraštė (.dashboard-footer-info)         — index.php (dashboard – apačios informacija)
- * 34. KR skirtukai (.kr-tabs, .kr-tab, .kr-tab-active)   — index.php (dashboard – 3 skirtukai: 30d, ketvirtinis, išplėstinė)
- * 35. Animacijos (fadeIn, spin, pulse-dot)               — index.php (skirtukų, įkėlimo animacijos)
- * 36. MT plytelės (.mt-tiles-grid, .mt-tile)             — uzsakymai.php (gaminio langas – 4 navigacijos plytelės: Funkciniai, Komponentai, Dielektriniai, Pasas)
- * 37. Užbaigtumo rodikliai (.uzbaigtumo-bar, .uzbaigtumo-badge) — uzsakymai.php (gaminio MT užbaigtumo procentas)
- * 38. MT pavadinimo sekcija (.mt-pavadinimas-section)    — uzsakymai.php (gaminio pavadinimo keitimo eilutė)
- * 39. Responsive / mobilūs (@media max-width: 768px)     — Visi puslapiai (šoninė navigacija slepiasi, tinkleliai susitraukia)
- * 40. Pokyčio žymekliai (.pokytis-badge, .pokytis-up)    — index.php (dashboard – ketvirtinio palyginimo procentiniai pokyčiai)
  */
-
-/* ==========================================================================
-   1. GLOBALUS RESETINIMAS IR CSS KINTAMIEJI
-   Naudojama: VISUOSE puslapiuose – spalvos, šešėliai, kampų radiusas
-   ========================================================================== */
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -87,11 +40,6 @@
     --radius: 6px;
 }
 
-/* ==========================================================================
-   2. PAGRINDINIS MAKETAS (body, nuorodos, app-layout)
-   Naudojama: VISUOSE puslapiuose – šriftas, fonas, nuorodų stilius
-   ========================================================================== */
-
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
@@ -104,12 +52,6 @@ a {
     text-decoration: none;
     color: inherit;
 }
-
-/* ==========================================================================
-   3. ŠONINĖ NAVIGACIJA
-   Naudojama: header.php / footer.php – visi autentifikuoti puslapiai
-   Elementai: sidebar, meniu punktai, sekcijų etiketės, logo
-   ========================================================================== */
 
 .app-layout {
     display: flex;
@@ -209,11 +151,6 @@ a {
     border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-/* ==========================================================================
-   4. VARTOTOJO INFORMACIJA ŠONINĖJE NAVIGACIJOJE
-   Naudojama: header.php – sidebar footer (avataro ratas, vardas, rolė, atsijungimas)
-   ========================================================================== */
-
 .user-info {
     display: flex;
     align-items: center;
@@ -260,12 +197,6 @@ a {
     font-size: 13px;
 }
 
-/* ==========================================================================
-   5. PAGRINDINIS TURINYS IR VIRŠUTINĖ JUOSTA
-   Naudojama: header.php / footer.php – turinys dešinėje nuo sidebar,
-   viršutinė juosta su puslapio pavadinimu ir mobilaus meniu mygtuku
-   ========================================================================== */
-
 .main-content {
     flex: 1;
     margin-left: 260px;
@@ -307,11 +238,7 @@ a {
     padding: 24px;
 }
 
-/* ==========================================================================
-   6. KORTELĖS (card)
-   Naudojama: uzsakymai.php, uzsakovai.php, objektai.php, prietaisai.php,
-   pretenzijos.php, vartotojai.php – duomenų konteineriai su antrašte
-   ========================================================================== */
+/* Cards */
 .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -338,11 +265,7 @@ a {
     padding: 20px;
 }
 
-/* ==========================================================================
-   7. STATISTIKOS TINKLELIS
-   Naudojama: index.php (dashboard) – 30 dienų kokybiniai rodikliai
-   (gaminių kiekis, defektų skaičius, MT užbaigtumo vidurkis ir kt.)
-   ========================================================================== */
+/* Stats Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -399,11 +322,7 @@ a {
     margin-top: 4px;
 }
 
-/* ==========================================================================
-   8. LENTELĖS
-   Naudojama: uzsakymai.php, uzsakovai.php, objektai.php, prietaisai.php,
-   pretenzijos.php, vartotojai.php, sync_log.php, sablonas_funkciniai.php
-   ========================================================================== */
+/* Tables */
 .table-wrapper {
     overflow-x: auto;
 }
@@ -439,11 +358,7 @@ table tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* ==========================================================================
-   9. MYGTUKAI
-   Naudojama: VISUOSE puslapiuose – formų patvirtinimas, veiksmo mygtukai
-   lentelėse, modalinių langų mygtukai, grįžimo nuorodos
-   ========================================================================== */
+/* Buttons */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -493,11 +408,7 @@ table tbody tr:last-child td {
     justify-content: center;
 }
 
-/* ==========================================================================
-   10. FORMOS
-   Naudojama: modaliniai langai (uzsakymai.php, uzsakovai.php, objektai.php,
-   prietaisai.php, vartotojai.php), filtravimo juostos, profilis.php
-   ========================================================================== */
+/* Forms */
 .form-group {
     margin-bottom: 16px;
 }
@@ -541,11 +452,7 @@ textarea.form-control {
     min-height: 80px;
 }
 
-/* ==========================================================================
-   11. ŽYMEKLIAI (badge)
-   Naudojama: uzsakymai.php (užsakymų būsenos: Aktyvus, Baigtas, Sustabdytas),
-   pretenzijos.php (pretenzijų būsenos), index.php (dashboard rodikliai)
-   ========================================================================== */
+/* Badge */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -562,13 +469,9 @@ textarea.form-control {
 .badge-info { background: var(--info-light); color: var(--info); }
 .badge-primary { background: var(--primary-light); color: var(--primary); }
 
-/* 12. Klaidos eilutė – uzsakymai.php (eilutės su neištaisytais defektais pažymimos rausvu fonu) */
 .row-error { background: rgba(239, 68, 68, 0.05); }
 
-/* ==========================================================================
-   13. PRISIJUNGIMO PUSLAPIS
-   Naudojama: login.php, slaptazodis_atstatymas.php, slaptazodis_keitimas.php
-   ========================================================================== */
+/* Login page */
 .login-page {
     min-height: 100vh;
     display: flex;
@@ -611,12 +514,6 @@ textarea.form-control {
     justify-content: center;
 }
 
-/* ==========================================================================
-   14. PRANEŠIMAI (alert)
-   Naudojama: VISUOSE puslapiuose – sėkmingo išsaugojimo, klaidų,
-   informaciniai pranešimai (žalia, raudona, mėlyna)
-   ========================================================================== */
-
 .alert {
     padding: 10px 14px;
     border-radius: var(--radius);
@@ -636,11 +533,7 @@ textarea.form-control {
     border: 1px solid #bbf7d0;
 }
 
-/* ==========================================================================
-   15. MODALINIAI LANGAI
-   Naudojama: uzsakymai.php (naujas/redaguoti užsakymas, trynimo patvirtinimas),
-   uzsakovai.php, objektai.php, prietaisai.php, vartotojai.php
-   ========================================================================== */
+/* Modal */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -715,11 +608,7 @@ textarea.form-control {
     display: inline-block;
 }
 
-/* ==========================================================================
-   16. TUŠČIA BŪSENA
-   Naudojama: uzsakymai.php, uzsakovai.php, objektai.php – kai lentelė
-   neturi duomenų (rodoma ikona su tekstu „Nėra duomenų")
-   ========================================================================== */
+/* Empty state */
 .empty-state {
     text-align: center;
     padding: 48px 20px;
@@ -742,32 +631,21 @@ textarea.form-control {
     font-size: 13px;
 }
 
-/* ==========================================================================
-   17. DVIEJŲ STULPELIŲ TINKLELIS
-   Naudojama: modalinių langų formos – dviejų laukų eilutė greta
-   ========================================================================== */
+/* Grid layouts */
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
 }
 
-/* ==========================================================================
-   18. VEIKSMO MYGTUKAI LENTELĖSE
-   Naudojama: uzsakymai.php, prietaisai.php, uzsakovai.php ir kt. –
-   lentelių paskutinis stulpelis (redagavimo/trynimo ikonomygtukai)
-   ========================================================================== */
+/* Action buttons in tables */
 .actions {
     display: flex;
     gap: 4px;
     align-items: center;
 }
 
-/* ==========================================================================
-   19. KOKYBĖS RODIKLIAI
-   Naudojama: index.php (dashboard) – progreso juostos, paskutinių
-   užsakymų sąrašas, kokybės sekcijų pavadinimai
-   ========================================================================== */
+/* Quality indicators */
 .quality-section {
     margin-bottom: 24px;
 }
@@ -816,11 +694,7 @@ textarea.form-control {
     border-bottom: none;
 }
 
-/* ==========================================================================
-   20. GRUPIŲ KORTELĖS – NAVIGACIJA
-   Naudojama: uzsakymai.php – gaminio tipo pasirinkimo kortelės su
-   gradient fonu (MT violetinė, GVX rožinė, KV10 oranžinė)
-   ========================================================================== */
+/* Group Cards - Navigation */
 .group-cards-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -899,10 +773,7 @@ textarea.form-control {
     flex-shrink: 0;
 }
 
-/* ==========================================================================
-   21. FILTRAVIMO JUOSTA
-   Naudojama: index.php (dashboard), mt_statistika.php – datos ir tipo filtrai
-   ========================================================================== */
+/* MT Statistics page */
 .filter-bar {
     display: flex;
     align-items: flex-end;
@@ -920,7 +791,6 @@ textarea.form-control {
     min-width: 160px;
 }
 
-/* 22. Grįžimo nuoroda – mt_statistika.php, sablonas_funkciniai.php (← Grįžti) */
 .back-link {
     display: inline-flex;
     align-items: center;
@@ -938,7 +808,6 @@ textarea.form-control {
     color: var(--text);
 }
 
-/* 23. Statistikos santrauka – mt_statistika.php (sutrauktos statistikos kortelės) */
 .stats-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -954,7 +823,7 @@ textarea.form-control {
     font-size: 24px;
 }
 
-/* 24. Informacinis pranešimas – mt_statistika.php, index.php (mėlyna info juosta) */
+/* Alert info */
 .alert-info {
     background: var(--info-light);
     color: var(--info);
@@ -965,16 +834,12 @@ textarea.form-control {
     margin-bottom: 24px;
 }
 
-/* mt_statistika.php – plati statistikos kortelė (2 stulpeliai) */
+/* Stats summary wide card */
 .stat-card-wide {
     grid-column: span 2;
 }
 
-/* ==========================================================================
-   25. TOP DEFEKTŲ SĄRAŠAS
-   Naudojama: index.php (dashboard) – dažniausių defektų reitingas
-   su automatine numeracija (CSS counter)
-   ========================================================================== */
+/* Top defektai list */
 .top-defektai-list {
     list-style: none;
     counter-reset: defektai;
@@ -1013,11 +878,7 @@ textarea.form-control {
     min-width: 0;
 }
 
-/* ==========================================================================
-   26. AKTYVŪS DEFEKTAI
-   Naudojama: index.php (dashboard) – neištaisytų defektų lentelė
-   su raudonu kraštu ir pulsuojančiu tašku (animacija pulse-dot)
-   ========================================================================== */
+/* Aktyvus defektai */
 .aktyvus-defektai-card {
     border-color: var(--danger);
 }
@@ -1050,10 +911,7 @@ textarea.form-control {
     50% { opacity: 0.4; }
 }
 
-/* ==========================================================================
-   27. DASHBOARD VIRŠUTINĖ JUOSTA
-   Naudojama: index.php (dashboard) – pavadinimas + importo mygtukas
-   ========================================================================== */
+/* Dashboard Top Bar */
 .dashboard-top-bar {
     display: flex;
     justify-content: space-between;
@@ -1071,11 +929,7 @@ textarea.form-control {
     gap: 6px;
 }
 
-/* ==========================================================================
-   28. DASHBOARD KPI RODIKLIAI
-   Naudojama: index.php (dashboard) – 4 pagrindiniai rodikliai viršuje
-   (žalia=užbaigti, oranžinė=su defektais, geltona=nebaigti, raudona=aktyvūs defektai)
-   ========================================================================== */
+/* Dashboard KPI */
 .dashboard-subtitle {
     color: var(--text-secondary);
     font-size: 0.9rem;
@@ -1120,11 +974,7 @@ textarea.form-control {
     font-weight: 600;
 }
 
-/* ==========================================================================
-   29. DASHBOARD PANELĖS
-   Naudojama: index.php (dashboard) – dvi panelės šalia: grafikas (kairė)
-   ir TOP klaidų sąrašas (dešinė)
-   ========================================================================== */
+/* Dashboard Panels */
 .dashboard-panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1155,11 +1005,7 @@ textarea.form-control {
     width: 100%;
 }
 
-/* ==========================================================================
-   30. TOP KLAIDOS
-   Naudojama: index.php (dashboard) – TOP klaidų sąrašas su progreso
-   juostomis ir skaičiaus žymekliais (gradient raudona→oranžinė)
-   ========================================================================== */
+/* TOP Klaidos */
 .klaidos-empty {
     text-align: center;
     color: var(--success);
@@ -1213,11 +1059,7 @@ textarea.form-control {
     transition: width 0.5s ease;
 }
 
-/* ==========================================================================
-   31. AKTYVUS PANELĖ
-   Naudojama: index.php (dashboard) – aktyvių defektų sekcija
-   su raudonu viršutiniu kraštu ir skaičiaus žymekliu
-   ========================================================================== */
+/* Aktyvus Panel */
 .aktyvus-panel-wrapper {
     border-top: 3px solid var(--danger);
     margin-bottom: 24px;
@@ -1233,11 +1075,7 @@ textarea.form-control {
     margin-left: 4px;
 }
 
-/* ==========================================================================
-   32. DEFEKTŲ TINKLELIS
-   Naudojama: index.php (dashboard) – defektų kortelės su pulsuojančiais
-   taškais, užsakymo numeriu, tipu ir defekto aprašymu
-   ========================================================================== */
+/* Defekt Grid */
 .defekt-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1303,7 +1141,6 @@ textarea.form-control {
     line-height: 1.4;
 }
 
-/* 33. Dashboard poraštė – index.php (apačios informacinis tekstas) */
 .dashboard-footer-info {
     text-align: center;
     color: var(--text-light);
@@ -1311,11 +1148,6 @@ textarea.form-control {
     padding: 10px 0 20px;
 }
 
-/* ==========================================================================
-   34. KR (KOKYBINIŲ RODIKLIŲ) SKIRTUKAI
-   Naudojama: index.php (dashboard) – 3 skirtukai: 30 dienų rodikliai,
-   ketvirtinis palyginimas, išplėstinė statistika
-   ========================================================================== */
 .kr-tabs {
     display: flex;
     gap: 4px;
@@ -1365,7 +1197,6 @@ textarea.form-control {
     animation: fadeIn 0.2s ease;
 }
 
-/* 35. ANIMACIJOS – fadeIn (skirtukų turinys), spin (įkėlimo ratas), pulse-dot (aktyvus taškas) */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -1385,12 +1216,7 @@ textarea.form-control {
     }
 }
 
-/* ==========================================================================
-   36. MT PLYTELĖS UŽSAKYMO LANGE
-   Naudojama: uzsakymai.php (gaminio langas) – 4 navigacijos plytelės:
-   Funkciniai bandymai, Komponentai, Dielektriniai bandymai, MT pasas.
-   Spalvos: teal, cyan, indigo, emerald, slate, muted
-   ========================================================================== */
+/* MT Tiles in Order Detail */
 .mt-tiles-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1481,11 +1307,6 @@ textarea.form-control {
     margin-top: 2px;
 }
 
-/* ==========================================================================
-   37. UŽBAIGTUMO RODIKLIAI
-   Naudojama: uzsakymai.php – gaminio MT užbaigtumo procentinis rodiklis
-   su progreso juosta ir žymeklio spalva (baigtas žalias / nebaigtas oranžinis)
-   ========================================================================== */
 .uzbaigtumo-rodiklis {
     display: flex;
     align-items: center;
@@ -1570,10 +1391,6 @@ textarea.form-control {
     color: var(--danger);
 }
 
-/* ==========================================================================
-   38. MT PAVADINIMO SEKCIJA
-   Naudojama: uzsakymai.php – gaminio pavadinimo keitimo eilutė su mygtuku
-   ========================================================================== */
 .mt-pavadinimas-section {
     border-top: 1px solid var(--border);
     padding-top: 16px;
@@ -1596,11 +1413,7 @@ textarea.form-control {
     gap: 6px;
 }
 
-/* ==========================================================================
-   39. RESPONSIVE / MOBILŪS STILIAI
-   Naudojama: VISUOSE puslapiuose – šoninė navigacija slepiasi,
-   tinkleliai susitraukia į vieną stulpelį, filtrai vertikaliai
-   ========================================================================== */
+/* Responsive */
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1669,11 +1482,6 @@ textarea.form-control {
     }
 }
 
-/* ==========================================================================
-   40. POKYČIO ŽYMEKLIAI
-   Naudojama: index.php (dashboard) – ketvirtinio palyginimo procentiniai
-   pokyčiai (mėlynas=augimas, raudonas=sumažėjimas, žalias=geriau, raudonas=blogiau)
-   ========================================================================== */
 .pokytis-badge {
     display: inline-block;
     padding: 2px 10px;
