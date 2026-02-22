@@ -22,10 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute(['pavadinimas' => $_POST['pavadinimas'] ?? '', 'id' => $_POST['id']]);
         $message = 'Objektas atnaujintas.';
     } elseif ($action === 'delete') {
-        $id = $_POST['id'] ?? null;
-        if ($id) {
-            $pdo->prepare('DELETE FROM objektai WHERE id = :id')->execute(['id' => $id]);
-            $message = 'Objektas ištrintas.';
+        $user = currentUser();
+        if (($user['role'] ?? '') !== 'admin') {
+            $error = 'Tik administratorius gali trinti objektus.';
+        } else {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $pdo->prepare('DELETE FROM objektai WHERE id = :id')->execute(['id' => $id]);
+                $message = 'Objektas ištrintas.';
+            }
         }
     }
 }
@@ -73,11 +78,13 @@ require_once __DIR__ . '/includes/header.php';
                             <td>
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editObject(<?= $o['id'] ?>, '<?= h(addslashes($o['pavadinimas'])) ?>')" data-testid="button-edit-object-<?= $o['id'] ?>">Redaguoti</button>
+                                    <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= $o['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-object-<?= $o['id'] ?>">Trinti</button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

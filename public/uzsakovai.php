@@ -22,10 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute(['uzsakovas' => $_POST['uzsakovas'] ?? '', 'id' => $_POST['id']]);
         $message = 'Užsakovas atnaujintas.';
     } elseif ($action === 'delete') {
-        $id = $_POST['id'] ?? null;
-        if ($id) {
-            $pdo->prepare('DELETE FROM uzsakovai WHERE id = :id')->execute(['id' => $id]);
-            $message = 'Užsakovas ištrintas.';
+        $user = currentUser();
+        if (($user['role'] ?? '') !== 'admin') {
+            $error = 'Tik administratorius gali trinti užsakovus.';
+        } else {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $pdo->prepare('DELETE FROM uzsakovai WHERE id = :id')->execute(['id' => $id]);
+                $message = 'Užsakovas ištrintas.';
+            }
         }
     }
 }
@@ -73,11 +78,13 @@ require_once __DIR__ . '/includes/header.php';
                             <td>
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editClient(<?= $c['id'] ?>, '<?= h(addslashes($c['uzsakovas'])) ?>')" data-testid="button-edit-client-<?= $c['id'] ?>">Redaguoti</button>
+                                    <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= $c['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-client-<?= $c['id'] ?>">Trinti</button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

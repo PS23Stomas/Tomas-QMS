@@ -80,8 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'delete') {
 
         $id = $_POST['id'] ?? null;
-
-        if ($id) {
+        $user = currentUser();
+        if (($user['role'] ?? '') !== 'admin') {
+            $error = 'Tik administratorius gali trinti gaminius.';
+        } elseif ($id) {
             // Pirmiausia ištriname susijusius komponentus (nes jie susieti per gaminio_id)
             // Jei to nepadarytume - DB mestų klaidą dėl foreign key apribojimo
             $pdo->prepare('DELETE FROM mt_komponentai WHERE gaminio_id = :id')->execute(['id' => $id]);
@@ -192,13 +194,15 @@ require_once __DIR__ . '/includes/header.php';
                             <td><?= h($p['protokolo_nr'] ?: '-') ?></td>
                             <td><?= h($p['atitikmuo_kodas'] ?: '-') ?></td>
 
-                            <!-- Trynimo mygtukas su patvirtinimo dialogu -->
+                            <!-- Trynimo mygtukas su patvirtinimo dialogu (tik admin) -->
                             <td>
+                                <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį gaminį?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $p['id'] ?>">
                                     <button type="submit" class="btn btn-danger btn-sm" data-testid="button-delete-product-<?= $p['id'] ?>">Trinti</button>
                                 </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

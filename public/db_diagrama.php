@@ -2,6 +2,12 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
+$user = currentUser();
+if (($user['role'] ?? '') !== 'admin') {
+    header('Location: /index.php');
+    exit;
+}
+
 $page_title = 'Duomenų bazės diagrama';
 
 $tables_sql = "
