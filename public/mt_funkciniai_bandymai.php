@@ -70,9 +70,9 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         body { font-family: Arial, sans-serif; }
         th, td { vertical-align: middle !important; }
         .col-eilnr  { width: 70px; text-align:center; }
-        .col-irase  { width: 220px; }
+        .col-irase  { width: 110px; }
         .col-atliko { width: 160px; }
-        .col-isvada { width: 180px; }
+        .col-isvada { width: 100px; }
         .col-defekt { width: 260px; }
         .col-nuotr  { width: 220px; }
         .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
