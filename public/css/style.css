@@ -1774,6 +1774,85 @@ textarea.form-control {
         width: 100%;
     }
 
+    /* --- Prietaisų lentelė: kortelės mobiliems --- */
+    #devicesTable thead {
+        display: none;
+    }
+
+    #devicesTable tbody tr {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        gap: 6px;
+        background: var(--bg-card);
+    }
+
+    #devicesTable tbody tr:hover {
+        background: var(--bg-card);
+    }
+
+    #devicesTable tbody tr td {
+        display: flex;
+        align-items: center;
+        padding: 2px 0;
+        border-bottom: none;
+        font-size: 13px;
+    }
+
+    #devicesTable tbody tr td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        min-width: 100px;
+        flex-shrink: 0;
+    }
+
+    #devicesTable tbody tr td.prt-cell-code {
+        font-size: 15px;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 4px;
+    }
+
+    #devicesTable tbody tr td.prt-cell-code::before {
+        display: none;
+    }
+
+    #devicesTable tbody tr td.prt-cell-actions {
+        justify-content: flex-end;
+        padding-top: 6px;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+    }
+
+    #devicesTable tbody tr td.prt-cell-actions::before {
+        display: none;
+    }
+
+    /* --- Prietaiso detalių kortelės antraštė --- */
+    .prt-detail-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    .prt-detail-header .actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    /* --- Statistikos suvestinės kortelės --- */
+    .stats-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     /* --- Modaliniai langai --- */
     .modal {
         width: 95vw;

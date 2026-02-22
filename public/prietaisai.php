@@ -177,7 +177,7 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <div class="card" style="margin-bottom: 16px;">
-    <div class="card-header">
+    <div class="card-header prt-detail-header">
         <span class="card-title"><?= h($view_device['pavadinimas']) ?> (<?= h($view_device['vidinis_kodas']) ?>)</span>
         <div class="actions">
             <?php
@@ -441,7 +441,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table>
+            <table id="devicesTable">
                 <thead>
                     <tr>
                         <th>Kodas</th>
@@ -479,14 +479,14 @@ require_once __DIR__ . '/includes/header.php';
                             }
                         ?>
                         <tr data-testid="row-device-<?= $d['id'] ?>">
-                            <td style="font-weight: 500;"><a href="/prietaisai.php?id=<?= $d['id'] ?>" style="color: var(--primary);" data-testid="link-device-<?= $d['id'] ?>"><?= h($d['vidinis_kodas']) ?></a></td>
-                            <td><?= h($d['pavadinimas']) ?></td>
-                            <td><?= h($d['gamintojas'] ?: '-') ?></td>
-                            <td style="color: var(--text-secondary);"><?= h($d['serijos_nr'] ?: '-') ?></td>
-                            <td><span class="badge <?= $busena_badge ?>"><?= h($busena_labels[$d['busena']] ?? $d['busena'] ?? '-') ?></span></td>
-                            <td><?php if ($cal_badge): ?><span class="badge <?= $cal_badge ?>"><?= $cal_text ?></span><?php else: ?>-<?php endif; ?></td>
-                            <td style="color: var(--text-secondary);"><?= h($d['galiojimo_pabaiga'] ?: '-') ?></td>
-                            <td>
+                            <td class="prt-cell-code" style="font-weight: 500;"><a href="/prietaisai.php?id=<?= $d['id'] ?>" style="color: var(--primary);" data-testid="link-device-<?= $d['id'] ?>"><?= h($d['vidinis_kodas']) ?></a></td>
+                            <td data-label="Pavadinimas"><?= h($d['pavadinimas']) ?></td>
+                            <td data-label="Gamintojas"><?= h($d['gamintojas'] ?: '-') ?></td>
+                            <td data-label="Serijos Nr." style="color: var(--text-secondary);"><?= h($d['serijos_nr'] ?: '-') ?></td>
+                            <td data-label="Būsena"><span class="badge <?= $busena_badge ?>"><?= h($busena_labels[$d['busena']] ?? $d['busena'] ?? '-') ?></span></td>
+                            <td data-label="Kalibravimas"><?php if ($cal_badge): ?><span class="badge <?= $cal_badge ?>"><?= $cal_text ?></span><?php else: ?>-<?php endif; ?></td>
+                            <td data-label="Galioja iki" style="color: var(--text-secondary);"><?= h($d['galiojimo_pabaiga'] ?: '-') ?></td>
+                            <td class="prt-cell-actions">
                                 <div class="actions">
                                     <a href="/prietaisai.php?id=<?= $d['id'] ?>" class="btn btn-secondary btn-sm" data-testid="button-view-device-<?= $d['id'] ?>">Peržiūrėti</a>
                                     <?php if (($user['role'] ?? '') === 'admin'): ?>
