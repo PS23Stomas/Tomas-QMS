@@ -27,6 +27,7 @@ $defektai         = $_POST['defektas'];
 $reikalavimai     = $_POST['reikalavimas'] ?? [];
 $eil_nrs          = $_POST['eil_nr'] ?? [];
 $darba_atliko_in  = $_POST['darba_atliko'] ?? [];
+$pataisyta_in     = $_POST['pataisyta'] ?? [];
 
 $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_POST['uzsakovas'] ?? '';
@@ -46,7 +47,7 @@ try {
     /* --- Esamų duomenų užkrovimas iš duomenų bazės --- */
     /* Užkraunami visi esami bandymų įrašai šiam gaminiui, indeksuoti pagal eilės numerį */
     $stmt = $conn->prepare("
-        SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas
+        SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, pataisyta
         FROM mt_funkciniai_bandymai
         WHERE gaminio_id = ?
     ");
@@ -59,6 +60,7 @@ try {
             'defektas'         => trim((string)$row['defektas']),
             'darba_atliko'     => trim((string)$row['darba_atliko']),
             'irase_vartotojas' => (string)$row['irase_vartotojas'],
+            'pataisyta'        => (string)($row['pataisyta'] ?? ''),
         ];
     }
 
@@ -68,15 +70,17 @@ try {
            SET reikalavimas     = :reikalavimas,
                isvada           = :isvada,
                defektas         = :defektas,
-               darba_atliko     = :darba_atliko
+               darba_atliko     = :darba_atliko,
+               pataisyta        = :pataisyta,
+               irase_vartotojas = CASE WHEN irase_vartotojas IS NULL OR irase_vartotojas = '' THEN :irase_vartotojas ELSE irase_vartotojas END
          WHERE gaminio_id       = :gaminio_id AND eil_nr = :eil_nr
     ");
 
     $ins = $conn->prepare("
         INSERT INTO mt_funkciniai_bandymai
-            (gaminio_id, eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas)
+            (gaminio_id, eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, pataisyta)
         VALUES
-            (:gaminio_id, :eil_nr, :reikalavimas, :isvada, :defektas, :darba_atliko, :irase_vartotojas)
+            (:gaminio_id, :eil_nr, :reikalavimas, :isvada, :defektas, :darba_atliko, :irase_vartotojas, :pataisyta)
     ");
 
     $pateikti_eil_nriai = [];
@@ -87,6 +91,7 @@ try {
         $reik         = trim((string)($reikalavimai[$i]    ?? ''));
         $def          = trim((string)($defektai[$i]        ?? ''));
         $darba_atliko = trim((string)($darba_atliko_in[$i] ?? ''));
+        $pataisyta    = trim((string)($pataisyta_in[$i]    ?? ''));
 
         $pateikti_eil_nriai[] = $eil_nr;
         $buvo = $esami[$eil_nr] ?? null;
@@ -112,7 +117,9 @@ try {
                 $buvo['isvada']       !== (string)$isv  ||
                 $buvo['defektas']     !== (string)$def ||
                 $buvo['darba_atliko'] !== (string)$darba_atliko ||
-                $buvo['reikalavimas'] !== (string)$reik
+                $buvo['reikalavimas'] !== (string)$reik ||
+                $buvo['pataisyta']    !== (string)$pataisyta ||
+                ($buvo['irase_vartotojas'] === '' || $buvo['irase_vartotojas'] === null)
             );
 
             if (!$reikia_atnaujinti) {
@@ -131,12 +138,14 @@ try {
         /* Vykdome UPDATE (jei eilutė egzistavo) arba INSERT (jei nauja) */
         if ($buvo) {
             $upd->execute([
-                ':gaminio_id'   => $gaminio_id,
-                ':eil_nr'       => $eil_nr,
-                ':reikalavimas' => $reik,
-                ':isvada'       => $isv,
-                ':defektas'     => $def,
-                ':darba_atliko' => $darba_atliko,
+                ':gaminio_id'       => $gaminio_id,
+                ':eil_nr'           => $eil_nr,
+                ':reikalavimas'     => $reik,
+                ':isvada'           => $isv,
+                ':defektas'         => $def,
+                ':darba_atliko'     => $darba_atliko,
+                ':pataisyta'        => $pataisyta,
+                ':irase_vartotojas' => $pilnas_vardas,
             ]);
         } else {
             $ins->execute([
@@ -147,6 +156,7 @@ try {
                 ':defektas'         => $def,
                 ':darba_atliko'     => $darba_atliko,
                 ':irase_vartotojas' => $irase_vartotojas,
+                ':pataisyta'        => $pataisyta,
             ]);
         }
     }

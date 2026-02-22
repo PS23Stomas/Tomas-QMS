@@ -18,6 +18,7 @@ class DBMigracija {
         $this->pridetiMtDielektriniuStulpelius();
         $this->pridetiDefektoNuotraukuStulpelius();
         $this->pridetiMtFunkciniuPdfStulpelius();
+        $this->pridetiPataisytaStulpeli();
         $this->pataisytiVarcharLaukus();
     }
 
@@ -134,6 +135,18 @@ class DBMigracija {
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_funkciniu_pdf BYTEA");
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN mt_funkciniu_failas VARCHAR(255)");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda pataisyta stulpelį į mt_funkciniai_bandymai lentelę */
+    private function pridetiPataisytaStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'pataisyta'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN pataisyta TEXT DEFAULT ''");
             }
         } catch (PDOException $e) {
         }

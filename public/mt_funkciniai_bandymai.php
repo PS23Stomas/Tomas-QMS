@@ -43,7 +43,7 @@ $pdf_klaida = $_GET['pdf_klaida'] ?? '';
 
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
-$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
 $duomenys_map = [];
@@ -54,7 +54,8 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         'defektas'   => $r['defektas'] ?? '',
         'atliko'     => $r['darba_atliko'] ?? '',
         'irase'      => $r['irase_vartotojas'] ?? '',
-        'nuotrauka'  => $r['defekto_nuotraukos_pavadinimas'] ?? ''
+        'nuotrauka'  => $r['defekto_nuotraukos_pavadinimas'] ?? '',
+        'pataisyta'  => $r['pataisyta'] ?? ''
     ];
 }
 ?>
@@ -75,6 +76,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         .col-isvada { width: 100px; }
         .col-defekt { width: 260px; }
         .col-nuotr  { width: 220px; }
+        .col-patais { width: 160px; }
         .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
         .nuotr-input { font-size: 11px; }
     </style>
@@ -116,6 +118,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                         <th class="col-isvada">Išvada</th>
                         <th class="col-defekt">Defektas/Trukumas</th>
                         <th class="col-nuotr">Nuotrauka</th>
+                        <th class="col-patais">Pataisyta</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -128,6 +131,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                     $atliko    = $row['atliko']    ?? '';
                     $irase     = $row['irase']     ?? '';
                     $nuotrauka = $row['nuotrauka'] ?? '';
+                    $pataisyta = $row['pataisyta'] ?? '';
                 ?>
                     <tr>
                         <td class="text-center"><?= $eil_nr ?></td>
@@ -164,6 +168,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                                 </a>
                             <?php endif; ?>
                             <input type="file" name="nuotrauka_<?= $eil_nr ?>" accept="image/*" capture="environment" class="form-control nuotr-input mt-1" data-testid="input-photo-<?= $eil_nr ?>">
+                        </td>
+                        <td>
+                            <input type="text" name="pataisyta[<?= $i ?>]" class="form-control"
+                                   placeholder="" value="<?= htmlspecialchars($pataisyta) ?>" data-testid="input-pataisyta-<?= $eil_nr ?>">
                         </td>
                     </tr>
                 <?php endforeach; ?>
