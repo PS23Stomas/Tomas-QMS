@@ -24,9 +24,14 @@ $user = currentUser();
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png?v=2">
+    <!-- Preconnect – greitesnis CDN resursų užkrovimas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <!-- Stilių ir šriftų įkėlimas -->
     <link rel="stylesheet" href="/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
     <div class="app-layout">

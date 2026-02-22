@@ -22,6 +22,12 @@ $file = __DIR__ . $path;
 // Statinių failų aptarnavimas (CSS, JS, paveikslėliai, šriftai ir kt.)
 if (preg_match('/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/i', $path)) {
     if (file_exists($file)) {
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf'])) {
+            header('Cache-Control: public, max-age=2592000, immutable');
+        } else {
+            header('Cache-Control: public, max-age=3600');
+        }
         return false;
     }
 }

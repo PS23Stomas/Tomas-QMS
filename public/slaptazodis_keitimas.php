@@ -78,7 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
     <title>Naujas slaptažodis - MT Modulis</title>
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

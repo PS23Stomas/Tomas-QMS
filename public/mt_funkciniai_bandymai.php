@@ -65,6 +65,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
     <title>MT atliktų darbų pildymo forma</title>
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; }

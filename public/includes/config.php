@@ -22,9 +22,14 @@ require_once $klases_dir . 'Emailas.php';
 // Duomenų bazės prisijungimo gavimas
 $pdo = Database::getConnection();
 
-// Migracijos paleidimas - automatiškai atnaujina duomenų bazės struktūrą
-$migracija = new DBMigracija($pdo);
-$migracija->paleisti();
+// Migracijos paleidimas - tik kai pasikeitė migracijos failas arba nauja sesija
+$migr_failas = $klases_dir . 'DBMigracija.php';
+$migr_hash = md5_file($migr_failas);
+if (empty($_SESSION['migracijos_hash']) || $_SESSION['migracijos_hash'] !== $migr_hash) {
+    $migracija = new DBMigracija($pdo);
+    $migracija->paleisti();
+    $_SESSION['migracijos_hash'] = $migr_hash;
+}
 
 /**
  * Tikrina, ar vartotojas yra prisijungęs prie sistemos
