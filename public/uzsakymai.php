@@ -334,7 +334,7 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <div class="card" style="margin-bottom: 16px;" data-testid="card-mt-langas">
-    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div class="card-header uzs-detail-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             MT Gaminių Langas
@@ -524,8 +524,8 @@ require_once __DIR__ . '/includes/header.php';
 <div class="card">
     <div class="card-header">
         <span class="card-title">Visi užsakymai (<?= count($orders) ?>)</span>
-        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-            <div style="position:relative;">
+        <div class="uzs-header-actions" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <div class="uzs-search-wrap" style="position:relative;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
@@ -545,7 +545,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div id="importDetails" style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
                 </div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openModal('createOrderModal')" data-testid="button-new-order">
+            <button class="btn btn-primary btn-sm btn-new-order" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
             </button>
@@ -571,11 +571,11 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if (count($orders) > 0): ?>
                         <?php foreach ($orders as $o): ?>
                         <tr data-testid="row-order-<?= $o['id'] ?>" data-order-nr="<?= h(mb_strtolower($o['uzsakymo_numeris'] ?? '')) ?>">
-                            <td><a href="/uzsakymai.php?id=<?= $o['id'] ?>" style="color: var(--primary); font-weight: 500;" data-testid="link-order-<?= $o['id'] ?>"><?= h($o['uzsakymo_numeris'] ?: 'Be nr.') ?></a></td>
-                            <td><?= h($o['uzsakovas'] ?? '-') ?></td>
-                            <td><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
-                            <td style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
-                            <td style="text-align: center;">
+                            <td class="uzs-cell-nr"><a href="/uzsakymai.php?id=<?= $o['id'] ?>" style="color: var(--primary); font-weight: 500;" data-testid="link-order-<?= $o['id'] ?>"><?= h($o['uzsakymo_numeris'] ?: 'Be nr.') ?></a></td>
+                            <td data-label="Užsakovas"><?= h($o['uzsakovas'] ?? '-') ?></td>
+                            <td data-label="Sukūrė"><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
+                            <td data-label="Data" style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
+                            <td data-label="Užbaigtumas" style="text-align: center;">
                                 <?php
                                     $gid = (int)($o['pirmasis_gaminio_id'] ?? 0);
                                     $uzb_data = $uzbaigtumo_cache[$gid] ?? ['steps' => 0, 'funk_errors' => 0];
@@ -596,7 +596,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td style="text-align: center;">
+                            <td data-label="Pasas" class="uzs-cell-pdfs" style="text-align: center;">
                                 <?php if (($o['paso_pdf_sk'] ?? 0) > 0): ?>
                                     <?php
                                     $pdf_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_paso_failas IS NOT NULL LIMIT 1");
@@ -610,7 +610,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="text-align: center;">
+                            <td data-label="Dielektr." class="uzs-cell-pdfs" style="text-align: center;">
                                 <?php if (($o['dielektriniu_pdf_sk'] ?? 0) > 0): ?>
                                     <?php
                                     $diel_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_dielektriniu_failas IS NOT NULL LIMIT 1");
@@ -624,7 +624,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="text-align: center;">
+                            <td data-label="Funkc." class="uzs-cell-pdfs" style="text-align: center;">
                                 <?php if (($o['funkciniu_pdf_sk'] ?? 0) > 0): ?>
                                     <?php
                                     $funk_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_funkciniu_failas IS NOT NULL LIMIT 1");
@@ -651,7 +651,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td class="uzs-cell-actions">
                                 <div class="actions">
                                     <?php if (currentUser()['role'] === 'admin'): ?>
                                     <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-order-<?= $o['id'] ?>"
