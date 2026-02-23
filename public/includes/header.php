@@ -36,7 +36,7 @@ $aktyvus_grupe = $_SESSION['aktyvus_grupe'] ?? '';
     <div class="app-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-logo">MT Modulis</div>
+                <div class="sidebar-logo">Tomo-QMS</div>
                 <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
             </div>
             <nav class="sidebar-nav">
