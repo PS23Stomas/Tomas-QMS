@@ -124,10 +124,14 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
     <h2 class="text-center mb-4">MT gaminio atliktų darbų pildymo forma</h2>
 
     <form action="/issaugoti_mt_bandyma.php" method="post" enctype="multipart/form-data">
+        <div class="d-flex justify-content-end mb-2">
+            <button type="button" class="btn btn-primary btn-sm" onclick="atidarytiMasiniSiuntima()" data-testid="button-siusti-pazymetus">✉ Siųsti pažymėtus</button>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle">
                 <thead class="table-light text-center">
                     <tr>
+                        <th style="width:40px;"><input type="checkbox" id="pasirinkti-visus" onclick="perjungtiVisus(this)" data-testid="checkbox-select-all" title="Pažymėti visus"></th>
                         <th class="col-eilnr">Eil. Nr</th>
                         <th>Reikalavimas</th>
                         <th class="col-irase">Įrašė</th>
@@ -152,7 +156,8 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                     $pataisyta   = $row['pataisyta']   ?? '';
                     $issiusta_kam = $row['issiusta_kam'] ?? '';
                 ?>
-                    <tr>
+                    <tr data-eil-nr="<?= $eil_nr ?>" data-reikalavimas="<?= htmlspecialchars($reik) ?>">
+                        <td class="text-center"><input type="checkbox" class="siuntimo-cb" value="<?= $eil_nr ?>" data-testid="checkbox-eilute-<?= $eil_nr ?>"></td>
                         <td class="text-center"><?= $eil_nr ?></td>
                         <td><?= htmlspecialchars($reik) ?></td>
                         <td><?= htmlspecialchars($irase) ?></td>
@@ -193,7 +198,6 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                                    placeholder="" value="<?= htmlspecialchars($pataisyta) ?>" data-testid="input-pataisyta-<?= $eil_nr ?>">
                         </td>
                         <td>
-                            <button type="button" class="btn-siusti" onclick="atidarytiSiuntima(<?= $eil_nr ?>)" data-testid="button-siusti-<?= $eil_nr ?>">✉ Siųsti</button>
                             <div id="issiusta-info-<?= $eil_nr ?>" class="issiusta-info"><?= !empty($issiusta_kam) ? htmlspecialchars($issiusta_kam) : '' ?></div>
                             <div id="siuntimo-rez-<?= $eil_nr ?>" class="siuntimo-rezultatas"></div>
                         </td>
@@ -234,10 +238,8 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
 </div>
 <div class="modal-overlay" id="siuntimo-modal">
     <div class="modal-box">
-        <h5>Siųsti el. pranešimą</h5>
-        <p style="font-size: 13px; color: #555; margin-bottom: 10px;">
-            Punktas: <strong id="modal-punktas-nr"></strong> – <span id="modal-punktas-pav"></span>
-        </p>
+        <h5>Siųsti el. pranešimus</h5>
+        <div id="modal-punktu-sarasas" style="font-size: 13px; color: #555; margin-bottom: 10px;"></div>
         <label for="modal-gavejas" style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block;">Pasirinkite gavėją:</label>
         <select id="modal-gavejas" class="form-select" data-testid="select-gavejas">
             <option value="">-- Pasirinkite --</option>
@@ -245,26 +247,62 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
             <option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['vardas'] . ' ' . $v['pavarde']) ?> (<?= htmlspecialchars($v['el_pastas']) ?>)</option>
             <?php endforeach; ?>
         </select>
+        <div id="modal-siuntimo-progr" style="display:none; margin-bottom:10px;">
+            <div style="font-size:13px; color:#555; margin-bottom:4px;">Siunčiama: <span id="modal-progr-tekstas"></span></div>
+            <div style="background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden;">
+                <div id="modal-progr-bar" style="background:#3498db; height:100%; width:0%; transition: width 0.3s;"></div>
+            </div>
+        </div>
         <div class="btn-group">
             <button type="button" class="btn btn-secondary btn-sm" onclick="uzdarytiSiuntima()" data-testid="button-atsaukti-siuntima">Atšaukti</button>
-            <button type="button" class="btn btn-primary btn-sm" id="modal-siusti-btn" onclick="siustiElPasta()" data-testid="button-patvirtinti-siuntima">Siųsti</button>
+            <button type="button" class="btn btn-primary btn-sm" id="modal-siusti-btn" onclick="siustiMasiniai()" data-testid="button-patvirtinti-siuntima">Siųsti visus</button>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-var _siuntimo_eil_nr = 0;
 var _gaminio_id = <?= (int)$gaminio_id ?>;
 var _uzsakymo_numeris = <?= json_encode($uzsakymo_numeris) ?>;
 var _gaminio_pavadinimas = <?= json_encode($gaminio_pavadinimas) ?>;
+var _pasirinkti_eilnr = [];
 
-function atidarytiSiuntima(eilNr) {
-    _siuntimo_eil_nr = eilNr;
-    document.getElementById('modal-punktas-nr').textContent = eilNr;
-    var row = document.querySelector('tr:nth-child(' + eilNr + ') td:nth-child(2)');
-    document.getElementById('modal-punktas-pav').textContent = row ? row.textContent.trim() : '';
+function perjungtiVisus(cb) {
+    var visi = document.querySelectorAll('.siuntimo-cb');
+    for (var i = 0; i < visi.length; i++) {
+        visi[i].checked = cb.checked;
+    }
+}
+
+function gautiPasirinktus() {
+    var pasirinkti = [];
+    var visi = document.querySelectorAll('.siuntimo-cb:checked');
+    for (var i = 0; i < visi.length; i++) {
+        pasirinkti.push(parseInt(visi[i].value));
+    }
+    return pasirinkti;
+}
+
+function atidarytiMasiniSiuntima() {
+    _pasirinkti_eilnr = gautiPasirinktus();
+    if (_pasirinkti_eilnr.length === 0) {
+        alert('Pažymėkite bent vieną eilutę');
+        return;
+    }
+    var sarasas = document.getElementById('modal-punktu-sarasas');
+    var html = '<strong>Pažymėti punktai (' + _pasirinkti_eilnr.length + '):</strong><ul style="margin:5px 0 0 0; padding-left:20px;">';
+    for (var i = 0; i < _pasirinkti_eilnr.length; i++) {
+        var nr = _pasirinkti_eilnr[i];
+        var rowEl = document.querySelector('tr[data-eil-nr="' + nr + '"]');
+        var pav = rowEl ? rowEl.getAttribute('data-reikalavimas') : '';
+        html += '<li>' + nr + '. ' + pav + '</li>';
+    }
+    html += '</ul>';
+    sarasas.innerHTML = html;
     document.getElementById('modal-gavejas').value = '';
+    document.getElementById('modal-siuntimo-progr').style.display = 'none';
+    document.getElementById('modal-siusti-btn').disabled = false;
+    document.getElementById('modal-siusti-btn').textContent = 'Siųsti visus';
     document.getElementById('siuntimo-modal').classList.add('active');
 }
 
@@ -272,7 +310,7 @@ function uzdarytiSiuntima() {
     document.getElementById('siuntimo-modal').classList.remove('active');
 }
 
-function siustiElPasta() {
+function siustiMasiniai() {
     var gavejo_id = document.getElementById('modal-gavejas').value;
     if (!gavejo_id) {
         alert('Pasirinkite gavėją');
@@ -285,34 +323,63 @@ function siustiElPasta() {
 
     var formData = new FormData();
     formData.append('gaminio_id', _gaminio_id);
-    formData.append('eil_nr', _siuntimo_eil_nr);
     formData.append('gavejo_id', gavejo_id);
     formData.append('uzsakymo_numeris', _uzsakymo_numeris);
     formData.append('gaminio_pavadinimas', _gaminio_pavadinimas);
+    for (var i = 0; i < _pasirinkti_eilnr.length; i++) {
+        formData.append('eil_nr[]', _pasirinkti_eilnr[i]);
+    }
+
+    var progrDiv = document.getElementById('modal-siuntimo-progr');
+    progrDiv.style.display = 'block';
+    document.getElementById('modal-progr-tekstas').textContent = '0 / ' + _pasirinkti_eilnr.length;
+    document.getElementById('modal-progr-bar').style.width = '0%';
 
     fetch('/siusti_defekta.php', { method: 'POST', body: formData })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            var rezDiv = document.getElementById('siuntimo-rez-' + _siuntimo_eil_nr);
             if (data.success) {
-                rezDiv.className = 'siuntimo-rezultatas ok';
-                rezDiv.textContent = '✓ ' + data.message;
-                document.getElementById('issiusta-info-' + _siuntimo_eil_nr).textContent = data.issiusta_kam || '';
+                var rezultatai = data.rezultatai || [];
+                var sekmingai = 0;
+                for (var i = 0; i < rezultatai.length; i++) {
+                    var rez = rezultatai[i];
+                    var rezDiv = document.getElementById('siuntimo-rez-' + rez.eil_nr);
+                    if (rez.ok) {
+                        sekmingai++;
+                        if (rezDiv) {
+                            rezDiv.className = 'siuntimo-rezultatas ok';
+                            rezDiv.textContent = '✓ Išsiųsta';
+                        }
+                        var infoDiv = document.getElementById('issiusta-info-' + rez.eil_nr);
+                        if (infoDiv && rez.issiusta_kam) {
+                            infoDiv.textContent = rez.issiusta_kam;
+                        }
+                    } else {
+                        if (rezDiv) {
+                            rezDiv.className = 'siuntimo-rezultatas klaida';
+                            rezDiv.textContent = '✗ ' + (rez.message || 'Klaida');
+                        }
+                    }
+                    var proc = Math.round(((i + 1) / rezultatai.length) * 100);
+                    document.getElementById('modal-progr-bar').style.width = proc + '%';
+                    document.getElementById('modal-progr-tekstas').textContent = (i + 1) + ' / ' + rezultatai.length;
+                }
+                document.getElementById('modal-progr-tekstas').textContent = 'Baigta! Išsiųsta: ' + sekmingai + ' / ' + rezultatai.length;
+
+                var visi_cb = document.querySelectorAll('.siuntimo-cb:checked');
+                for (var j = 0; j < visi_cb.length; j++) { visi_cb[j].checked = false; }
+                document.getElementById('pasirinkti-visus').checked = false;
             } else {
-                rezDiv.className = 'siuntimo-rezultatas klaida';
-                rezDiv.textContent = '✗ ' + data.message;
+                alert(data.message || 'Klaida siunčiant');
             }
-            uzdarytiSiuntima();
             btn.disabled = false;
-            btn.textContent = 'Siųsti';
+            btn.textContent = 'Siųsti visus';
+            setTimeout(function() { uzdarytiSiuntima(); }, 2000);
         })
         .catch(function(err) {
-            var rezDiv = document.getElementById('siuntimo-rez-' + _siuntimo_eil_nr);
-            rezDiv.className = 'siuntimo-rezultatas klaida';
-            rezDiv.textContent = '✗ Klaida siunčiant';
-            uzdarytiSiuntima();
+            alert('Klaida siunčiant: ' + err);
             btn.disabled = false;
-            btn.textContent = 'Siųsti';
+            btn.textContent = 'Siųsti visus';
         });
 }
 
