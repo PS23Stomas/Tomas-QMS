@@ -345,8 +345,12 @@ require_once __DIR__ . '/includes/header.php';
 <!-- ==================== TAB 1: 30 dienų rodikliai ==================== -->
 <div id="tab-content-30d" class="kr-tab-content" style="<?= $active_tab !== '30d' ? 'display:none;' : '' ?>" data-testid="tab-content-30d">
 
-<div class="dashboard-top-bar">
+<div class="dashboard-top-bar" style="display:flex;justify-content:space-between;align-items:center;">
   <div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutines 30 dienu (1 menuo)</div>
+  <a href="/kokybe_30d_pdf.php" target="_blank" class="btn btn-secondary" data-testid="button-30d-pdf" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:5px 14px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Atsisiusti PDF
+  </a>
 </div>
 
 <div class="kpi-grid" data-testid="kpi-container">
@@ -716,6 +720,16 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
         <div class="form-group">
             <button type="submit" class="btn btn-primary" data-testid="button-filter-stat">Rodyti</button>
         </div>
+
+        <?php if ($ist_rodyti): ?>
+        <div class="form-group">
+            <a href="/kokybe_isplestine_pdf.php?<?= http_build_query(array_filter(['uzsakymo_numeris' => $ist_uzsakymo_numeris, 'periodas' => $ist_periodas, 'menuo' => $ist_menuo, 'nuo' => $ist_nuo, 'iki' => $ist_iki])) ?>" 
+               target="_blank" class="btn btn-secondary" data-testid="button-stat-pdf" style="display:inline-flex;align-items:center;gap:5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                PDF
+            </a>
+        </div>
+        <?php endif; ?>
 
         <?php if ($ist_uzsakymo_numeris !== '' || $ist_periodas !== 'visi' || $ist_menuo !== '' || $ist_nuo !== '' || $ist_iki !== ''): ?>
         <div class="form-group">
