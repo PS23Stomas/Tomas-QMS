@@ -33,12 +33,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
             $stmt->execute([$id]);
             $modulis = $stmt->fetchColumn();
             
+            if (!$modulis) {
+                header('Location: /moduliai.php?klaida=' . urlencode('Modulis nerastas'));
+                exit;
+            }
+
+            $kliutys = [];
+
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM gaminio_tipai WHERE grupe = ?");
             $stmt->execute([$modulis]);
-            $turi_tipu = (int)$stmt->fetchColumn();
-            
-            if ($turi_tipu > 0) {
-                header('Location: /moduliai.php?klaida=' . urlencode('Negalima ištrinti modulio, nes jame yra gaminių tipų'));
+            if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'gaminių tipų';
+
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
+            $stmt->execute([$id]);
+            if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'tikrinimo šablonų';
+
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE gt.grupe = ?");
+            $stmt->execute([$modulis]);
+            if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'užsakymų';
+
+            if (!empty($kliutys)) {
+                $msg = 'Negalima ištrinti modulio, nes jame yra: ' . implode(', ', $kliutys);
+                header('Location: /moduliai.php?klaida=' . urlencode($msg));
                 exit;
             }
 
@@ -75,7 +91,8 @@ $moduliai = $pdo->query("SELECT gr.id, gr.pavadinimas,
     (SELECT COUNT(*) FROM uzsakymai u 
      JOIN gaminiai g ON g.uzsakymo_id = u.id 
      JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id 
-     WHERE gt.grupe = gr.pavadinimas) AS uzsakymu_kiekis
+     WHERE gt.grupe = gr.pavadinimas) AS uzsakymu_kiekis,
+    (SELECT COUNT(*) FROM mt_funkciniu_sablonas s WHERE s.gaminiu_rusis_id = gr.id) AS sablonu_kiekis
     FROM gaminiu_rusys gr ORDER BY gr.id")->fetchAll(PDO::FETCH_ASSOC);
 
 $sukurta = $_GET['sukurta'] ?? '';
@@ -135,10 +152,20 @@ include __DIR__ . '/includes/header.php';
             </div>
         </div>
         
-        <div style="display:flex;gap:16px;font-size:13px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:12px;">
-            <div>
-                <span style="font-weight:600;color:var(--text-primary);"><?= (int)$m['uzsakymu_kiekis'] ?></span> užsakymų
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:12px;">
+            <div style="display:flex;gap:16px;">
+                <div><span style="font-weight:600;color:var(--text-primary);"><?= (int)$m['uzsakymu_kiekis'] ?></span> užsakymų</div>
+                <div><span style="font-weight:600;color:var(--text-primary);"><?= (int)$m['sablonu_kiekis'] ?></span> šablonų</div>
             </div>
+            <?php 
+            $tusti = ((int)$m['tipu_kiekis'] === 0 && (int)$m['uzsakymu_kiekis'] === 0 && (int)$m['sablonu_kiekis'] === 0);
+            if ($isAdmin && $tusti): ?>
+            <button class="btn-delete-module" onclick="event.stopPropagation(); deleteModule(<?= (int)$m['id'] ?>, '<?= h($m['pavadinimas']) ?>')" 
+                    data-testid="button-delete-module-<?= h($m['pavadinimas']) ?>"
+                    title="Ištrinti modulį">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <?php endif; ?>
         </div>
     </div>
     <?php endforeach; ?>
@@ -171,12 +198,42 @@ include __DIR__ . '/includes/header.php';
 </div>
 <?php endif; ?>
 
+<form id="deleteModuleForm" method="POST" style="display:none;">
+    <input type="hidden" name="action" value="istrinti">
+    <input type="hidden" name="id" id="deleteModuleId" value="">
+</form>
+
 <style>
 .module-card:hover {
     border-color: var(--primary) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     transform: translateY(-2px);
 }
+.btn-delete-module {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    transition: all 0.15s;
+}
+.btn-delete-module:hover {
+    color: #dc2626;
+    border-color: #dc2626;
+    background: #fef2f2;
+}
 </style>
+
+<script>
+function deleteModule(id, name) {
+    if (confirm('Ar tikrai norite ištrinti modulį "' + name + '"?\n\nŠis veiksmas negrįžtamas.')) {
+        document.getElementById('deleteModuleId').value = id;
+        document.getElementById('deleteModuleForm').submit();
+    }
+}
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
