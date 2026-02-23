@@ -22,6 +22,7 @@ class DBMigracija {
         $this->pridetiIssiustaKamStulpeli();
         $this->pataisytiVarcharLaukus();
         $this->pridetiSablonoGrupesStulpeli();
+        $this->sinchronizuotiSekas();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -205,6 +206,25 @@ class DBMigracija {
                 $this->conn->exec($alter);
             }
         } catch (PDOException $e) {
+        }
+    }
+
+    private function sinchronizuotiSekas(): void {
+        $lenteles = ['uzsakymai', 'gaminiai', 'gaminiu_rusys', 'uzsakovai', 'objektai', 'vartotojai', 'pretenzijos', 'prietaisai', 'gaminio_tipai', 'mt_funkciniu_sablonas'];
+        foreach ($lenteles as $lentele) {
+            try {
+                $col_check = $this->conn->prepare("SELECT column_default FROM information_schema.columns WHERE table_name = :t AND column_name = 'id'");
+                $col_check->execute([':t' => $lentele]);
+                $default = $col_check->fetchColumn();
+                if ($default && preg_match("/nextval\('([^']+)'/", $default, $m)) {
+                    $seq_name = $m[1];
+                    $max_id = (int)$this->conn->query("SELECT COALESCE(MAX(id), 0) FROM {$lentele}")->fetchColumn();
+                    if ($max_id > 0) {
+                        $this->conn->exec("SELECT setval('{$seq_name}', {$max_id})");
+                    }
+                }
+            } catch (PDOException $e) {
+            }
         }
     }
 }
