@@ -2060,3 +2060,51 @@ textarea.form-control {
         font-size: 12px;
     }
 }
+
+/* Gaminių tabs - užsakymo detalėse */
+.gaminiu-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-bottom: none;
+}
+.gaminiu-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.gaminiu-tab:hover {
+    color: var(--primary);
+    background: var(--bg-secondary);
+}
+.gaminiu-tab-active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+    background: var(--bg-secondary);
+}
+.gaminiu-tab-nr {
+    font-weight: 600;
+}
+.gaminiu-tab-status {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.gaminiu-tab-status.status-done {
+    background: var(--success-light, #dcfce7);
+    color: var(--success, #16a34a);
+}
+.gaminiu-tab-status.status-warn {
+    background: #fef3c7;
+    color: #d97706;
+}

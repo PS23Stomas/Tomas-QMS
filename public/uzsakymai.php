@@ -48,17 +48,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Naujo užsakymo kūrimas
     if ($action === 'create') {
+        $kiekis_val = max(1, (int)($_POST['kiekis'] ?? 1));
+        $uzsakymo_nr = trim($_POST['uzsakymo_numeris'] ?? '');
+        
         $stmt = $pdo->prepare('INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzsakovas_id, :objektas_id, :vartotojas_id, :rusis_id)');
         $stmt->execute([
-            'nr' => $_POST['uzsakymo_numeris'] ?? '',
-            'kiekis' => $_POST['kiekis'] ?: null,
+            'nr' => $uzsakymo_nr,
+            'kiekis' => $kiekis_val,
             'uzsakovas_id' => $_POST['uzsakovas_id'] ?: null,
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'vartotojas_id' => $_SESSION['vartotojas_id'],
             'rusis_id' => $filtro_rusis_id,
         ]);
         $new_order_id = $pdo->lastInsertId();
-        $pdo->prepare('INSERT INTO gaminiai (uzsakymo_id) VALUES (:uid)')->execute(['uid' => $new_order_id]);
+        
+        $stmt_gaminys = $pdo->prepare('INSERT INTO gaminiai (uzsakymo_id, gaminio_numeris) VALUES (:uid, :gnr)');
+        for ($i = 1; $i <= $kiekis_val; $i++) {
+            $gaminio_nr = $uzsakymo_nr . '-' . $i;
+            $stmt_gaminys->execute(['uid' => $new_order_id, 'gnr' => $gaminio_nr]);
+        }
         $uzs_nr_val = $_POST['uzsakymo_numeris'] ?? '';
         $uzs_pav = '';
         $obj_pav = '';
@@ -187,28 +195,24 @@ if ($view_id) {
         $uzsakymo_nr = $order['uzsakymo_numeris'] ?? '';
         $uzsakovas_name = $order['uzsakovas'] ?? '';
 
-        // Gaunamas esamas MT gaminio pilnas pavadinimas
         $esamas_pavadinimas = $gaminys_helper->gautiPilnaPavadinima($uzsakymo_nr);
 
-        // MT gaminio ID nustatymas navigacijos kortelėms (pirmiausia ieškoma gaminiai lentelėje)
+        $pasirinktas_gaminys_id = isset($_GET['gaminys']) ? (int)$_GET['gaminys'] : 0;
+
         $gaminio_id_mt = 0;
-        if ($uzsakymo_nr !== '') {
-            $st = $pdo->prepare("SELECT g.id FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY g.id DESC LIMIT 1");
-            $st->execute([':nr' => $uzsakymo_nr]);
-            if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
-                $gaminio_id_mt = (int)$row['id'];
+        if ($pasirinktas_gaminys_id > 0) {
+            $chk = $pdo->prepare("SELECT id FROM gaminiai WHERE id = ? AND uzsakymo_id = ?");
+            $chk->execute([$pasirinktas_gaminys_id, $view_id]);
+            if ($chk->fetch()) {
+                $gaminio_id_mt = $pasirinktas_gaminys_id;
             }
         }
-        // Antrinis bandymas: ieškoma per mt_funkciniai_bandymai lentelę
-        if ($gaminio_id_mt === 0 && $uzsakymo_nr !== '') {
-            $st = $pdo->prepare("SELECT m.gaminio_id FROM mt_funkciniai_bandymai m JOIN gaminiai g ON g.id = m.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY m.id DESC LIMIT 1");
-            $st->execute([':nr' => $uzsakymo_nr]);
-            if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
-                $gaminio_id_mt = (int)$row['gaminio_id'];
-            }
+        if ($gaminio_id_mt === 0 && !empty($order_products)) {
+            $gaminio_id_mt = (int)$order_products[0]['id'];
         }
 
         $uzbaigtumo_zingsniai = ['funkciniai' => false, 'komponentai' => false, 'dielektriniai' => false, 'pasas' => false];
+        $funkciniu_klaidu_sk = 0;
         if ($gaminio_id_mt > 0) {
             $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
             $st->execute([$gaminio_id_mt]);
@@ -238,6 +242,14 @@ if ($view_id) {
         $uzbaigtumo_atlikta = array_sum($uzbaigtumo_zingsniai);
         $uzbaigtumo_viso = count($uzbaigtumo_zingsniai);
         $uzbaigtumo_procentai = round(($uzbaigtumo_atlikta / $uzbaigtumo_viso) * 100);
+
+        $aktyvaus_gaminio_nr = '';
+        foreach ($order_products as $p) {
+            if ((int)$p['id'] === $gaminio_id_mt) {
+                $aktyvaus_gaminio_nr = $p['gaminio_numeris'] ?? '';
+                break;
+            }
+        }
     }
 }
 
@@ -259,7 +271,14 @@ $stmt_orders->execute([$filtro_rusis_id]);
 $orders = $stmt_orders->fetchAll();
 
 $uzbaigtumo_cache = [];
-$all_gaminio_ids = array_filter(array_column($orders, 'pirmasis_gaminio_id'));
+$detail_gaminio_ids = [];
+if ($view_id && !empty($order_products)) {
+    $detail_gaminio_ids = array_map(function($p) { return (int)$p['id']; }, $order_products);
+}
+$all_gaminio_ids = array_unique(array_merge(
+    array_filter(array_column($orders, 'pirmasis_gaminio_id')),
+    $detail_gaminio_ids
+));
 if (!empty($all_gaminio_ids)) {
     $placeholders = implode(',', array_fill(0, count($all_gaminio_ids), '?'));
 
@@ -324,6 +343,11 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php
     $first_product = $order_products[0] ?? null;
+    $aktyvus_gaminys = null;
+    foreach ($order_products as $p) {
+        if ((int)$p['id'] === $gaminio_id_mt) { $aktyvus_gaminys = $p; break; }
+    }
+    if (!$aktyvus_gaminys) $aktyvus_gaminys = $first_product;
 ?>
 <div class="card" style="margin-bottom: 16px;">
     <div class="card-header">
@@ -337,31 +361,48 @@ require_once __DIR__ . '/includes/header.php';
                 <p><strong>Objektas:</strong> <?= h($order['objektas'] ?? '-') ?></p>
             </div>
             <div>
-                <p><strong>Pavadinimas:</strong> <?= h($esamas_pavadinimas ?: ($first_product['gaminio_tipas'] ?? '-')) ?></p>
-                <p><strong>Gaminio Nr.:</strong> <?= h($first_product['gaminio_numeris'] ?? '-') ?></p>
-                <p><strong>Protokolo Nr.:</strong> <?= h($first_product['protokolo_nr'] ?? '-') ?></p>
+                <p><strong>Pavadinimas:</strong> <?= h($esamas_pavadinimas ?: ($aktyvus_gaminys['gaminio_tipas'] ?? '-')) ?></p>
+                <p><strong>Kiekis:</strong> <?= count($order_products) ?></p>
                 <p><strong>Sukūrė:</strong> <?= h(($order['vardas'] ?? '') . ' ' . ($order['pavarde'] ?? '')) ?></p>
                 <p><strong>Data:</strong> <?= h($order['sukurtas'] ?? '') ?></p>
             </div>
         </div>
-        <?php if (count($order_products) > 1): ?>
-        <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
-            <p style="color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 6px;"><strong>Visi gaminiai (<?= count($order_products) ?>):</strong></p>
-            <?php foreach ($order_products as $idx => $p): ?>
-            <p style="font-size: 0.82rem; color: var(--text-secondary);">
-                <?= ($idx + 1) ?>. Nr. <?= h($p['gaminio_numeris'] ?: '-') ?> &mdash; <?= h($p['gaminio_tipas'] ?? '-') ?> &mdash; Prot. <?= h($p['protokolo_nr'] ?: '-') ?> &mdash; Atit. <?= h($p['atitikmuo_kodas'] ?: '-') ?>
-            </p>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
     </div>
 </div>
+
+<?php if (count($order_products) > 1): ?>
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-header">
+        <span class="card-title">Gaminiai (<?= count($order_products) ?>)</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="gaminiu-tabs" data-testid="product-tabs">
+            <?php foreach ($order_products as $idx => $p): 
+                $is_active = ((int)$p['id'] === $gaminio_id_mt);
+                $g_url = '/uzsakymai.php?grupe=' . urlencode($filtro_grupe) . '&id=' . $view_id . '&gaminys=' . $p['id'];
+            ?>
+            <a href="<?= $g_url ?>" class="gaminiu-tab <?= $is_active ? 'gaminiu-tab-active' : '' ?>" data-testid="product-tab-<?= ($idx + 1) ?>">
+                <span class="gaminiu-tab-nr"><?= h($p['gaminio_numeris'] ?: ($idx + 1)) ?></span>
+                <?php
+                    $g_cache = $uzbaigtumo_cache[(int)$p['id']] ?? null;
+                    if ($g_cache && $g_cache['steps'] > 0):
+                ?>
+                <span class="gaminiu-tab-status <?= $g_cache['funk_errors'] > 0 ? 'status-warn' : 'status-done' ?>">
+                    <?= $g_cache['funk_errors'] > 0 ? $g_cache['funk_errors'] . ' kl.' : $g_cache['steps'] . '/4' ?>
+                </span>
+                <?php endif; ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="card" style="margin-bottom: 16px;" data-testid="card-mt-langas">
     <div class="card-header uzs-detail-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <?= h($filtro_grupe) ?> Gaminių Langas
+            <?= h($filtro_grupe) ?> Gaminių Langas<?php if ($aktyvaus_gaminio_nr): ?> — <?= h($aktyvaus_gaminio_nr) ?><?php endif; ?>
         </span>
         <?php if (isset($uzbaigtumo_procentai)): ?>
         <div class="uzbaigtumo-rodiklis" data-testid="text-completion-indicator">
@@ -841,7 +882,7 @@ async function importuotiIsQualityTomas() {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kiekis</label>
-                    <input type="number" class="form-control" name="kiekis" data-testid="input-quantity">
+                    <input type="number" class="form-control" name="kiekis" min="1" value="1" required data-testid="input-quantity">
                 </div>
             </div>
             <div class="modal-footer">
