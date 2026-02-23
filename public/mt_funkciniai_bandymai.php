@@ -43,21 +43,24 @@ $pdf_klaida = $_GET['pdf_klaida'] ?? '';
 
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
-$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
 $duomenys_map = [];
 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
     $nr = (int)$r['eil_nr'];
     $duomenys_map[$nr] = [
-        'isvada'     => $r['isvada'] ?? 'nepadaryta',
-        'defektas'   => $r['defektas'] ?? '',
-        'atliko'     => $r['darba_atliko'] ?? '',
-        'irase'      => $r['irase_vartotojas'] ?? '',
-        'nuotrauka'  => $r['defekto_nuotraukos_pavadinimas'] ?? '',
-        'pataisyta'  => $r['pataisyta'] ?? ''
+        'isvada'       => $r['isvada'] ?? 'nepadaryta',
+        'defektas'     => $r['defektas'] ?? '',
+        'atliko'       => $r['darba_atliko'] ?? '',
+        'irase'        => $r['irase_vartotojas'] ?? '',
+        'nuotrauka'    => $r['defekto_nuotraukos_pavadinimas'] ?? '',
+        'pataisyta'    => $r['pataisyta'] ?? '',
+        'issiusta_kam' => $r['issiusta_kam'] ?? ''
     ];
 }
+
+$vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM vartotojai WHERE el_pastas IS NOT NULL AND el_pastas != '' ORDER BY vardas, pavarde")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="lt">
@@ -77,8 +80,22 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         .col-defekt { width: 260px; }
         .col-nuotr  { width: 220px; }
         .col-patais { width: 160px; }
+        .col-issiusta { width: 180px; }
         .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
         .nuotr-input { font-size: 11px; }
+        .btn-siusti { background: #3498db; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+        .btn-siusti:hover { background: #2980b9; }
+        .btn-siusti:disabled { background: #95a5a6; cursor: not-allowed; }
+        .issiusta-info { font-size: 11px; color: #555; white-space: pre-line; margin-top: 4px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #fff; border-radius: 8px; padding: 24px; max-width: 450px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-box h5 { margin: 0 0 15px; font-size: 18px; }
+        .modal-box .form-select { margin-bottom: 12px; }
+        .modal-box .btn-group { display: flex; gap: 8px; justify-content: flex-end; }
+        .siuntimo-rezultatas { margin-top: 4px; font-size: 11px; font-weight: 500; }
+        .siuntimo-rezultatas.ok { color: #27ae60; }
+        .siuntimo-rezultatas.klaida { color: #c0392b; }
     </style>
 </head>
 <body>
@@ -119,6 +136,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                         <th class="col-defekt">Defektas/Trukumas</th>
                         <th class="col-nuotr">Nuotrauka</th>
                         <th class="col-patais">Pataisyta</th>
+                        <th class="col-issiusta">Išsiųsta</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -129,9 +147,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                     $isvada    = $row['isvada']    ?? 'nepadaryta';
                     $defektas  = $row['defektas']  ?? '';
                     $atliko    = $row['atliko']    ?? '';
-                    $irase     = $row['irase']     ?? '';
-                    $nuotrauka = $row['nuotrauka'] ?? '';
-                    $pataisyta = $row['pataisyta'] ?? '';
+                    $irase       = $row['irase']       ?? '';
+                    $nuotrauka   = $row['nuotrauka']   ?? '';
+                    $pataisyta   = $row['pataisyta']   ?? '';
+                    $issiusta_kam = $row['issiusta_kam'] ?? '';
                 ?>
                     <tr>
                         <td class="text-center"><?= $eil_nr ?></td>
@@ -173,6 +192,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
                             <input type="text" name="pataisyta[<?= $i ?>]" class="form-control"
                                    placeholder="" value="<?= htmlspecialchars($pataisyta) ?>" data-testid="input-pataisyta-<?= $eil_nr ?>">
                         </td>
+                        <td>
+                            <button type="button" class="btn-siusti" onclick="atidarytiSiuntima(<?= $eil_nr ?>)" data-testid="button-siusti-<?= $eil_nr ?>">✉ Siųsti</button>
+                            <div id="issiusta-info-<?= $eil_nr ?>" class="issiusta-info"><?= !empty($issiusta_kam) ? htmlspecialchars($issiusta_kam) : '' ?></div>
+                            <div id="siuntimo-rez-<?= $eil_nr ?>" class="siuntimo-rezultatas"></div>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -208,6 +232,93 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         <?php endif; ?>
     </div>
 </div>
+<div class="modal-overlay" id="siuntimo-modal">
+    <div class="modal-box">
+        <h5>Siųsti el. pranešimą</h5>
+        <p style="font-size: 13px; color: #555; margin-bottom: 10px;">
+            Punktas: <strong id="modal-punktas-nr"></strong> – <span id="modal-punktas-pav"></span>
+        </p>
+        <label for="modal-gavejas" style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block;">Pasirinkite gavėją:</label>
+        <select id="modal-gavejas" class="form-select" data-testid="select-gavejas">
+            <option value="">-- Pasirinkite --</option>
+            <?php foreach ($vartotojai_su_el as $v): ?>
+            <option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['vardas'] . ' ' . $v['pavarde']) ?> (<?= htmlspecialchars($v['el_pastas']) ?>)</option>
+            <?php endforeach; ?>
+        </select>
+        <div class="btn-group">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="uzdarytiSiuntima()" data-testid="button-atsaukti-siuntima">Atšaukti</button>
+            <button type="button" class="btn btn-primary btn-sm" id="modal-siusti-btn" onclick="siustiElPasta()" data-testid="button-patvirtinti-siuntima">Siųsti</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+var _siuntimo_eil_nr = 0;
+var _gaminio_id = <?= (int)$gaminio_id ?>;
+var _uzsakymo_numeris = <?= json_encode($uzsakymo_numeris) ?>;
+var _gaminio_pavadinimas = <?= json_encode($gaminio_pavadinimas) ?>;
+
+function atidarytiSiuntima(eilNr) {
+    _siuntimo_eil_nr = eilNr;
+    document.getElementById('modal-punktas-nr').textContent = eilNr;
+    var row = document.querySelector('tr:nth-child(' + eilNr + ') td:nth-child(2)');
+    document.getElementById('modal-punktas-pav').textContent = row ? row.textContent.trim() : '';
+    document.getElementById('modal-gavejas').value = '';
+    document.getElementById('siuntimo-modal').classList.add('active');
+}
+
+function uzdarytiSiuntima() {
+    document.getElementById('siuntimo-modal').classList.remove('active');
+}
+
+function siustiElPasta() {
+    var gavejo_id = document.getElementById('modal-gavejas').value;
+    if (!gavejo_id) {
+        alert('Pasirinkite gavėją');
+        return;
+    }
+
+    var btn = document.getElementById('modal-siusti-btn');
+    btn.disabled = true;
+    btn.textContent = 'Siunčiama...';
+
+    var formData = new FormData();
+    formData.append('gaminio_id', _gaminio_id);
+    formData.append('eil_nr', _siuntimo_eil_nr);
+    formData.append('gavejo_id', gavejo_id);
+    formData.append('uzsakymo_numeris', _uzsakymo_numeris);
+    formData.append('gaminio_pavadinimas', _gaminio_pavadinimas);
+
+    fetch('/siusti_defekta.php', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var rezDiv = document.getElementById('siuntimo-rez-' + _siuntimo_eil_nr);
+            if (data.success) {
+                rezDiv.className = 'siuntimo-rezultatas ok';
+                rezDiv.textContent = '✓ ' + data.message;
+                document.getElementById('issiusta-info-' + _siuntimo_eil_nr).textContent = data.issiusta_kam || '';
+            } else {
+                rezDiv.className = 'siuntimo-rezultatas klaida';
+                rezDiv.textContent = '✗ ' + data.message;
+            }
+            uzdarytiSiuntima();
+            btn.disabled = false;
+            btn.textContent = 'Siųsti';
+        })
+        .catch(function(err) {
+            var rezDiv = document.getElementById('siuntimo-rez-' + _siuntimo_eil_nr);
+            rezDiv.className = 'siuntimo-rezultatas klaida';
+            rezDiv.textContent = '✗ Klaida siunčiant';
+            uzdarytiSiuntima();
+            btn.disabled = false;
+            btn.textContent = 'Siųsti';
+        });
+}
+
+document.getElementById('siuntimo-modal').addEventListener('click', function(e) {
+    if (e.target === this) uzdarytiSiuntima();
+});
+</script>
 </body>
 </html>

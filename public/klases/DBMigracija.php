@@ -19,6 +19,7 @@ class DBMigracija {
         $this->pridetiDefektoNuotraukuStulpelius();
         $this->pridetiMtFunkciniuPdfStulpelius();
         $this->pridetiPataisytaStulpeli();
+        $this->pridetiIssiustaKamStulpeli();
         $this->pataisytiVarcharLaukus();
     }
 
@@ -147,6 +148,17 @@ class DBMigracija {
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN pataisyta TEXT DEFAULT ''");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiIssiustaKamStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'issiusta_kam'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN issiusta_kam TEXT DEFAULT ''");
             }
         } catch (PDOException $e) {
         }
