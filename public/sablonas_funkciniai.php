@@ -10,11 +10,16 @@ $conn = Database::getConnection();
 
 $user = currentUser();
 if (($user['role'] ?? '') !== 'admin') {
-    header('Location: /index.php');
+    header('Location: /moduliai.php');
     exit;
 }
 
-$filtro_grupe = $_GET['grupe'] ?? 'MT';
+if (!isset($_GET['grupe']) && empty($_SESSION['aktyvus_grupe'])) {
+    header('Location: /moduliai.php');
+    exit;
+}
+
+$filtro_grupe = $_GET['grupe'] ?? ($_SESSION['aktyvus_grupe'] ?? 'MT');
 $grupe_id_stmt = $conn->prepare("SELECT id FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
 $grupe_id_stmt->execute([$filtro_grupe]);
 $gaminiu_rusis_id = (int)($grupe_id_stmt->fetchColumn() ?: 2);

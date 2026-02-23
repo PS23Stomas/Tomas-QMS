@@ -12,7 +12,23 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
-$filtro_grupe = $_GET['grupe'] ?? $_POST['grupe'] ?? 'MT';
+if (!isset($_GET['grupe']) && !isset($_POST['grupe']) && empty($_SESSION['aktyvus_grupe'])) {
+    header('Location: /moduliai.php');
+    exit;
+}
+
+$filtro_grupe = $_GET['grupe'] ?? $_POST['grupe'] ?? ($_SESSION['aktyvus_grupe'] ?? 'MT');
+
+if (isset($_GET['grupe'])) {
+    $stmt_mod = $pdo->prepare("SELECT id, pavadinimas FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
+    $stmt_mod->execute([$_GET['grupe']]);
+    $mod_info = $stmt_mod->fetch(PDO::FETCH_ASSOC);
+    if ($mod_info) {
+        $_SESSION['aktyvus_modulis'] = (int)$mod_info['id'];
+        $_SESSION['aktyvus_modulis_pav'] = $mod_info['pavadinimas'];
+        $_SESSION['aktyvus_grupe'] = $mod_info['pavadinimas'];
+    }
+}
 $rusis_row = $pdo->prepare("SELECT id, pavadinimas FROM gaminiu_rusys WHERE pavadinimas = ?");
 $rusis_row->execute([$filtro_grupe]);
 $rusis_info = $rusis_row->fetch(PDO::FETCH_ASSOC);

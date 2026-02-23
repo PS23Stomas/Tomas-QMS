@@ -66,7 +66,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
                     paskutine_veikla = CURRENT_TIMESTAMP");
             $stmt_ins->execute([$user['id'], $session_id, $user['vardas'], $user['pavarde'], $ip, $user_agent]);
             
-            header("Location: /index.php");
+            header("Location: /moduliai.php");
             exit;
         } else {
             // Negaliojantis slapukas - ištrinamas
@@ -84,7 +84,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
 
 // Jei vartotojas jau prisijungęs - nukreipiame į pagrindinį puslapį
 if (isset($_SESSION['vartotojas_id'])) {
-    header('Location: /index.php');
+    header('Location: /moduliai.php');
     exit;
 }
 
@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             }
             
-            header("Location: /index.php");
+            header("Location: /moduliai.php");
             exit;
         } else {
             $klaida = "Neteisingi prisijungimo duomenys.";

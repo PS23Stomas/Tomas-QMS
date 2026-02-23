@@ -15,6 +15,11 @@ require_once __DIR__ . '/klases/Sesija.php';
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
 
+if (empty($_SESSION['aktyvus_grupe'])) {
+    header('Location: /moduliai.php');
+    exit;
+}
+
 $vardas = htmlspecialchars($_SESSION['vardas']);
 $pavarde = htmlspecialchars($_SESSION['pavarde']);
 $pilnas_vardas = $vardas . ' ' . $pavarde;

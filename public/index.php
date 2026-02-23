@@ -2,7 +2,23 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
-$filtro_grupe = $_GET['grupe'] ?? 'MT';
+if (!isset($_GET['grupe']) && empty($_SESSION['aktyvus_grupe'])) {
+    header('Location: /moduliai.php');
+    exit;
+}
+
+$filtro_grupe = $_GET['grupe'] ?? ($_SESSION['aktyvus_grupe'] ?? 'MT');
+
+if (isset($_GET['grupe'])) {
+    $stmt_mod = $pdo->prepare("SELECT id, pavadinimas FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
+    $stmt_mod->execute([$_GET['grupe']]);
+    $mod_info = $stmt_mod->fetch(PDO::FETCH_ASSOC);
+    if ($mod_info) {
+        $_SESSION['aktyvus_modulis'] = (int)$mod_info['id'];
+        $_SESSION['aktyvus_modulis_pav'] = $mod_info['pavadinimas'];
+        $_SESSION['aktyvus_grupe'] = $mod_info['pavadinimas'];
+    }
+}
 $page_title = $filtro_grupe . ' Kokybės rodikliai';
 $active_tab = $_GET['tab'] ?? '30d';
 

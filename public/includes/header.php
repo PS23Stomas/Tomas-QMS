@@ -8,9 +8,10 @@
 
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 $user = currentUser();
-$current_grupe = $_GET['grupe'] ?? '';
 
-$gaminiu_grupes = $pdo->query("SELECT id, pavadinimas FROM gaminiu_rusys ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+$aktyvus_modulis = $_SESSION['aktyvus_modulis'] ?? null;
+$aktyvus_modulis_pav = $_SESSION['aktyvus_modulis_pav'] ?? '';
+$aktyvus_grupe = $_SESSION['aktyvus_grupe'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="lt">
@@ -39,27 +40,30 @@ $gaminiu_grupes = $pdo->query("SELECT id, pavadinimas FROM gaminiu_rusys ORDER B
                 <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
             </div>
             <nav class="sidebar-nav">
-                <?php foreach ($gaminiu_grupes as $gr): ?>
-                <?php
-                    $gr_pav = htmlspecialchars($gr['pavadinimas']);
-                    $gr_id = (int)$gr['id'];
-                    $gr_slug = urlencode($gr['pavadinimas']);
-                    $is_active_grupe = ($current_grupe === $gr['pavadinimas']);
-                ?>
-                <div class="nav-section-label"><?= $gr_pav ?></div>
-                <a href="/index.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'index' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-dashboard-<?= $gr_slug ?>">
+                <div class="nav-section-label">Moduliai</div>
+                <a href="/moduliai.php" class="nav-item <?= $current_page === 'moduliai' ? 'active' : '' ?>" data-testid="link-modules">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>Visi moduliai</span>
+                </a>
+
+                <?php if ($aktyvus_modulis): ?>
+                <div class="nav-section-label"><?= h($aktyvus_grupe) ?></div>
+                <a href="/index.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     <span>Kokybiniai rodikliai</span>
                 </a>
-                <a href="/uzsakymai.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'uzsakymai' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-orders-<?= $gr_slug ?>">
+                <a href="/uzsakymai.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'uzsakymai' ? 'active' : '' ?>" data-testid="link-orders">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     <span>Užsakymai</span>
                 </a>
-                <a href="/sablonas_funkciniai.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'sablonas_funkciniai' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-template-<?= $gr_slug ?>">
+                <?php $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
+                <?php if ($isAdmin): ?>
+                <a href="/sablonas_funkciniai.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'sablonas_funkciniai' ? 'active' : '' ?>" data-testid="link-template">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                     <span>Tikrinimo šablonas</span>
                 </a>
-                <?php endforeach; ?>
+                <?php endif; ?>
+                <?php endif; ?>
 
                 <div class="nav-section-label">Bendra</div>
                 <a href="/pretenzijos.php" class="nav-item <?= $current_page === 'pretenzijos' ? 'active' : '' ?>" data-testid="link-claims">
@@ -67,7 +71,7 @@ $gaminiu_grupes = $pdo->query("SELECT id, pavadinimas FROM gaminiu_rusys ORDER B
                     <span>Pretenzijos</span>
                 </a>
 
-                <?php $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
+                <?php if (!isset($isAdmin)) $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
                 <div class="nav-section-label">Administravimas</div>
                 <a href="/prietaisai.php" class="nav-item <?= $current_page === 'prietaisai' ? 'active' : '' ?>" data-testid="link-devices">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
