@@ -283,16 +283,9 @@ if ($ist_rodyti) {
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
         $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
-        UNION ALL
-        SELECT u.uzsakymo_numeris, NULL AS reikalavimas, NULL AS defektas, 'atitinka' AS isvada
-        FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
-        LEFT JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
-        $ist_where_sql AND gt.grupe = 'MT'
-        GROUP BY u.uzsakymo_numeris
-        HAVING SUM(CASE WHEN fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' THEN 1 ELSE 0 END) = 0
-        ORDER BY uzsakymo_numeris
+        ORDER BY u.uzsakymo_numeris
     ");
-    $stmt->execute(array_merge($ist_params, $ist_params));
+    $stmt->execute($ist_params);
     $ist_defektu_gaminiai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($ist_defektu_gaminiai as $r) {
