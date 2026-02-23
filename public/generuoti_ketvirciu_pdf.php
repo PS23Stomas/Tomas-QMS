@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();
 
+$filtro_grupe = $_GET['grupe'] ?? 'MT';
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
 $q1_metai = (int)($_GET['kp_q1_metai'] ?? 0);
@@ -14,36 +15,39 @@ if ($q1_metai <= 0 || $q1_ketv <= 0 || $q2_metai <= 0 || $q2_ketv <= 0) {
     die('Nenurodyti ketvirčiai');
 }
 
-function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND) {
+function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND, $grupe = 'MT') {
     $metai = (int)$metai;
     $ketvirtis = (int)$ketvirtis;
     $nuo_men = ($ketvirtis - 1) * 3 + 1;
     $iki_men = $ketvirtis * 3;
     $nuo = "$metai-" . str_pad($nuo_men, 2, '0', STR_PAD_LEFT) . "-01";
     $iki = "$metai-" . str_pad($iki_men, 2, '0', STR_PAD_LEFT) . "-" . cal_days_in_month(CAL_GREGORIAN, $iki_men, $metai);
+    $grupe_q = $pdo->quote($grupe);
     $where = "WHERE u.sukurtas::date BETWEEN '$nuo' AND '$iki'";
+    $gj = "JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id";
+    $gf = "AND gt.grupe = $grupe_q";
     $r = [];
     $r['periodas'] = "$metai Q$ketvirtis";
-    $r['uzsakymai'] = (int)$pdo->query("SELECT COUNT(DISTINCT u.id) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where")->fetchColumn();
-    $r['gaminiai'] = (int)$pdo->query("SELECT COUNT(DISTINCT g.id) FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where")->fetchColumn();
-    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $where")->fetchColumn();
-    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $where AND $DEFECT_COND")->fetchColumn();
+    $r['uzsakymai'] = (int)$pdo->query("SELECT COUNT(DISTINCT u.id) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id $gj JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $gf")->fetchColumn();
+    $r['gaminiai'] = (int)$pdo->query("SELECT COUNT(DISTINCT g.id) FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id $gj JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $gf")->fetchColumn();
+    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $gj JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $gf")->fetchColumn();
+    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $gj JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $gf AND $DEFECT_COND")->fetchColumn();
     $r['defektu_proc'] = ($r['bandymai'] > 0) ? round($r['defektai'] / $r['bandymai'] * 100, 2) : 0;
     $r['defektu_per_gamini'] = ($r['gaminiai'] > 0) ? round($r['defektai'] / $r['gaminiai'], 2) : 0;
     $r['top_darbuotojai'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
             COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $gj JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $gf AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
     $r['top_klydusieji'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $gj JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $gf AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -51,8 +55,8 @@ function gautiKetvircioStat($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         SELECT fb.reikalavimas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $gj JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $gf AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -75,8 +79,8 @@ function pdf_defPokytis($senas, $naujas) {
     return $p;
 }
 
-$q1 = gautiKetvircioStat($pdo, $q1_metai, $q1_ketv, $DEFECT_COND);
-$q2 = gautiKetvircioStat($pdo, $q2_metai, $q2_ketv, $DEFECT_COND);
+$q1 = gautiKetvircioStat($pdo, $q1_metai, $q1_ketv, $DEFECT_COND, $filtro_grupe);
+$q2 = gautiKetvircioStat($pdo, $q2_metai, $q2_ketv, $DEFECT_COND, $filtro_grupe);
 
 $p_uzs = pdf_pokytis($q1['uzsakymai'], $q2['uzsakymai']);
 $p_gam = pdf_pokytis($q1['gaminiai'], $q2['gaminiai']);
@@ -106,12 +110,13 @@ $men_pabaiga = date('Y-m-t', strtotime($men_pradzia));
 $men_where = "WHERE u.sukurtas IS NOT NULL AND u.sukurtas <> '' AND u.sukurtas::timestamp::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
 $men_periodas = $menesiu_pav[$men_menuo] . ' ' . $men_metai;
 
+$men_grupe_q = $pdo->quote($filtro_grupe);
 $combined_workers = $pdo->query("
     SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
         COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -121,8 +126,8 @@ $combined_errors = $pdo->query("
         COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
+    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
     ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
 ")->fetchAll(PDO::FETCH_ASSOC);

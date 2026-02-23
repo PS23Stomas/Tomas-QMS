@@ -12,8 +12,11 @@ if (($user['role'] ?? '') !== 'admin') {
     exit;
 }
 
+$filtro_grupe = $_POST['grupe'] ?? $_GET['grupe'] ?? 'MT';
+$gaminiu_rusis_id = (int)($_POST['gaminiu_rusis_id'] ?? 2);
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: /sablonas_funkciniai.php');
+    header('Location: /sablonas_funkciniai.php?grupe=' . urlencode($filtro_grupe));
     exit;
 }
 
@@ -26,7 +29,7 @@ foreach ($pavadinimai as $pav) {
 }
 
 if (empty($filtruoti)) {
-    header('Location: /sablonas_funkciniai.php?klaida=' . urlencode('Šablonas negali būti tuščias – turi būti bent vienas punktas'));
+    header('Location: /sablonas_funkciniai.php?grupe=' . urlencode($filtro_grupe) . '&klaida=' . urlencode('Šablonas negali būti tuščias – turi būti bent vienas punktas'));
     exit;
 }
 
@@ -35,21 +38,23 @@ $conn = Database::getConnection();
 try {
     $conn->beginTransaction();
 
-    $conn->exec("DELETE FROM mt_funkciniu_sablonas");
+    $del = $conn->prepare("DELETE FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
+    $del->execute([$gaminiu_rusis_id]);
 
-    $stmt = $conn->prepare("INSERT INTO mt_funkciniu_sablonas (eil_nr, pavadinimas) VALUES (:eil_nr, :pavadinimas)");
+    $stmt = $conn->prepare("INSERT INTO mt_funkciniu_sablonas (eil_nr, pavadinimas, gaminiu_rusis_id) VALUES (:eil_nr, :pavadinimas, :gaminiu_rusis_id)");
 
     foreach ($filtruoti as $i => $pav) {
         $stmt->execute([
             ':eil_nr' => $i + 1,
-            ':pavadinimas' => $pav
+            ':pavadinimas' => $pav,
+            ':gaminiu_rusis_id' => $gaminiu_rusis_id
         ]);
     }
 
     $conn->commit();
-    header('Location: /sablonas_funkciniai.php?issaugota=1');
+    header('Location: /sablonas_funkciniai.php?grupe=' . urlencode($filtro_grupe) . '&issaugota=1');
 } catch (Exception $e) {
     $conn->rollBack();
-    header('Location: /sablonas_funkciniai.php?klaida=' . urlencode('Klaida saugant: ' . $e->getMessage()));
+    header('Location: /sablonas_funkciniai.php?grupe=' . urlencode($filtro_grupe) . '&klaida=' . urlencode('Klaida saugant: ' . $e->getMessage()));
 }
 exit;

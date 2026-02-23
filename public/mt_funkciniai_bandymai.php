@@ -27,11 +27,26 @@ $uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
 
 $conn = Database::getConnection();
 
-/* --- Gamybos reikalavimų sąrašas iš šablono lentelės --- */
-$stmt_sab = $conn->query("SELECT pavadinimas FROM mt_funkciniu_sablonas ORDER BY eil_nr ASC");
+/* --- Gamybos reikalavimų sąrašas iš šablono lentelės (pagal grupę) --- */
+$grupe_sab = 'MT';
+if ($gaminio_id > 0) {
+    $stmt_gr = $conn->prepare("SELECT COALESCE(gt.grupe, 'MT') FROM gaminiai g JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id = ?");
+    $stmt_gr->execute([$gaminio_id]);
+    $grupe_sab = $stmt_gr->fetchColumn() ?: 'MT';
+}
+$stmt_rusis = $conn->prepare("SELECT id FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
+$stmt_rusis->execute([$grupe_sab]);
+$rusis_id_sab = (int)($stmt_rusis->fetchColumn() ?: 2);
+
+$stmt_sab = $conn->prepare("SELECT pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
+$stmt_sab->execute([$rusis_id_sab]);
 $reikalavimai = $stmt_sab->fetchAll(PDO::FETCH_COLUMN);
 if (empty($reikalavimai)) {
-    $reikalavimai = ["MT korpuso surinkimas"];
+    $stmt_sab_all = $conn->query("SELECT pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = 2 ORDER BY eil_nr ASC");
+    $reikalavimai = $stmt_sab_all->fetchAll(PDO::FETCH_COLUMN);
+}
+if (empty($reikalavimai)) {
+    $reikalavimai = ["Korpuso surinkimas"];
 }
 $gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);

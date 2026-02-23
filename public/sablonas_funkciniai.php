@@ -14,7 +14,13 @@ if (($user['role'] ?? '') !== 'admin') {
     exit;
 }
 
-$stmt = $conn->query("SELECT id, eil_nr, pavadinimas FROM mt_funkciniu_sablonas ORDER BY eil_nr ASC");
+$filtro_grupe = $_GET['grupe'] ?? 'MT';
+$grupe_id_stmt = $conn->prepare("SELECT id FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
+$grupe_id_stmt->execute([$filtro_grupe]);
+$gaminiu_rusis_id = (int)($grupe_id_stmt->fetchColumn() ?: 2);
+
+$stmt = $conn->prepare("SELECT id, eil_nr, pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
+$stmt->execute([$gaminiu_rusis_id]);
 $sablonas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $issaugota = $_GET['issaugota'] ?? '';
@@ -50,7 +56,9 @@ include __DIR__ . '/includes/header.php';
             Čia galite redaguoti funkcinių bandymų šabloną. Pakeitimai bus taikomi visiems naujiems gaminiams. Esami gaminiai nebus pakeisti.
         </p>
     </div>
-    <form method="POST" action="/issaugoti_sablona.php" id="sablonasForm" data-testid="form-template">
+    <form method="POST" action="/issaugoti_sablona.php?grupe=<?= urlencode($filtro_grupe) ?>" id="sablonasForm" data-testid="form-template">
+        <input type="hidden" name="grupe" value="<?= htmlspecialchars($filtro_grupe) ?>">
+        <input type="hidden" name="gaminiu_rusis_id" value="<?= $gaminiu_rusis_id ?>">
         <table class="data-table" id="sablonasTable" data-testid="table-template">
             <thead>
                 <tr>

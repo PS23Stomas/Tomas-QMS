@@ -3,10 +3,11 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();
 
+$filtro_grupe = $_GET['grupe'] ?? 'MT';
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 $ACTIVE_DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) = 'neatitinka')";
 
-$where_sql_30d = "WHERE gt.grupe = 'MT' AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
+$where_sql_30d = "WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
 
 $patikrinti = (int)$pdo->query("
   SELECT COUNT(DISTINCT fb.gaminio_id)
@@ -44,7 +45,7 @@ $aktyvus_defektai = $pdo->query("
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  WHERE gt.grupe = 'MT' AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
+  WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
   ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
 $aktyvus_count = count($aktyvus_defektai);

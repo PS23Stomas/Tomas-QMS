@@ -2,14 +2,15 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
-$page_title = 'Kokybės rodikliai';
+$filtro_grupe = $_GET['grupe'] ?? 'MT';
+$page_title = $filtro_grupe . ' Kokybės rodikliai';
 $active_tab = $_GET['tab'] ?? '30d';
 
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 $ACTIVE_DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) = 'neatitinka')";
 
 // ==================== TAB 1: 30 dienų duomenys ====================
-$where_sql_30d = "WHERE gt.grupe = 'MT' AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
+$where_sql_30d = "WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
 
 $patikrinti = (int)$pdo->query("
   SELECT COUNT(DISTINCT fb.gaminio_id)
@@ -47,7 +48,7 @@ $sql_aktyvus = "
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  WHERE gt.grupe = 'MT' AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
+  WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
   ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr LIMIT 50
 ";
 $aktyvus_defektai = $pdo->query($sql_aktyvus)->fetchAll(PDO::FETCH_ASSOC);
@@ -90,41 +91,45 @@ $ketvirciu_sarasas = $pdo->query("
         EXTRACT(QUARTER FROM u.sukurtas::timestamp)::int AS ketvirtis
     FROM uzsakymai u
     JOIN gaminiai g ON g.uzsakymo_id = u.id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
-    WHERE u.sukurtas IS NOT NULL
+    WHERE u.sukurtas IS NOT NULL AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
     ORDER BY metai DESC, ketvirtis DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND) {
+function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND, $grupe = 'MT') {
     $metai = (int)$metai;
     $ketvirtis = (int)$ketvirtis;
     $nuo_men = ($ketvirtis - 1) * 3 + 1;
     $iki_men = $ketvirtis * 3;
     $nuo = "$metai-" . str_pad($nuo_men, 2, '0', STR_PAD_LEFT) . "-01";
     $iki = "$metai-" . str_pad($iki_men, 2, '0', STR_PAD_LEFT) . "-" . cal_days_in_month(CAL_GREGORIAN, $iki_men, $metai);
+    $grupe_q = $pdo->quote($grupe);
     $where = "WHERE u.sukurtas::date BETWEEN '$nuo' AND '$iki'";
+    $grupe_join = "JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id";
+    $grupe_filter = "AND gt.grupe = $grupe_q";
     $r = [];
     $r['periodas'] = "$metai Q$ketvirtis";
-    $r['uzsakymai'] = (int)$pdo->query("SELECT COUNT(DISTINCT u.id) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where")->fetchColumn();
-    $r['gaminiai'] = (int)$pdo->query("SELECT COUNT(DISTINCT g.id) FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where")->fetchColumn();
-    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $where")->fetchColumn();
-    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $where AND $DEFECT_COND")->fetchColumn();
+    $r['uzsakymai'] = (int)$pdo->query("SELECT COUNT(DISTINCT u.id) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id $grupe_join JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $grupe_filter")->fetchColumn();
+    $r['gaminiai'] = (int)$pdo->query("SELECT COUNT(DISTINCT g.id) FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $grupe_filter")->fetchColumn();
+    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $grupe_filter")->fetchColumn();
+    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $grupe_filter AND $DEFECT_COND")->fetchColumn();
     $r['defektu_proc'] = ($r['bandymai'] > 0) ? round($r['defektai'] / $r['bandymai'] * 100, 2) : 0;
     $r['defektu_per_gamini'] = ($r['gaminiai'] > 0) ? round($r['defektai'] / $r['gaminiai'], 2) : 0;
     $r['top_darbuotojai'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
             COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $grupe_filter AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
     $r['top_klydusieji'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $grupe_filter AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -132,8 +137,8 @@ function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         SELECT fb.reikalavimas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        $where AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
+        FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        $where $grupe_filter AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -149,16 +154,16 @@ $kp_q1 = $kp_q2 = null;
 $kp_rodyti = false;
 
 if ($kp_q1_metai !== '' && $kp_q1_ketv !== '' && $kp_q2_metai !== '' && $kp_q2_ketv !== '') {
-    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND);
-    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND);
+    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND, $filtro_grupe);
+    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND, $filtro_grupe);
     $kp_rodyti = true;
 } elseif (count($ketvirciu_sarasas) >= 2) {
     $kp_q2_metai = $ketvirciu_sarasas[0]['metai'];
     $kp_q2_ketv = $ketvirciu_sarasas[0]['ketvirtis'];
     $kp_q1_metai = $ketvirciu_sarasas[1]['metai'];
     $kp_q1_ketv = $ketvirciu_sarasas[1]['ketvirtis'];
-    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND);
-    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND);
+    $kp_q2 = gautiKetvircioStatistika_idx($pdo, $kp_q2_metai, $kp_q2_ketv, $DEFECT_COND, $filtro_grupe);
+    $kp_q1 = gautiKetvircioStatistika_idx($pdo, $kp_q1_metai, $kp_q1_ketv, $DEFECT_COND, $filtro_grupe);
     $kp_rodyti = true;
 }
 
@@ -187,6 +192,7 @@ $men_menuo = (int)$men_menuo;
 $men_pradzia = sprintf('%04d-%02d-01', $men_metai, $men_menuo);
 $men_pabaiga = date('Y-m-t', strtotime($men_pradzia));
 $men_where = "WHERE u.sukurtas IS NOT NULL AND u.sukurtas <> '' AND u.sukurtas::timestamp::date BETWEEN '$men_pradzia' AND '$men_pabaiga'";
+$men_grupe_q = $pdo->quote($filtro_grupe);
 
 $men_top_darbuotojai = $pdo->query("
     SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
@@ -194,8 +200,9 @@ $men_top_darbuotojai = $pdo->query("
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
     FROM mt_funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko
     ORDER BY be_defektu DESC
     LIMIT 11
@@ -209,8 +216,9 @@ $men_top_klydusieji = $pdo->query("
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
     FROM mt_funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko
     HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
     ORDER BY defektai DESC, defektu_proc DESC
@@ -238,7 +246,7 @@ $ist_uzsakymai = $pdo->query("
     FROM uzsakymai u
     JOIN gaminiai g ON g.uzsakymo_id = u.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
-    WHERE gt.grupe = 'MT'
+    WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . "
     ORDER BY u.uzsakymo_numeris DESC
 ")->fetchAll(PDO::FETCH_COLUMN);
 
@@ -273,7 +281,7 @@ if ($ist_rodyti) {
         SELECT COUNT(DISTINCT fb.gaminio_id)
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = 'MT'
+        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
     ");
     $stmt->execute($ist_params);
     $ist_patikrinti = (int)$stmt->fetchColumn();
@@ -282,7 +290,7 @@ if ($ist_rodyti) {
         SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
         ORDER BY u.uzsakymo_numeris
     ");
     $stmt->execute($ist_params);
@@ -296,7 +304,7 @@ if ($ist_rodyti) {
         SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
         FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
         AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
     ");
@@ -307,7 +315,7 @@ if ($ist_rodyti) {
         SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
         FROM mt_funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = 'MT' AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
+        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
         AND f.defektas IS NOT NULL AND TRIM(f.defektas) <> ''
         ORDER BY u.uzsakymo_numeris
     ");
@@ -340,7 +348,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="dashboard-top-bar" style="display:flex;justify-content:space-between;align-items:center;">
   <div class="dashboard-subtitle" data-testid="text-dashboard-period">Paskutines 30 dienu (1 menuo)</div>
-  <a href="/kokybe_30d_pdf.php" target="_blank" class="btn btn-secondary" data-testid="button-30d-pdf" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:5px 14px;">
+  <a href="/kokybe_30d_pdf.php?grupe=<?= urlencode($filtro_grupe) ?>" target="_blank" class="btn btn-secondary" data-testid="button-30d-pdf" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:5px 14px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     Atsisiusti PDF
   </a>
@@ -449,6 +457,7 @@ foreach ($ketvirciu_sarasas as $ks) {
 <div class="filter-bar kp-filter-bar" data-testid="filter-bar-quarters" style="margin-bottom:16px;">
     <form method="GET" class="kp-filter-form">
         <input type="hidden" name="tab" value="ketv">
+        <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
         <div class="form-group">
             <label class="form-label">Senesnis ketvirtis</label>
             <div class="kp-select-pair">
@@ -489,7 +498,7 @@ foreach ($ketvirciu_sarasas as $ks) {
         <div class="form-group kp-actions">
             <button type="submit" class="btn btn-primary" data-testid="button-kp-compare">Palyginti</button>
             <?php if ($kp_rodyti): ?>
-            <a href="/generuoti_ketvirciu_pdf.php?kp_q1_metai=<?= $kp_q1_metai ?>&kp_q1_ketvirtis=<?= $kp_q1_ketv ?>&kp_q2_metai=<?= $kp_q2_metai ?>&kp_q2_ketvirtis=<?= $kp_q2_ketv ?>&men_metai=<?= $men_metai ?>&men_menuo=<?= $men_menuo ?>" 
+            <a href="/generuoti_ketvirciu_pdf.php?grupe=<?= urlencode($filtro_grupe) ?>&kp_q1_metai=<?= $kp_q1_metai ?>&kp_q1_ketvirtis=<?= $kp_q1_ketv ?>&kp_q2_metai=<?= $kp_q2_metai ?>&kp_q2_ketvirtis=<?= $kp_q2_ketv ?>&men_metai=<?= $men_metai ?>&men_menuo=<?= $men_menuo ?>" 
                target="_blank" class="btn btn-secondary" data-testid="button-kp-pdf" style="display:inline-flex;align-items:center;gap:5px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 PDF
@@ -564,6 +573,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     <span style="font-weight:600;font-size:14px;color:var(--text-primary);">Darbuotojų mėnesinė statistika:</span>
     <form method="GET" class="kp-monthly-form">
       <input type="hidden" name="tab" value="ketv">
+      <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
       <input type="hidden" name="kp_q1_metai" value="<?= h($kp_q1_metai) ?>">
       <input type="hidden" name="kp_q1_ketvirtis" value="<?= h($kp_q1_ketv) ?>">
       <input type="hidden" name="kp_q2_metai" value="<?= h($kp_q2_metai) ?>">
@@ -675,6 +685,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
 <div class="filter-bar" data-testid="filter-bar-stat">
     <form method="GET" style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; width: 100%;">
         <input type="hidden" name="tab" value="stat">
+        <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
         <div class="form-group">
             <label class="form-label">Pasirinkti uzsakyma</label>
             <select name="uzsakymo_numeris" class="form-control" data-testid="select-order-stat">
@@ -716,7 +727,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
 
         <?php if ($ist_rodyti): ?>
         <div class="form-group">
-            <a href="/kokybe_isplestine_pdf.php?<?= http_build_query(array_filter(['uzsakymo_numeris' => $ist_uzsakymo_numeris, 'periodas' => $ist_periodas, 'menuo' => $ist_menuo, 'nuo' => $ist_nuo, 'iki' => $ist_iki])) ?>" 
+            <a href="/kokybe_isplestine_pdf.php?<?= http_build_query(array_filter(['grupe' => $filtro_grupe, 'uzsakymo_numeris' => $ist_uzsakymo_numeris, 'periodas' => $ist_periodas, 'menuo' => $ist_menuo, 'nuo' => $ist_nuo, 'iki' => $ist_iki])) ?>" 
                target="_blank" class="btn btn-secondary" data-testid="button-stat-pdf" style="display:inline-flex;align-items:center;gap:5px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 PDF
@@ -726,7 +737,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
 
         <?php if ($ist_uzsakymo_numeris !== '' || $ist_periodas !== 'visi' || $ist_menuo !== '' || $ist_nuo !== '' || $ist_iki !== ''): ?>
         <div class="form-group">
-            <a href="/?tab=stat" class="btn btn-secondary" data-testid="button-clear-filter-stat">Valyti filtrus</a>
+            <a href="/?tab=stat&grupe=<?= urlencode($filtro_grupe) ?>" class="btn btn-secondary" data-testid="button-clear-filter-stat">Valyti filtrus</a>
         </div>
         <?php endif; ?>
     </form>

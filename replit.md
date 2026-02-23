@@ -10,6 +10,15 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 
 ## System Architecture
 
+### Modular Architecture (Gaminių rūšys)
+- The system uses a modular architecture where each product type (MT, USN, SI-04, GVX, 10kV) is a separate module.
+- Navigation is dynamically generated from the `gaminiu_rusys` database table.
+- Each module has its own: quality indicators (`index.php?grupe=XXX`), orders (`uzsakymai.php?grupe=XXX`), and functional test template (`sablonas_funkciniai.php?grupe=XXX`).
+- The `?grupe=` URL parameter controls which module is active; defaults to 'MT' for backward compatibility.
+- MT-specific features (components, dielectric tests, passport) are only shown in the MT module.
+- Templates (`mt_funkciniu_sablonas`) are filtered by `gaminiu_rusis_id` column to support per-group templates.
+- All PDF exports (30d, extended, quarterly) accept `?grupe=` parameter.
+
 ### Frontend
 - **Languages**: HTML, CSS, JavaScript (vanilla)
 - **Styling**: Custom CSS with variables for theming, Inter font.

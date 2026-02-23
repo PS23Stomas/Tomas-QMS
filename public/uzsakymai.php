@@ -12,9 +12,14 @@
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
-$page_title = 'Užsakymai';
+$filtro_grupe = $_GET['grupe'] ?? $_POST['grupe'] ?? 'MT';
+$rusis_row = $pdo->prepare("SELECT id, pavadinimas FROM gaminiu_rusys WHERE pavadinimas = ?");
+$rusis_row->execute([$filtro_grupe]);
+$rusis_info = $rusis_row->fetch(PDO::FETCH_ASSOC);
+$filtro_rusis_id = $rusis_info ? (int)$rusis_info['id'] : 2;
 
-// Gaunami užsakovų ir objektų sąrašai formų išskleidžiamiesiems meniu
+$page_title = $filtro_grupe . ' Užsakymai';
+
 $clients = $pdo->query('SELECT id, uzsakovas FROM uzsakovai ORDER BY uzsakovas')->fetchAll();
 $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinimas')->fetchAll();
 
@@ -27,13 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Naujo užsakymo kūrimas
     if ($action === 'create') {
-        $stmt = $pdo->prepare('INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzsakovas_id, :objektas_id, :vartotojas_id, 1)');
+        $stmt = $pdo->prepare('INSERT INTO uzsakymai (uzsakymo_numeris, kiekis, uzsakovas_id, objektas_id, vartotojas_id, gaminiu_rusis_id) VALUES (:nr, :kiekis, :uzsakovas_id, :objektas_id, :vartotojas_id, :rusis_id)');
         $stmt->execute([
             'nr' => $_POST['uzsakymo_numeris'] ?? '',
             'kiekis' => $_POST['kiekis'] ?: null,
             'uzsakovas_id' => $_POST['uzsakovas_id'] ?: null,
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'vartotojas_id' => $_SESSION['vartotojas_id'],
+            'rusis_id' => $filtro_rusis_id,
         ]);
         $new_order_id = $pdo->lastInsertId();
         $pdo->prepare('INSERT INTO gaminiai (uzsakymo_id) VALUES (:uid)')->execute(['uid' => $new_order_id]);
@@ -219,8 +225,7 @@ if ($view_id) {
     }
 }
 
-// Visų užsakymų sąrašo užklausa (su gaminių skaičiumi)
-$orders = $pdo->query('
+$stmt_orders = $pdo->prepare('
     SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_paso_failas IS NOT NULL) as paso_pdf_sk,
@@ -231,8 +236,11 @@ $orders = $pdo->query('
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
     LEFT JOIN objektai o ON u.objektas_id = o.id
     LEFT JOIN vartotojai v ON u.vartotojas_id = v.id
+    WHERE u.gaminiu_rusis_id = ?
     ORDER BY u.sukurtas DESC, u.id DESC
-')->fetchAll();
+');
+$stmt_orders->execute([$filtro_rusis_id]);
+$orders = $stmt_orders->fetchAll();
 
 $uzbaigtumo_cache = [];
 $all_gaminio_ids = array_filter(array_column($orders, 'pirmasis_gaminio_id'));
@@ -292,7 +300,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php if ($view_id && $order): ?>
 <div style="margin-bottom: 16px;">
-    <a href="/uzsakymai.php" class="btn btn-secondary btn-sm" data-testid="button-back">
+    <a href="/uzsakymai.php?grupe=<?= urlencode($filtro_grupe) ?>" class="btn btn-secondary btn-sm" data-testid="button-back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         Atgal
     </a>
@@ -337,7 +345,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="card-header uzs-detail-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            MT Gaminių Langas
+            <?= h($filtro_grupe) ?> Gaminių Langas
         </span>
         <?php if (isset($uzbaigtumo_procentai)): ?>
         <div class="uzbaigtumo-rodiklis" data-testid="text-completion-indicator">
@@ -358,7 +366,7 @@ require_once __DIR__ . '/includes/header.php';
 
         <div class="mt-tiles-grid" data-testid="mt-tiles-grid">
             <?php if ($gaminio_id_mt > 0): ?>
-            <a href="/mt_funkciniai_bandymai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&uzsakymo_id=<?= $view_id ?>" 
+            <a href="/mt_funkciniai_bandymai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&uzsakymo_id=<?= $view_id ?>&grupe=<?= urlencode($filtro_grupe) ?>" 
                class="mt-tile" data-testid="tile-funkciniai">
                 <div class="mt-tile-icon mt-tile-icon-teal">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -376,6 +384,7 @@ require_once __DIR__ . '/includes/header.php';
                     ?></div>
                 </div>
             </a>
+            <?php if ($filtro_grupe === 'MT'): ?>
             <a href="/MT/mt_sumontuoti_komponentai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
                class="mt-tile" data-testid="tile-komponentai">
                 <div class="mt-tile-icon mt-tile-icon-cyan">
@@ -406,6 +415,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['pasas'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Sugeneruotas</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Nesugeneruotas</span>' ?></div>
                 </div>
             </a>
+            <?php endif; ?>
             <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
                 <div class="mt-tile-icon mt-tile-icon-slate">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -425,6 +435,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Nėra gaminio</div>
                 </div>
             </div>
+            <?php if ($filtro_grupe === 'MT'): ?>
             <div class="mt-tile mt-tile-disabled">
                 <div class="mt-tile-icon mt-tile-icon-muted">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -452,6 +463,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Nėra gaminio</div>
                 </div>
             </div>
+            <?php endif; ?>
             <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
                 <div class="mt-tile-icon mt-tile-icon-slate">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -472,12 +484,13 @@ require_once __DIR__ . '/includes/header.php';
             <h3>Redaguoti užsakymą</h3>
             <button class="modal-close" onclick="closeModal('editOrderModal')">&times;</button>
         </div>
-        <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>">
+        <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>&grupe=<?= urlencode($filtro_grupe) ?>">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" value="<?= $order['id'] ?>">
+            <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">MT Gaminio pavadinimas</label>
+                    <label class="form-label"><?= h($filtro_grupe) ?> Gaminio pavadinimas</label>
                     <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
                 </div>
                 <div style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px;">
@@ -782,8 +795,9 @@ async function importuotiIsQualityTomas() {
             <h3>Naujas užsakymas</h3>
             <button class="modal-close" onclick="closeModal('createOrderModal')">&times;</button>
         </div>
-        <form method="POST">
+        <form method="POST" action="/uzsakymai.php?grupe=<?= urlencode($filtro_grupe) ?>">
             <input type="hidden" name="action" value="create">
+            <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Užsakymo numeris</label>

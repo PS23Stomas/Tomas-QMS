@@ -21,6 +21,7 @@ class DBMigracija {
         $this->pridetiPataisytaStulpeli();
         $this->pridetiIssiustaKamStulpeli();
         $this->pataisytiVarcharLaukus();
+        $this->pridetiSablonoGrupesStulpeli();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -159,6 +160,18 @@ class DBMigracija {
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN issiusta_kam TEXT DEFAULT ''");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiSablonoGrupesStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniu_sablonas' AND column_name = 'gaminiu_rusis_id'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE mt_funkciniu_sablonas ADD COLUMN gaminiu_rusis_id INTEGER DEFAULT 2");
+                $this->conn->exec("UPDATE mt_funkciniu_sablonas SET gaminiu_rusis_id = 2 WHERE gaminiu_rusis_id IS NULL");
             }
         } catch (PDOException $e) {
         }

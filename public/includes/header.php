@@ -6,10 +6,11 @@
  * vartotojo informacijos rodymą ir pagrindinę turinio sritį.
  */
 
-// Dabartinio puslapio nustatymas - naudojamas aktyvios nuorodos paryškinimui
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
-// Gauti prisijungusio vartotojo duomenis
 $user = currentUser();
+$current_grupe = $_GET['grupe'] ?? '';
+
+$gaminiu_grupes = $pdo->query("SELECT id, pavadinimas FROM gaminiu_rusys ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="lt">
@@ -20,54 +21,57 @@ $user = currentUser();
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MT Modulis - Gamybos valdymo sistema</title>
-    <!-- Favicon piktogramų nuorodos -->
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png?v=2">
-    <!-- Preconnect – greitesnis CDN resursų užkrovimas -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <!-- Stilių ir šriftų įkėlimas -->
     <link rel="stylesheet" href="/css/style.css">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
     <div class="app-layout">
-        <!-- Šoninė navigacijos juosta -->
         <aside class="sidebar" id="sidebar">
-            <!-- Šoninės juostos antraštė su logotipu ir uždarymo mygtuku -->
             <div class="sidebar-header">
                 <div class="sidebar-logo">MT Modulis</div>
                 <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
             </div>
-            <!-- Navigacijos meniu -->
             <nav class="sidebar-nav">
-                <!-- Gamybos skyriaus navigacijos nuorodos -->
-                <div class="nav-section-label">Gamyba</div>
-                <a href="/index.php" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
+                <?php foreach ($gaminiu_grupes as $gr): ?>
+                <?php
+                    $gr_pav = htmlspecialchars($gr['pavadinimas']);
+                    $gr_id = (int)$gr['id'];
+                    $gr_slug = urlencode($gr['pavadinimas']);
+                    $is_active_grupe = ($current_grupe === $gr['pavadinimas']);
+                ?>
+                <div class="nav-section-label"><?= $gr_pav ?></div>
+                <a href="/index.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'index' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-dashboard-<?= $gr_slug ?>">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     <span>Kokybiniai rodikliai</span>
                 </a>
-                <a href="/uzsakymai.php" class="nav-item <?= $current_page === 'uzsakymai' ? 'active' : '' ?>" data-testid="link-orders">
+                <a href="/uzsakymai.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'uzsakymai' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-orders-<?= $gr_slug ?>">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     <span>Užsakymai</span>
                 </a>
+                <a href="/sablonas_funkciniai.php?grupe=<?= $gr_slug ?>" class="nav-item <?= ($current_page === 'sablonas_funkciniai' && $is_active_grupe) ? 'active' : '' ?>" data-testid="link-template-<?= $gr_slug ?>">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    <span>Tikrinimo šablonas</span>
+                </a>
+                <?php endforeach; ?>
+
+                <div class="nav-section-label">Bendra</div>
                 <a href="/pretenzijos.php" class="nav-item <?= $current_page === 'pretenzijos' ? 'active' : '' ?>" data-testid="link-claims">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span>Pretenzijos</span>
                 </a>
-                <!-- Administravimo skyriaus navigacijos nuorodos -->
+
                 <?php $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
                 <div class="nav-section-label">Administravimas</div>
                 <a href="/prietaisai.php" class="nav-item <?= $current_page === 'prietaisai' ? 'active' : '' ?>" data-testid="link-devices">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     <span>Prietaisų patikra</span>
-                </a>
-                <a href="/sablonas_funkciniai.php" class="nav-item <?= $current_page === 'sablonas_funkciniai' ? 'active' : '' ?>" data-testid="link-template">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                    <span>Gaminio tikrinimo šablono kūrimas</span>
                 </a>
                 <?php if ($isAdmin): ?>
                 <a href="/db_diagrama.php" class="nav-item <?= $current_page === 'db_diagrama' ? 'active' : '' ?>" data-testid="link-db-diagram">
@@ -80,9 +84,7 @@ $user = currentUser();
                 </a>
                 <?php endif; ?>
             </nav>
-            <!-- Šoninės juostos apatinė dalis - vartotojo informacija ir veiksmai -->
             <div class="sidebar-footer">
-                <!-- Prisijungusio vartotojo informacijos rodymas -->
                 <div class="user-info">
                     <div class="user-avatar"><?= h(mb_substr($user['vardas'] ?? 'V', 0, 1)) ?></div>
                     <div class="user-details">
@@ -90,7 +92,6 @@ $user = currentUser();
                         <div class="user-role"><?= h($user['role'] ?? 'user') ?></div>
                     </div>
                 </div>
-                <!-- Profilio ir atsijungimo nuorodos -->
                 <a href="/profilis.php" class="nav-item <?= $current_page === 'profilis' ? 'active' : '' ?>" data-testid="link-profile">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span>Profilis</span>
@@ -101,14 +102,11 @@ $user = currentUser();
                 </a>
             </div>
         </aside>
-        <!-- Pagrindinis turinio blokas -->
         <div class="main-content">
-            <!-- Viršutinė antraštės juosta su meniu mygtuku -->
             <header class="top-header">
                 <button class="menu-toggle" id="menuToggle" data-testid="button-menu-toggle">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
                 <h1 class="page-title" data-testid="text-page-title"><?= h($page_title ?? 'MT Modulis') ?></h1>
             </header>
-            <!-- Pagrindinė turinio sritis -->
             <main class="content-area">

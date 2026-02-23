@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();
 
+$filtro_grupe = $_GET['grupe'] ?? 'MT';
 $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 
 $ist_uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
@@ -48,7 +49,7 @@ $stmt = $pdo->prepare("
     SELECT COUNT(DISTINCT fb.gaminio_id)
     FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    $ist_where_sql AND gt.grupe = 'MT'
+    $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
 ");
 $stmt->execute($ist_params);
 $ist_patikrinti = (int)$stmt->fetchColumn();
@@ -57,7 +58,7 @@ $stmt = $pdo->prepare("
     SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
     FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+    $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
     ORDER BY u.uzsakymo_numeris
 ");
 $stmt->execute($ist_params);
@@ -72,7 +73,7 @@ $stmt = $pdo->prepare("
     SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
     FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    $ist_where_sql AND gt.grupe = 'MT' AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+    $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
     AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
     GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
 ");
@@ -83,7 +84,7 @@ $stmt = $pdo->prepare("
     SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
     FROM mt_funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-    $ist_where_sql AND gt.grupe = 'MT' AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
+    $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
     AND f.defektas IS NOT NULL AND TRIM(f.defektas) <> ''
     ORDER BY u.uzsakymo_numeris
 ");
