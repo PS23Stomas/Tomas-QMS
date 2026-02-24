@@ -542,9 +542,10 @@ function removeRow(btn) {
       <th>Grandinės varža (Ω)</th>
       <th>Būdas</th>
       <th>Būklė</th>
+      <th>Veiksmas</th>
     </tr>
   </thead>
-  <tbody class="text-center">
+  <tbody class="text-center" id="izeminimoTableBody">
 <?php 
 if (!empty($izem)) {
     foreach ($izem as $row) {
@@ -555,10 +556,10 @@ if (!empty($izem)) {
           <td><input type='text' name='izeminimo[varza][]' class='form-control' value='{$row['varza_ohm']}'></td>
           <td><input type='text' name='izeminimo[budas][]' class='form-control' value='".htmlspecialchars($row['budas'])."'></td>
           <td><input type='text' name='izeminimo[bukle][]' class='form-control' value='".htmlspecialchars($row['bukle'])."'></td>
+          <td><button type='button' class='btn btn-danger btn-sm' onclick='removeIzemRow(this)'>Šalinti</button></td>
         </tr>";
     }
 } else {
-    // Numatytieji įžeminimo tikrinimo taškai (jei dar nėra duomenų)
     $izem_data = [
         ['1.1','Įžeminimo šyna PE',1],
         ['1.2','Komutacinių aparatų korpusai',1],
@@ -582,12 +583,46 @@ if (!empty($izem)) {
           <td><input type='text' name='izeminimo[varza][]' class='form-control' value='0.01'></td>
           <td><input type='text' name='izeminimo[budas][]' class='form-control' value='Varžtu'></td>
           <td><input type='text' name='izeminimo[bukle][]' class='form-control' value='Gera'></td>
+          <td><button type='button' class='btn btn-danger btn-sm' onclick='removeIzemRow(this)'>Šalinti</button></td>
         </tr>";
     }
 }
 ?>
   </tbody>
 </table>
+<button type="button" class="btn btn-primary btn-sm" onclick="addIzemRow()">Pridėti eilutę</button>
+
+<script>
+function renumberIzemRows() {
+    let tbody = document.getElementById("izeminimoTableBody");
+    for (let i = 0; i < tbody.rows.length; i++) {
+        let nr = i + 1;
+        let cell = tbody.rows[i].cells[0];
+        let hidden = cell.querySelector('input[type="hidden"]');
+        if (hidden) hidden.value = nr;
+        cell.childNodes[0].textContent = nr;
+    }
+}
+
+function addIzemRow() {
+    let tbody = document.getElementById("izeminimoTableBody");
+    let rowCount = tbody.rows.length + 1;
+    let row = tbody.insertRow();
+    row.innerHTML = `<td>${rowCount}<input type="hidden" name="izeminimo[eil_nr][]" value="${rowCount}"></td>
+        <td class="text-start"><input type="text" name="izeminimo[taskas][]" class="form-control" value=""></td>
+        <td><input type="number" name="izeminimo[tasku_skaicius][]" class="form-control" value="1"></td>
+        <td><input type="text" name="izeminimo[varza][]" class="form-control" value="0.01"></td>
+        <td><input type="text" name="izeminimo[budas][]" class="form-control" value="Varžtu"></td>
+        <td><input type="text" name="izeminimo[bukle][]" class="form-control" value="Gera"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeIzemRow(this)">Šalinti</button></td>`;
+}
+
+function removeIzemRow(btn) {
+    let row = btn.closest("tr");
+    row.parentNode.removeChild(row);
+    renumberIzemRows();
+}
+</script>
 
 <p class="fw-bold"><em>Pastaba:</em> Matavimai atlikti varžto, skirto įžemiklio (įžeminimo kontūro) prijungimui. Įžeminimo varžos normos ribose.
  Matavimai atlikti pagal galiojančius standartus ir darbo instrukcijas.</p>
