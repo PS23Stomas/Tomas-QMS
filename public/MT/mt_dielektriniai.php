@@ -227,11 +227,18 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 <div class="container mt-4">
 
 <?php
-$delete_base_url = "mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id);
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
-    global $delete_base_url;
-    $url = $delete_base_url . '&istrinti_lentele=' . urlencode($lentele);
-    return '<button type="button" class="btn-delete-table" data-delete-url="' . htmlspecialchars($url, ENT_QUOTES) . '" data-delete-label="' . htmlspecialchars($label, ENT_QUOTES) . '">🗑 ' . htmlspecialchars($label) . '</button>';
+    global $gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id;
+    return '<button type="button" class="btn-delete-table" 
+        data-delete-table="' . htmlspecialchars($lentele, ENT_QUOTES) . '" 
+        data-delete-label="' . htmlspecialchars($label, ENT_QUOTES) . '"
+        data-gaminys-id="' . htmlspecialchars($gaminys_id, ENT_QUOTES) . '"
+        data-gaminio-numeris="' . htmlspecialchars($gaminio_numeris, ENT_QUOTES) . '"
+        data-uzsakymo-numeris="' . htmlspecialchars($uzsakymo_numeris, ENT_QUOTES) . '"
+        data-uzsakovas="' . htmlspecialchars($uzsakovas, ENT_QUOTES) . '"
+        data-gaminio-pavadinimas="' . htmlspecialchars($gaminio_pavadinimas, ENT_QUOTES) . '"
+        data-uzsakymo-id="' . htmlspecialchars($uzsakymo_id, ENT_QUOTES) . '"
+    >🗑 ' . htmlspecialchars($label) . '</button>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -639,12 +646,33 @@ function removeIzemRow(btn) {
 document.addEventListener('click', function(e) {
     var btn = e.target.closest('.btn-delete-table');
     if (!btn) return;
-    var url = btn.getAttribute('data-delete-url');
+    var table = btn.getAttribute('data-delete-table');
     var label = btn.getAttribute('data-delete-label');
-    if (url && confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
-        window.onbeforeunload = null;
-        window.location.href = url;
+    if (!table) return;
+    if (!confirm('Ar tikrai norite ištrinti: ' + label + '?')) return;
+    window.onbeforeunload = null;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = 'mt_dielektriniai.php';
+    f.style.display = 'none';
+    var fields = {
+        'istrinti_lentele': table,
+        'gaminys_id': btn.getAttribute('data-gaminys-id'),
+        'gaminio_numeris': btn.getAttribute('data-gaminio-numeris'),
+        'uzsakymo_numeris': btn.getAttribute('data-uzsakymo-numeris'),
+        'uzsakovas': btn.getAttribute('data-uzsakovas'),
+        'gaminio_pavadinimas': btn.getAttribute('data-gaminio-pavadinimas'),
+        'uzsakymo_id': btn.getAttribute('data-uzsakymo-id')
+    };
+    for (var key in fields) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = key;
+        inp.value = fields[key] || '';
+        f.appendChild(inp);
     }
+    document.body.appendChild(f);
+    f.submit();
 });
 </script>
 
