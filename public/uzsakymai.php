@@ -233,7 +233,11 @@ if ($view_id) {
             $gaminio_id_mt = (int)$order_products[0]['id'];
         }
 
-        $uzbaigtumo_zingsniai = ['funkciniai' => false, 'komponentai' => false, 'dielektriniai' => false, 'pasas' => false];
+        if ($filtro_grupe === 'MT') {
+            $uzbaigtumo_zingsniai = ['funkciniai' => false, 'komponentai' => false, 'dielektriniai' => false, 'pasas' => false];
+        } else {
+            $uzbaigtumo_zingsniai = ['funkciniai' => false, 'dielektriniai' => false];
+        }
         $funkciniu_klaidu_sk = 0;
         if ($gaminio_id_mt > 0) {
             $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
@@ -244,9 +248,11 @@ if ($view_id) {
             $st->execute([$gaminio_id_mt]);
             $funkciniu_klaidu_sk = (int)$st->fetchColumn();
 
-            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id = ?");
-            $st->execute([$gaminio_id_mt]);
-            $uzbaigtumo_zingsniai['komponentai'] = ((int)$st->fetchColumn()) > 0;
+            if ($filtro_grupe === 'MT') {
+                $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id = ?");
+                $st->execute([$gaminio_id_mt]);
+                $uzbaigtumo_zingsniai['komponentai'] = ((int)$st->fetchColumn()) > 0;
+            }
 
             $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
             $st->execute([$gaminio_id_mt]);
@@ -256,10 +262,12 @@ if ($view_id) {
             $izem_cnt = (int)$st->fetchColumn();
             $uzbaigtumo_zingsniai['dielektriniai'] = ($diel_cnt + $izem_cnt) > 0;
 
-            $st = $pdo->prepare("SELECT mt_paso_failas FROM gaminiai WHERE id = ?");
-            $st->execute([$gaminio_id_mt]);
-            $paso_f = $st->fetchColumn();
-            $uzbaigtumo_zingsniai['pasas'] = !empty($paso_f);
+            if ($filtro_grupe === 'MT') {
+                $st = $pdo->prepare("SELECT mt_paso_failas FROM gaminiai WHERE id = ?");
+                $st->execute([$gaminio_id_mt]);
+                $paso_f = $st->fetchColumn();
+                $uzbaigtumo_zingsniai['pasas'] = !empty($paso_f);
+            }
         }
         $uzbaigtumo_atlikta = array_sum($uzbaigtumo_zingsniai);
         $uzbaigtumo_viso = count($uzbaigtumo_zingsniai);
@@ -336,14 +344,15 @@ if (!empty($all_gaminio_ids)) {
     $paso_map = [];
     while ($r = $paso_st->fetch(PDO::FETCH_ASSOC)) { $paso_map[(int)$r['id']] = !empty($r['mt_paso_failas']); }
 
+    $total_steps = ($filtro_grupe === 'MT') ? 4 : 2;
     foreach ($all_gaminio_ids as $gid) {
         $gid = (int)$gid;
         $steps = 0;
         if (($funk_map[$gid] ?? 0) > 0) $steps++;
-        if (($komp_map[$gid] ?? 0) > 0) $steps++;
+        if ($filtro_grupe === 'MT' && ($komp_map[$gid] ?? 0) > 0) $steps++;
         if ((($diel_map[$gid] ?? 0) + ($izem_map[$gid] ?? 0)) > 0) $steps++;
-        if ($paso_map[$gid] ?? false) $steps++;
-        $uzbaigtumo_cache[$gid] = ['steps' => $steps, 'funk_errors' => $funk_err_map[$gid] ?? 0];
+        if ($filtro_grupe === 'MT' && ($paso_map[$gid] ?? false)) $steps++;
+        $uzbaigtumo_cache[$gid] = ['steps' => $steps, 'total' => $total_steps, 'funk_errors' => $funk_err_map[$gid] ?? 0];
     }
 }
 
@@ -415,7 +424,7 @@ require_once __DIR__ . '/includes/header.php';
                     if ($g_cache && $g_cache['steps'] > 0):
                 ?>
                 <span class="gaminiu-tab-status <?= $g_cache['funk_errors'] > 0 ? 'status-warn' : 'status-done' ?>">
-                    <?= $g_cache['funk_errors'] > 0 ? $g_cache['funk_errors'] . ' kl.' : $g_cache['steps'] . '/4' ?>
+                    <?= $g_cache['funk_errors'] > 0 ? $g_cache['funk_errors'] . ' kl.' : $g_cache['steps'] . '/' . ($g_cache['total'] ?? (($filtro_grupe === 'MT') ? 4 : 2)) ?>
                 </span>
                 <?php endif; ?>
             </a>
@@ -468,6 +477,16 @@ require_once __DIR__ . '/includes/header.php';
                     ?></div>
                 </div>
             </a>
+            <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
+               class="mt-tile" data-testid="tile-dielektriniai">
+                <div class="mt-tile-icon mt-tile-icon-indigo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Dielektriniai bandymai</div>
+                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['dielektriniai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
+                </div>
+            </a>
             <?php if ($filtro_grupe === 'MT'): ?>
             <a href="/MT/mt_sumontuoti_komponentai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
                class="mt-tile" data-testid="tile-komponentai">
@@ -477,16 +496,6 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Panaudoti komponentai</div>
                     <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['komponentai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
-                </div>
-            </a>
-            <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
-               class="mt-tile" data-testid="tile-dielektriniai">
-                <div class="mt-tile-icon mt-tile-icon-indigo">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Dielektriniai bandymai</div>
-                    <div class="mt-tile-desc"><?= $uzbaigtumo_zingsniai['dielektriniai'] ? '<span class="uzbaigtumo-badge uzbaigtumo-done">Užpildyta</span>' : '<span class="uzbaigtumo-badge uzbaigtumo-pending">Neužpildyta</span>' ?></div>
                 </div>
             </a>
             <a href="/MT/mt_pasas.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_nr) ?>&uzsakovas=<?= urlencode($uzsakovas_name) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&uzsakymo_id=<?= $view_id ?>" 
@@ -519,6 +528,15 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mt-tile-desc">Nėra gaminio</div>
                 </div>
             </div>
+            <div class="mt-tile mt-tile-disabled">
+                <div class="mt-tile-icon mt-tile-icon-muted">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Dielektriniai bandymai</div>
+                    <div class="mt-tile-desc">Nėra gaminio</div>
+                </div>
+            </div>
             <?php if ($filtro_grupe === 'MT'): ?>
             <div class="mt-tile mt-tile-disabled">
                 <div class="mt-tile-icon mt-tile-icon-muted">
@@ -526,15 +544,6 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Panaudoti komponentai</div>
-                    <div class="mt-tile-desc">Nėra gaminio</div>
-                </div>
-            </div>
-            <div class="mt-tile mt-tile-disabled">
-                <div class="mt-tile-icon mt-tile-icon-muted">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Dielektriniai bandymai</div>
                     <div class="mt-tile-desc">Nėra gaminio</div>
                 </div>
             </div>
@@ -684,17 +693,19 @@ require_once __DIR__ . '/includes/header.php';
                             <td data-label="Užbaigtumas" style="text-align: center;">
                                 <?php
                                     $gid = (int)($o['pirmasis_gaminio_id'] ?? 0);
-                                    $uzb_data = $uzbaigtumo_cache[$gid] ?? ['steps' => 0, 'funk_errors' => 0];
+                                    $uzb_total = ($filtro_grupe === 'MT') ? 4 : 2;
+                                    $uzb_data = $uzbaigtumo_cache[$gid] ?? ['steps' => 0, 'total' => $uzb_total, 'funk_errors' => 0];
                                     $uzb_steps = $uzb_data['steps'];
+                                    $uzb_total = $uzb_data['total'] ?? $uzb_total;
                                     $uzb_funk_err = $uzb_data['funk_errors'];
-                                    $uzb_pct = round(($uzb_steps / 4) * 100);
+                                    $uzb_pct = round(($uzb_steps / $uzb_total) * 100);
                                     $uzb_color = $uzb_pct == 100 ? 'var(--success)' : ($uzb_pct >= 50 ? 'var(--warning)' : 'var(--text-light)');
                                 ?>
                                 <div class="uzbaigtumo-mini" data-testid="text-completion-<?= $o['id'] ?>">
                                     <div class="uzbaigtumo-bar-mini">
                                         <div class="uzbaigtumo-bar-fill-mini" style="width: <?= $uzb_pct ?>%; background: <?= $uzb_color ?>;"></div>
                                     </div>
-                                    <span style="font-size: 11px; color: var(--text-secondary);"><?= $uzb_steps ?>/4</span>
+                                    <span style="font-size: 11px; color: var(--text-secondary);"><?= $uzb_steps ?>/<?= $uzb_total ?></span>
                                     <?php if ($uzb_funk_err > 0): ?>
                                     <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų bandymų">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

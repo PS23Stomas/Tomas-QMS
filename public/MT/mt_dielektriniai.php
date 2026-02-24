@@ -80,6 +80,29 @@ if (isset($_GET['salinti'])) {
     exit;
 }
 
+// Visų lentelės duomenų trynimas
+if (isset($_POST['istrinti_lentele'])) {
+    $lentele = $_POST['istrinti_lentele'];
+    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
+    if ($lentele === 'vidutines_itampos') {
+        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos'")->execute([$gaminys_id]);
+    } elseif ($lentele === 'mazos_itampos') {
+        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL)")->execute([$gaminys_id]);
+    } elseif ($lentele === 'izeminimas') {
+        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
+    } elseif ($lentele === 'prietaisai') {
+        $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
+    } elseif ($lentele === 'visi') {
+        $conn->beginTransaction();
+        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->commit();
+    }
+    header("Location: mt_dielektriniai.php?" . $redirect_params);
+    exit;
+}
+
 // Visų galimų prietaisų sąrašo gavimas iš prietaisų lentelės
 $db_prietaisai = $conn->query("SELECT id, pavadinimas, modelis, serijos_nr, kalibravimo_data, galiojimo_pabaiga, kalibracijos_sertifikato_nr FROM prietaisai ORDER BY pavadinimas")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -147,13 +170,31 @@ table.prietaisu-lentele th:nth-child(5), table.prietaisu-lentele td:nth-child(5)
 table.prietaisu-lentele th:nth-child(6), table.prietaisu-lentele td:nth-child(6) { width: 10%; }
 table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7) { width: 7%; text-align:center; }
 .btn-sm { padding: 2px 6px; font-size: 12px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; margin-bottom: 0.5rem; }
+.section-header h5 { margin: 0; }
+.btn-delete-table { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 3px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; }
+.btn-delete-table:hover { background: #fecaca; }
 </style>
 </head>
 <body>
 <div class="container mt-4">
 
+<?php
+function deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $lentele, $label = 'Ištrinti lentelę') {
+    return '<form method="post" style="display:inline;" onsubmit="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label) . '?\')">
+        <input type="hidden" name="gaminys_id" value="' . $gaminys_id . '">
+        <input type="hidden" name="gaminio_numeris" value="' . htmlspecialchars($gaminio_numeris) . '">
+        <input type="hidden" name="uzsakymo_numeris" value="' . htmlspecialchars($uzsakymo_numeris) . '">
+        <input type="hidden" name="uzsakovas" value="' . htmlspecialchars($uzsakovas) . '">
+        <input type="hidden" name="gaminio_pavadinimas" value="' . htmlspecialchars($gaminio_pavadinimas) . '">
+        <input type="hidden" name="uzsakymo_id" value="' . htmlspecialchars($uzsakymo_id) . '">
+        <input type="hidden" name="istrinti_lentele" value="' . $lentele . '">
+        <button type="submit" class="btn-delete-table">🗑 ' . htmlspecialchars($label) . '</button>
+    </form>';
+}
+?>
 <h4 class="mb-4 text-uppercase fw-bold">
-    MT ATLIKTŲ BANDYMŲ PROTOKOLAS NR. <?=htmlspecialchars($protokolo_numeris)?>
+    ATLIKTŲ BANDYMŲ PROTOKOLAS NR. <?=htmlspecialchars($protokolo_numeris)?>
 </h4>
 
 <p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
@@ -303,8 +344,10 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
    <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
 
-<!-- Vidutinės įtampos kabelių bandymo lentelė -->
-<h5 class="mt-5 text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
+<div class="section-header">
+    <h5 class="text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
+    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'vidutines_itampos', 'Ištrinti') ?>
+</div>
 <table class="table table-bordered">
 <thead class="table-secondary">
 <tr><th>Eil. Nr.</th><th>Bandymo elementų aprašymas</th><th>Un (kV)</th><th>Bandymo schema</th><th>Band. įtampa (kV)</th><th>Trukmė (min)</th></tr>
@@ -343,8 +386,10 @@ if (empty($vid_itampa)) {
 </table>
 <input type="hidden" name="vid_itampa[isvada]" value="10kV kabeliai bandymus išlaikė, izoliacija gera.">
 
-<!-- Žemos įtampos (0,4 kV) grandinių bandymo lentelė -->
-<h5 class="mt-5 text-uppercase fw-bold">0,4kV GRANDINIŲ BANDYMAS PAAUKŠTINTA ĮTAMPA</h5>
+<div class="section-header">
+    <h5 class="text-uppercase fw-bold">0,4kV GRANDINIŲ BANDYMAS PAAUKŠTINTA ĮTAMPA</h5>
+    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'mazos_itampos', 'Ištrinti') ?>
+</div>
 <table class="table table-bordered" id="mazItampaTable">
 <thead class="table-secondary">
 <tr><th>Eil. Nr.</th><th>El. grandinių aprašymas</th><th>Grandinių įtampa</th><th>L1-PE</th><th>L2-PE</th><th>L3-PE</th><th>L1-L2</th><th>L2-L3</th><th>L1-L3</th><th>Veiksmas</th></tr>
@@ -419,8 +464,10 @@ function removeRow(btn) {
 </script>
 <input type="hidden" name="maz_itampa[isvada]" value="0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.">
 
-<!-- Įžeminimo grandinių tikrinimo lentelė -->
-<h5 class="mt-5 text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
+<div class="section-header">
+    <h5 class="text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
+    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'izeminimas', 'Ištrinti') ?>
+</div>
 <table class="table table-bordered">
   <thead class="table-secondary text-center">
     <tr>
@@ -482,9 +529,12 @@ if (!empty($izem)) {
 
 <p class="fw-bold">Išvada: Gaminys tinka eksploatacijai.</p>
 
-<div class="d-flex gap-2 mt-3 mb-3">
+<div class="d-flex gap-2 mt-3 mb-3 align-items-center">
     <button type="submit" class="btn btn-success">Išsaugoti visus pakeitimus</button>
     <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>" class="btn btn-secondary">← Grįžti</a>
+    <div style="margin-left:auto;">
+        <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'visi', 'Ištrinti visus duomenis') ?>
+    </div>
 </div>
 
 </form>
