@@ -38,12 +38,13 @@ $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
-$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, gt.gaminio_tipas AS gam_pav FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id=?");
+$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, g.pavadinimas AS individualus_pav, g.gaminio_numeris AS gam_nr, gt.gaminio_tipas AS gam_pav FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id=?");
 $stmt->execute([$gaminys_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_numeris = $gaminys['protokolo_nr'] ?? '';
 $turi_dielektriniu_pdf = !empty($gaminys['mt_dielektriniu_failas']);
+$individualus_pavadinimas = $gaminys['individualus_pav'] ?? '';
 
 if (empty($gaminio_pavadinimas) && !empty($gaminys['gam_pav'])) {
     $gaminio_pavadinimas = $gaminys['gam_pav'];
@@ -256,7 +257,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
 
 <p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
 <strong>Užsakovas:</strong> <?=htmlspecialchars($uzsakovas)?> |
-<strong>Pavadinimas:</strong> <?=htmlspecialchars($gaminio_pavadinimas)?></p>
+<strong>Pavadinimas:</strong> <?=htmlspecialchars($gaminio_pavadinimas)?><?php if (!empty($individualus_pavadinimas)): ?> <span style="color:var(--primary,#2563eb);font-weight:600;">(<?=htmlspecialchars($individualus_pavadinimas)?>)</span><?php endif; ?></p>
 
 <?php if ($issaugota==='taip'): ?>
 <div class="alert alert-success">Duomenys sėkmingai išsaugoti.</div>
