@@ -40,13 +40,14 @@ $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
-$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, g.pavadinimas AS individualus_pav, g.gaminio_numeris AS gam_nr, gt.gaminio_tipas AS gam_pav FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id=?");
+$stmt = $conn->prepare("SELECT g.id, g.protokolo_nr, g.mt_dielektriniu_failas, g.pavadinimas AS individualus_pav, g.gaminio_numeris AS gam_nr, g.dielektriniai_issaugoti, gt.gaminio_tipas AS gam_pav FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id=?");
 $stmt->execute([$gaminys_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_numeris = $gaminys['protokolo_nr'] ?? '';
 $turi_dielektriniu_pdf = !empty($gaminys['mt_dielektriniu_failas']);
 $individualus_pavadinimas = $gaminys['individualus_pav'] ?? '';
+$jau_issaugota = !empty($gaminys['dielektriniai_issaugoti']);
 
 if (empty($gaminio_pavadinimas) && !empty($gaminys['gam_pav'])) {
     $gaminio_pavadinimas = $gaminys['gam_pav'];
@@ -149,8 +150,8 @@ $stmt = $conn->prepare("SELECT COUNT(*) FROM bandymai_prietaisai WHERE gaminys_i
 $stmt->execute([$gaminys_id]);
 $prietaisu_sk = $stmt->fetchColumn();
 
-// Numatytųjų prietaisų automatinis įterpimas, jei dar nėra priskirtų (praleidžiama po trynimo)
-if ($prietaisu_sk == 0 && $istrinta !== 'prietaisai' && $istrinta !== 'visi') {
+// Numatytųjų prietaisų automatinis įterpimas tik pirmą kartą (kai dar nebuvo išsaugota)
+if ($prietaisu_sk == 0 && !$jau_issaugota) {
     $default_modeliai = ['AID-70M', 'EUROTEST 61557', 'MI2077'];
     $sql = "INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)";
     $insert = $conn->prepare($sql);
@@ -429,7 +430,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
 </thead>
 <tbody>
 <?php
-if (empty($vid_itampa) && $istrinta !== 'vidutines_itampos' && $istrinta !== 'visi') {
+if (empty($vid_itampa) && !$jau_issaugota) {
     $t = (stripos($gaminio_pavadinimas, '2x') !== false) ? 2 : 1;
     for ($i = 1; $i <= $t; $i++) {
         $label = ($t==1) ? 'transformatorių' : "T-$i";
@@ -481,7 +482,7 @@ $default_maz = [
     ['SRS kištukinio lizdo maitinimas','230 V']
 ];
 
-if ($istrinta === 'mazos_itampos' || $istrinta === 'visi') {
+if ($jau_issaugota && (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0)) {
     $eilutes = [];
 } elseif (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0) {
     $eilutes = $default_maz;
@@ -571,8 +572,8 @@ if (!empty($izem)) {
           <td><button type='button' class='btn btn-danger btn-sm' onclick='removeIzemRow(this)'>Šalinti</button></td>
         </tr>";
     }
-} elseif ($istrinta === 'izeminimas' || $istrinta === 'visi') {
-    // Po trynimo nerodyti numatytųjų duomenų
+} elseif ($jau_issaugota) {
+    // Jau buvo išsaugota — nerodyti numatytųjų duomenų
 } else {
     $izem_data = [
         ['1.1','Įžeminimo šyna PE',1],

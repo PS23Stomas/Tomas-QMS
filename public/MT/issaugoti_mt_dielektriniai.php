@@ -100,6 +100,8 @@ try {
         }
     }
 
+    $conn->prepare("UPDATE gaminiai SET dielektriniai_issaugoti = TRUE WHERE id = ?")->execute([$gaminys_id]);
+
     // Transakcijos patvirtinimas – visi duomenys sėkmingai išsaugoti
     $conn->commit();
 

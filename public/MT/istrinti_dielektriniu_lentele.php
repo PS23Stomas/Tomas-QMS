@@ -39,6 +39,7 @@ try {
     } else {
         die('Klaida: nežinoma lentelė');
     }
+    $conn->prepare("UPDATE gaminiai SET dielektriniai_issaugoti = TRUE WHERE id = ?")->execute([$gaminys_id]);
 } catch (Exception $e) {
     if ($conn->inTransaction()) {
         $conn->rollBack();

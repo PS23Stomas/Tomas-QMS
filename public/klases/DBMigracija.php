@@ -23,6 +23,7 @@ class DBMigracija {
         $this->pataisytiVarcharLaukus();
         $this->pridetiSablonoGrupesStulpeli();
         $this->pridetiGaminioPavadinimaStulpeli();
+        $this->pridetiDielektriniuIssaugotiStulpeli();
         $this->sinchronizuotiSekas();
     }
 
@@ -237,6 +238,17 @@ class DBMigracija {
                 }
             } catch (PDOException $e) {
             }
+        }
+    }
+
+    private function pridetiDielektriniuIssaugotiStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'dielektriniai_issaugoti'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN dielektriniai_issaugoti BOOLEAN DEFAULT FALSE");
+            }
+        } catch (PDOException $e) {
         }
     }
 }
