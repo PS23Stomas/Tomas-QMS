@@ -81,13 +81,46 @@ if (isset($_GET['salinti'])) {
 }
 
 // Protokolo numerio išsaugojimas
+$protokolo_klaida = '';
 if (isset($_POST['issaugoti_protokolo_nr'])) {
     $nr = trim($_POST['protokolo_nr'] ?? '');
-    $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$nr, $gaminys_id]);
-    $protokolo_numeris = $nr;
-    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
-    header("Location: mt_dielektriniai.php?" . $redirect_params);
-    exit;
+    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id);
+    if ($nr !== '') {
+        $chk = $conn->prepare("SELECT id FROM gaminiai WHERE protokolo_nr = ? AND id != ?");
+        $chk->execute([$nr, $gaminys_id]);
+        if ($chk->fetch()) {
+            $protokolo_klaida = "Protokolo Nr. \"$nr\" jau egzistuoja. Pasirinkite kitą numerį.";
+            $protokolo_numeris = $nr;
+        } else {
+            $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$nr, $gaminys_id]);
+            $protokolo_numeris = $nr;
+            header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip&t=" . time());
+            exit;
+        }
+    } else {
+        $conn->prepare("UPDATE gaminiai SET protokolo_nr = NULL WHERE id = ?")->execute([$gaminys_id]);
+        $protokolo_numeris = '';
+        header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip&t=" . time());
+        exit;
+    }
+}
+
+// Siūlomo sekančio protokolo numerio apskaičiavimas
+$siulomas_nr = '';
+if (empty($protokolo_numeris)) {
+    $max_st = $conn->query("SELECT protokolo_nr FROM gaminiai WHERE protokolo_nr ~ '^T[0-9]+$' ORDER BY CAST(SUBSTRING(protokolo_nr FROM 2) AS INTEGER) DESC LIMIT 1");
+    $max_row = $max_st->fetch(PDO::FETCH_ASSOC);
+    if ($max_row) {
+        $max_num = (int)substr($max_row['protokolo_nr'], 1);
+        $siulomas_nr = 'T' . ($max_num + 1);
+        while (true) {
+            $exists = $conn->prepare("SELECT 1 FROM gaminiai WHERE protokolo_nr = ?");
+            $exists->execute([$siulomas_nr]);
+            if (!$exists->fetch()) break;
+            $max_num++;
+            $siulomas_nr = 'T' . ($max_num + 1);
+        }
+    }
 }
 
 // Visų lentelės duomenų trynimas
@@ -215,10 +248,16 @@ function deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsa
         <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
         <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
         <input type="hidden" name="issaugoti_protokolo_nr" value="1">
-        <input type="text" name="protokolo_nr" value="<?=htmlspecialchars($protokolo_numeris)?>" placeholder="Įveskite Nr." style="width:140px;padding:4px 8px;font-size:16px;font-weight:bold;border:1px solid #ccc;border-radius:4px;" data-testid="input-protokolo-nr">
+        <input type="text" name="protokolo_nr" value="<?=htmlspecialchars($protokolo_numeris)?>" placeholder="<?=htmlspecialchars($siulomas_nr ?: 'Įveskite Nr.')?>" style="width:140px;padding:4px 8px;font-size:16px;font-weight:bold;border:1px solid <?= $protokolo_klaida ? '#dc3545' : '#ccc' ?>;border-radius:4px;" data-testid="input-protokolo-nr">
+        <?php if ($siulomas_nr && empty($protokolo_numeris)): ?>
+        <button type="button" class="btn btn-sm btn-outline-secondary" style="padding:4px 10px;font-size:12px;" onclick="document.querySelector('[name=protokolo_nr]').value='<?=htmlspecialchars($siulomas_nr)?>';" title="Siūlomas: <?=htmlspecialchars($siulomas_nr)?>" data-testid="button-suggest-protokolo-nr"><?=htmlspecialchars($siulomas_nr)?></button>
+        <?php endif; ?>
         <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:13px;" data-testid="button-save-protokolo-nr">Išsaugoti</button>
     </form>
 </h4>
+<?php if ($protokolo_klaida): ?>
+<div class="alert alert-danger" style="margin-bottom:8px;padding:8px 12px;font-size:14px;"><?=htmlspecialchars($protokolo_klaida)?></div>
+<?php endif; ?>
 
 <p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
 <strong>Užsakovas:</strong> <?=htmlspecialchars($uzsakovas)?> |
