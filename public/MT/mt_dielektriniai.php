@@ -231,7 +231,7 @@ $delete_base_url = "mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
     global $delete_base_url;
     $url = $delete_base_url . '&istrinti_lentele=' . urlencode($lentele);
-    return '<button type="button" class="btn-delete-table" onclick="istrintiLentele(\'' . htmlspecialchars($url) . '\', \'' . htmlspecialchars($label) . '\')">🗑 ' . htmlspecialchars($label) . '</button>';
+    return '<button type="button" class="btn-delete-table" data-delete-url="' . htmlspecialchars($url, ENT_QUOTES) . '" data-delete-label="' . htmlspecialchars($label, ENT_QUOTES) . '">🗑 ' . htmlspecialchars($label) . '</button>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -636,12 +636,16 @@ function removeIzemRow(btn) {
 </form>
 
 <script>
-function istrintiLentele(url, label) {
-    if (confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-delete-table');
+    if (!btn) return;
+    var url = btn.getAttribute('data-delete-url');
+    var label = btn.getAttribute('data-delete-label');
+    if (url && confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
         window.onbeforeunload = null;
         window.location.href = url;
     }
-}
+});
 </script>
 
 <div class="d-flex gap-2 mb-3 align-items-center">
