@@ -150,8 +150,8 @@ $stmt = $conn->prepare("SELECT COUNT(*) FROM bandymai_prietaisai WHERE gaminys_i
 $stmt->execute([$gaminys_id]);
 $prietaisu_sk = $stmt->fetchColumn();
 
-// Numatytųjų prietaisų automatinis įterpimas tik pirmą kartą (kai dar nebuvo išsaugota)
-if ($prietaisu_sk == 0 && !$jau_issaugota) {
+// Numatytųjų prietaisų automatinis įterpimas tik pirmą kartą (kai dar nebuvo išsaugota ir nebuvo ką tik ištrinta)
+if ($prietaisu_sk == 0 && !$jau_issaugota && $istrinta !== 'prietaisai' && $istrinta !== 'visi') {
     $default_modeliai = ['AID-70M', 'EUROTEST 61557', 'MI2077'];
     $sql = "INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)";
     $insert = $conn->prepare($sql);
@@ -432,7 +432,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
 </thead>
 <tbody>
 <?php
-if (empty($vid_itampa) && !$jau_issaugota) {
+if (empty($vid_itampa) && !$jau_issaugota && $istrinta !== 'vidutines_itampos' && $istrinta !== 'visi') {
     $t = (stripos($gaminio_pavadinimas, '2x') !== false) ? 2 : 1;
     for ($i = 1; $i <= $t; $i++) {
         $label = ($t==1) ? 'transformatorių' : "T-$i";
@@ -484,7 +484,7 @@ $default_maz = [
     ['SRS kištukinio lizdo maitinimas','230 V']
 ];
 
-if ($jau_issaugota && (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0)) {
+if (($jau_issaugota || $istrinta === 'mazos_itampos' || $istrinta === 'visi') && (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0)) {
     $eilutes = [];
 } elseif (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0) {
     $eilutes = $default_maz;
@@ -574,8 +574,8 @@ if (!empty($izem)) {
           <td><button type='button' class='btn btn-danger btn-sm' onclick='removeIzemRow(this)'>Šalinti</button></td>
         </tr>";
     }
-} elseif ($jau_issaugota) {
-    // Jau buvo išsaugota — nerodyti numatytųjų duomenų
+} elseif ($jau_issaugota || $istrinta === 'izeminimas' || $istrinta === 'visi') {
+    // Jau buvo išsaugota arba ką tik ištrinta — nerodyti numatytųjų duomenų
 } else {
     $izem_data = [
         ['1.1','Įžeminimo šyna PE',1],
