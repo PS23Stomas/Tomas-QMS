@@ -225,17 +225,8 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 <div class="container mt-4">
 
 <?php
-function deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $lentele, $label = 'Ištrinti lentelę') {
-    return '<form method="post" style="display:inline;" onsubmit="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label) . '?\')">
-        <input type="hidden" name="gaminys_id" value="' . $gaminys_id . '">
-        <input type="hidden" name="gaminio_numeris" value="' . htmlspecialchars($gaminio_numeris) . '">
-        <input type="hidden" name="uzsakymo_numeris" value="' . htmlspecialchars($uzsakymo_numeris) . '">
-        <input type="hidden" name="uzsakovas" value="' . htmlspecialchars($uzsakovas) . '">
-        <input type="hidden" name="gaminio_pavadinimas" value="' . htmlspecialchars($gaminio_pavadinimas) . '">
-        <input type="hidden" name="uzsakymo_id" value="' . htmlspecialchars($uzsakymo_id) . '">
-        <input type="hidden" name="istrinti_lentele" value="' . $lentele . '">
-        <button type="submit" class="btn-delete-table">🗑 ' . htmlspecialchars($label) . '</button>
-    </form>';
+function deleteTableBtn($lentele, $label = 'Ištrinti') {
+    return '<button type="button" class="btn-delete-table" onclick="istrintiLentele(\'' . htmlspecialchars($lentele) . '\', \'' . htmlspecialchars($label) . '\')">🗑 ' . htmlspecialchars($label) . '</button>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -390,7 +381,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
 <!-- Saugikliu ideklu blokas (3.5 / 3.6) -->
 <div class="section-header" style="margin-top:2rem;">
     <h5 class="text-uppercase fw-bold" style="margin:0;">SAUGIKLIU IDEKLAI</h5>
-    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'saugikliai', 'Ištrinti') ?>
+    <?= deleteTableBtn('saugikliai', 'Ištrinti') ?>
 </div>
 <table class="table table-bordered">
 <tbody>
@@ -411,7 +402,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
 
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
-    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'vidutines_itampos', 'Ištrinti') ?>
+    <?= deleteTableBtn('vidutines_itampos', 'Ištrinti') ?>
 </div>
 <table class="table table-bordered">
 <thead class="table-secondary">
@@ -453,7 +444,7 @@ if (empty($vid_itampa)) {
 
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">0,4kV GRANDINIŲ BANDYMAS PAAUKŠTINTA ĮTAMPA</h5>
-    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'mazos_itampos', 'Ištrinti') ?>
+    <?= deleteTableBtn('mazos_itampos', 'Ištrinti') ?>
 </div>
 <table class="table table-bordered" id="mazItampaTable">
 <thead class="table-secondary">
@@ -531,7 +522,7 @@ function removeRow(btn) {
 
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
-    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'izeminimas', 'Ištrinti') ?>
+    <?= deleteTableBtn('izeminimas', 'Ištrinti') ?>
 </div>
 <table class="table table-bordered">
   <thead class="table-secondary text-center">
@@ -633,11 +624,29 @@ function removeIzemRow(btn) {
     <button type="submit" class="btn btn-success">Išsaugoti visus pakeitimus</button>
     <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>" class="btn btn-secondary">← Grįžti</a>
     <div style="margin-left:auto;">
-        <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'visi', 'Ištrinti visus duomenis') ?>
+        <?= deleteTableBtn('visi', 'Ištrinti visus duomenis') ?>
     </div>
 </div>
 
 </form>
+
+<form method="post" id="deleteLenteleForm" style="display:none;">
+    <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
+    <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
+    <input type="hidden" name="uzsakymo_numeris" value="<?=htmlspecialchars($uzsakymo_numeris)?>">
+    <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
+    <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
+    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+    <input type="hidden" name="istrinti_lentele" id="deleteLenteleValue" value="">
+</form>
+<script>
+function istrintiLentele(lentele, label) {
+    if (confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
+        document.getElementById('deleteLenteleValue').value = lentele;
+        document.getElementById('deleteLenteleForm').submit();
+    }
+}
+</script>
 
 <div class="d-flex gap-2 mb-3 align-items-center">
     <form action="/MT/generuoti_mt_dielektriniu_pdf.php" method="post" style="display:inline;">
