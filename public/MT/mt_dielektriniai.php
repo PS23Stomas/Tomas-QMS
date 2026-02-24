@@ -124,31 +124,7 @@ if (empty($protokolo_numeris)) {
     }
 }
 
-// Visų lentelės duomenų trynimas
-$istrinti_lentele = $_POST['istrinti_lentele'] ?? $_GET['istrinti_lentele'] ?? null;
-if ($istrinti_lentele) {
-    $lentele = $istrinti_lentele;
-    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
-    if ($lentele === 'saugikliai') {
-        $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
-    } elseif ($lentele === 'vidutines_itampos') {
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos'")->execute([$gaminys_id]);
-    } elseif ($lentele === 'mazos_itampos') {
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL)")->execute([$gaminys_id]);
-    } elseif ($lentele === 'izeminimas') {
-        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
-    } elseif ($lentele === 'prietaisai') {
-        $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
-    } elseif ($lentele === 'visi') {
-        $conn->beginTransaction();
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=?")->execute([$gaminys_id]);
-        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
-        $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
-        $conn->commit();
-    }
-    header("Location: mt_dielektriniai.php?" . $redirect_params);
-    exit;
-}
+// Lentelės trynimas vykdomas per atskirą failą /MT/istrinti_dielektriniu_lentele.php
 
 // Visų galimų prietaisų sąrašo gavimas iš prietaisų lentelės
 $db_prietaisai = $conn->query("SELECT id, pavadinimas, modelis, serijos_nr, kalibravimo_data, galiojimo_pabaiga, kalibracijos_sertifikato_nr FROM prietaisai ORDER BY pavadinimas")->fetchAll(PDO::FETCH_ASSOC);
@@ -646,33 +622,52 @@ function removeIzemRow(btn) {
 document.addEventListener('click', function(e) {
     var btn = e.target.closest('.btn-delete-table');
     if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
     var table = btn.getAttribute('data-delete-table');
     var label = btn.getAttribute('data-delete-label');
     if (!table) return;
     if (!confirm('Ar tikrai norite ištrinti: ' + label + '?')) return;
-    window.onbeforeunload = null;
-    var f = document.createElement('form');
-    f.method = 'POST';
-    f.action = 'mt_dielektriniai.php';
-    f.style.display = 'none';
-    var fields = {
-        'istrinti_lentele': table,
-        'gaminys_id': btn.getAttribute('data-gaminys-id'),
-        'gaminio_numeris': btn.getAttribute('data-gaminio-numeris'),
-        'uzsakymo_numeris': btn.getAttribute('data-uzsakymo-numeris'),
-        'uzsakovas': btn.getAttribute('data-uzsakovas'),
-        'gaminio_pavadinimas': btn.getAttribute('data-gaminio-pavadinimas'),
-        'uzsakymo_id': btn.getAttribute('data-uzsakymo-id')
-    };
-    for (var key in fields) {
-        var inp = document.createElement('input');
-        inp.type = 'hidden';
-        inp.name = key;
-        inp.value = fields[key] || '';
-        f.appendChild(inp);
-    }
-    document.body.appendChild(f);
-    f.submit();
+    
+    btn.disabled = true;
+    btn.textContent = 'Trinama...';
+    
+    var params = new URLSearchParams();
+    params.append('istrinti_lentele', table);
+    params.append('gaminys_id', btn.getAttribute('data-gaminys-id') || '');
+    
+    var reloadUrl = 'mt_dielektriniai.php?' + 
+        'gaminys_id=' + encodeURIComponent(btn.getAttribute('data-gaminys-id') || '') +
+        '&gaminio_numeris=' + encodeURIComponent(btn.getAttribute('data-gaminio-numeris') || '') +
+        '&uzsakymo_numeris=' + encodeURIComponent(btn.getAttribute('data-uzsakymo-numeris') || '') +
+        '&uzsakovas=' + encodeURIComponent(btn.getAttribute('data-uzsakovas') || '') +
+        '&gaminio_pavadinimas=' + encodeURIComponent(btn.getAttribute('data-gaminio-pavadinimas') || '') +
+        '&uzsakymo_id=' + encodeURIComponent(btn.getAttribute('data-uzsakymo-id') || '') +
+        '&issaugota=taip&t=' + Date.now();
+    
+    fetch('/MT/istrinti_dielektriniu_lentele.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: params.toString(),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            document.open();
+            document.write('<html><head><meta http-equiv="refresh" content="0;url=' + reloadUrl + '"></head><body>Perkraunama...</body></html>');
+            document.close();
+        } else {
+            alert('Klaida trinant: ' + (data.error || 'Nežinoma klaida'));
+            btn.disabled = false;
+            btn.textContent = '🗑 ' + label;
+        }
+    })
+    .catch(function(err) {
+        alert('Klaida: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🗑 ' + label;
+    });
 });
 </script>
 
