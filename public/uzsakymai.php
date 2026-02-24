@@ -729,13 +729,15 @@ require_once __DIR__ . '/includes/header.php';
                             <td data-label="Dielektr." class="uzs-cell-pdfs" style="text-align: center;">
                                 <?php if (($o['dielektriniu_pdf_sk'] ?? 0) > 0): ?>
                                     <?php
-                                    $diel_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_dielektriniu_failas IS NOT NULL LIMIT 1");
-                                    $diel_gaminys->execute([$o['id']]);
-                                    $diel_g = $diel_gaminys->fetch();
+                                    $diel_gaminiai = $pdo->prepare("SELECT id, gaminio_numeris, pavadinimas FROM gaminiai WHERE uzsakymo_id = ? AND mt_dielektriniu_failas IS NOT NULL ORDER BY id");
+                                    $diel_gaminiai->execute([$o['id']]);
+                                    $diel_all = $diel_gaminiai->fetchAll(PDO::FETCH_ASSOC);
+                                    $diel_count = count($diel_all);
+                                    foreach ($diel_all as $di => $dg):
+                                        $diel_label = $diel_count === 1 ? 'PDF' : 'PDF ' . ($di + 1);
                                     ?>
-                                    <?php if ($diel_g): ?>
-                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $diel_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-dielektriniu-pdf-<?= $o['id'] ?>">PDF</a>
-                                    <?php endif; ?>
+                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $dg['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 6px; margin: 1px;" title="<?= htmlspecialchars($dg['pavadinimas'] ?: $dg['gaminio_numeris']) ?>" data-testid="button-dielektriniu-pdf-<?= $dg['id'] ?>"><?= $diel_label ?></a>
+                                    <?php endforeach; ?>
                                 <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                 <?php endif; ?>
