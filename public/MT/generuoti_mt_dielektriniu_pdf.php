@@ -12,17 +12,19 @@ $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? $_GET['uzsakymo_numeris'] ?? '
 $uzsakovas = $_POST['uzsakovas'] ?? $_GET['uzsakovas'] ?? '';
 $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? $_GET['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id = $_POST['uzsakymo_id'] ?? $_GET['uzsakymo_id'] ?? '';
+$grupe = $_POST['grupe'] ?? $_GET['grupe'] ?? 'MT';
 
 if (!$gaminio_id) {
     header('Location: /uzsakymai.php');
     exit;
 }
 
-$stmt = $conn->prepare("SELECT id, protokolo_nr FROM gaminiai WHERE id=?");
+$stmt = $conn->prepare("SELECT id, protokolo_nr, dielektriniai_issaugoti FROM gaminiai WHERE id=?");
 $stmt->execute([$gaminio_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_nr = $gaminys['protokolo_nr'] ?? '';
+$jau_issaugota = !empty($gaminys['dielektriniai_issaugoti']);
 
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
@@ -81,7 +83,7 @@ if (!empty($vid_itampa)) {
             <td>' . htmlspecialchars($row['bandymo_trukme'] ?? '') . '</td>
         </tr>';
     }
-} else {
+} elseif (!$jau_issaugota) {
     $t = (stripos($gaminio_pavadinimas, '2x') !== false) ? 2 : 1;
     for ($i = 1; $i <= $t; $i++) {
         $label = ($t == 1) ? 'transformatorių' : "T-$i";
@@ -94,6 +96,8 @@ if (!empty($vid_itampa)) {
             <td>60</td>
         </tr>';
     }
+} else {
+    $vid_itampa_html = '<tr><td colspan="6">Duomenys nesuvesti</td></tr>';
 }
 
 $maz_itampa_html = '';
@@ -286,6 +290,7 @@ try {
         'uzsakovas' => $uzsakovas,
         'gaminio_pavadinimas' => $gaminio_pavadinimas,
         'uzsakymo_id' => $uzsakymo_id,
+        'grupe' => $grupe,
         'pdf_sukurtas' => 'taip'
     ]);
     header("Location: /MT/mt_dielektriniai.php?$params");
@@ -300,6 +305,7 @@ try {
         'uzsakovas' => $uzsakovas,
         'gaminio_pavadinimas' => $gaminio_pavadinimas,
         'uzsakymo_id' => $uzsakymo_id,
+        'grupe' => $grupe,
         'pdf_klaida' => $e->getMessage()
     ]);
     header("Location: /MT/mt_dielektriniai.php?$params");
