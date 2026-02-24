@@ -917,7 +917,13 @@ function togglePdfDropdown(btn) {
     var dropdown = btn.closest('.pdf-dropdown');
     var wasOpen = dropdown.classList.contains('open');
     document.querySelectorAll('.pdf-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
-    if (!wasOpen) dropdown.classList.add('open');
+    if (!wasOpen) {
+        dropdown.classList.add('open');
+        var list = dropdown.querySelector('.pdf-dropdown-list');
+        var rect = btn.getBoundingClientRect();
+        list.style.top = (rect.bottom + 4) + 'px';
+        list.style.left = Math.max(8, rect.right - list.offsetWidth) + 'px';
+    }
 }
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.pdf-dropdown')) {

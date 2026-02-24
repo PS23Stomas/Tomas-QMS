@@ -2130,29 +2130,33 @@ textarea.form-control {
 }
 .pdf-dropdown-list {
     display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    z-index: 100;
+    position: fixed;
+    z-index: 9999;
     background: #fff;
     border: 1px solid #dee2e6;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    min-width: 200px;
-    padding: 4px 0;
-    margin-top: 2px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    min-width: 220px;
+    padding: 6px 0;
 }
 .pdf-dropdown.open .pdf-dropdown-list {
     display: block;
 }
 .pdf-dropdown-list a {
-    display: block;
-    padding: 6px 12px;
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    font-size: 13px;
     color: #1e293b;
     text-decoration: none;
     white-space: nowrap;
+    gap: 6px;
 }
 .pdf-dropdown-list a:hover {
-    background: #f1f5f9;
+    background: #e0e7ff;
+    color: #3b5bdb;
+}
+.pdf-dropdown-list a::before {
+    content: '📄';
+    font-size: 14px;
 }
