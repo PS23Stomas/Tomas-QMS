@@ -235,8 +235,8 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
     return '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label, ENT_QUOTES) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
 }
 ?>
-<h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-    ATLIKTŲ BANDYMŲ PROTOKOLAS NR.
+<div class="mb-2" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <h4 class="text-uppercase fw-bold" style="margin:0;">ATLIKTŲ BANDYMŲ PROTOKOLAS NR.</h4>
     <form method="post" style="display:inline-flex;align-items:center;gap:6px;margin:0;" id="protokoloNrForm">
         <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
         <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
@@ -252,7 +252,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
         <?php endif; ?>
         <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:13px;" data-testid="button-save-protokolo-nr">Išsaugoti</button>
     </form>
-</h4>
+</div>
 <?php if ($protokolo_klaida): ?>
 <div class="alert alert-danger" style="margin-bottom:8px;padding:8px 12px;font-size:14px;"><?=htmlspecialchars($protokolo_klaida)?></div>
 <?php endif; ?>
