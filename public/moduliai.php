@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
             $stmt->execute([$id]);
             if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'tikrinimo šablonų';
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE gt.grupe = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM uzsakymai u JOIN gaminiu_rusys gr ON gr.id = u.gaminiu_rusis_id WHERE gr.pavadinimas = ?");
             $stmt->execute([$modulis]);
             if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'užsakymų';
 
@@ -88,10 +88,7 @@ if (isset($_GET['pasirinkti'])) {
 
 $moduliai = $pdo->query("SELECT gr.id, gr.pavadinimas, 
     (SELECT COUNT(*) FROM gaminio_tipai gt WHERE gt.grupe = gr.pavadinimas) AS tipu_kiekis,
-    (SELECT COUNT(*) FROM uzsakymai u 
-     JOIN gaminiai g ON g.uzsakymo_id = u.id 
-     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id 
-     WHERE gt.grupe = gr.pavadinimas) AS uzsakymu_kiekis,
+    (SELECT COUNT(*) FROM uzsakymai u WHERE u.gaminiu_rusis_id = gr.id) AS uzsakymu_kiekis,
     (SELECT COUNT(*) FROM mt_funkciniu_sablonas s WHERE s.gaminiu_rusis_id = gr.id) AS sablonu_kiekis
     FROM gaminiu_rusys gr ORDER BY gr.id")->fetchAll(PDO::FETCH_ASSOC);
 
