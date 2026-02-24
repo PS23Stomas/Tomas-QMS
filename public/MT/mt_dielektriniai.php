@@ -257,7 +257,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
 
 <p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
 <strong>Užsakovas:</strong> <?=htmlspecialchars($uzsakovas)?> |
-<strong>Pavadinimas:</strong> <?=htmlspecialchars($gaminio_pavadinimas)?><?php if (!empty($individualus_pavadinimas)): ?> <span style="color:var(--primary,#2563eb);font-weight:600;">(<?=htmlspecialchars($individualus_pavadinimas)?>)</span><?php endif; ?></p>
+<strong>Gaminys:</strong> <?=htmlspecialchars($individualus_pavadinimas ?: $gaminio_pavadinimas)?></p>
 
 <?php if ($issaugota==='taip'): ?>
 <div class="alert alert-success">Duomenys sėkmingai išsaugoti.</div>
