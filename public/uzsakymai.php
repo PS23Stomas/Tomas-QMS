@@ -83,10 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Užsakymas sukurtas sėkmingai.';
     // Užsakymo duomenų atnaujinimas ir MT gaminio pavadinimo įrašymas
     } elseif ($action === 'update') {
-        $stmt = $pdo->prepare('UPDATE uzsakymai SET uzsakymo_numeris = :nr, kiekis = :kiekis, uzsakovas_id = :uzsakovas_id, objektas_id = :objektas_id WHERE id = :id');
+        $stmt = $pdo->prepare('UPDATE uzsakymai SET uzsakymo_numeris = :nr, uzsakovas_id = :uzsakovas_id, objektas_id = :objektas_id WHERE id = :id');
         $stmt->execute([
             'nr' => $_POST['uzsakymo_numeris'] ?? '',
-            'kiekis' => $_POST['kiekis'] ?: null,
             'uzsakovas_id' => $_POST['uzsakovas_id'] ?: null,
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'id' => $_POST['id'],
@@ -575,56 +574,48 @@ require_once __DIR__ . '/includes/header.php';
             <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
             <input type="hidden" name="gaminio_id" value="<?= $gaminio_id_mt ?>">
             <div class="modal-body">
-                <?php if ($gaminio_id_mt > 0): ?>
-                <div style="margin-bottom: 14px;">
-                    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;display:block;">Gaminio duomenys (<?= h($aktyvaus_gaminio_nr) ?>)</label>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label class="form-label">Gaminio numeris</label>
-                            <input type="text" class="form-control" name="gaminio_numeris" value="<?= h($aktyvaus_gaminio_nr) ?>" required data-testid="input-gaminio-numeris">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Gaminio pavadinimas</label>
-                            <input type="text" class="form-control" name="gaminio_pavadinimas" value="<?= h($aktyvaus_gaminio_pav ?? '') ?>" placeholder="pvz. Skydas Nr.1" data-testid="input-gaminio-pavadinimas">
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Pavadinimas</label>
+                    <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
                 </div>
-                <?php endif; ?>
-                <div style="<?= $gaminio_id_mt > 0 ? 'border-top: 1px solid var(--border); padding-top: 14px;' : '' ?>">
-                    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;display:block;">Užsakymo duomenys</label>
-                    <div class="form-group">
-                        <label class="form-label"><?= h($filtro_grupe) ?> Gaminio pavadinimas</label>
-                        <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
-                    </div>
+                <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Užsakymo numeris</label>
                         <input type="text" class="form-control" name="uzsakymo_numeris" value="<?= h($order['uzsakymo_numeris'] ?? '') ?>" data-testid="input-order-number-edit">
                     </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label class="form-label">Užsakovas</label>
-                            <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit">
-                                <option value="">-- Pasirinkite --</option>
-                                <?php foreach ($clients as $c): ?>
-                                <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Objektas</label>
-                            <select class="form-control" name="objektas_id" data-testid="select-object-edit">
-                                <option value="">-- Pasirinkite --</option>
-                                <?php foreach ($objects as $o): ?>
-                                <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                    <?php if ($gaminio_id_mt > 0): ?>
+                    <div class="form-group">
+                        <label class="form-label">Gaminio numeris</label>
+                        <input type="text" class="form-control" name="gaminio_numeris" value="<?= h($aktyvaus_gaminio_nr) ?>" required data-testid="input-gaminio-numeris">
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Užsakovas</label>
+                        <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit">
+                            <option value="">-- Pasirinkite --</option>
+                            <?php foreach ($clients as $c): ?>
+                            <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Kiekis</label>
-                        <input type="number" class="form-control" name="kiekis" value="<?= h($order['kiekis'] ?? '') ?>" data-testid="input-quantity-edit">
+                        <label class="form-label">Objektas</label>
+                        <select class="form-control" name="objektas_id" data-testid="select-object-edit">
+                            <option value="">-- Pasirinkite --</option>
+                            <?php foreach ($objects as $o): ?>
+                            <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
+                <?php if ($gaminio_id_mt > 0): ?>
+                <div class="form-group">
+                    <label class="form-label">Gaminio pavadinimas <small style="color:var(--text-secondary);font-weight:400;">(individualus, neprivaloma)</small></label>
+                    <input type="text" class="form-control" name="gaminio_pavadinimas" value="<?= h($aktyvaus_gaminio_pav ?? '') ?>" placeholder="pvz. Skydas Nr.1" data-testid="input-gaminio-pavadinimas">
+                </div>
+                <?php endif; ?>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editOrderModal')">Atšaukti</button>
