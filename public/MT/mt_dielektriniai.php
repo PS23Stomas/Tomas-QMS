@@ -331,7 +331,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
     <td>
         <button type="button" class="btn btn-sm btn-primary"
             onclick="redaguotiPrietaisa(<?=$p['id']?>,'<?=htmlspecialchars($p['prietaiso_tipas'])?>','<?=htmlspecialchars($p['prietaiso_nr'])?>','<?=$p['patikra_data']?>','<?=$p['galioja_iki']?>','<?=htmlspecialchars($p['sertifikato_nr'])?>')">Red.</button>
-        <a href="?salinti=<?=$p['id']?>&gaminys_id=<?=$gaminys_id?>&gaminio_numeris=<?=urlencode($gaminio_numeris)?>&uzsakymo_numeris=<?=urlencode($uzsakymo_numeris)?>&uzsakovas=<?=urlencode($uzsakovas)?>&gaminio_pavadinimas=<?=urlencode($gaminio_pavadinimas)?>"
+        <a href="?salinti=<?=$p['id']?>&gaminys_id=<?=$gaminys_id?>&gaminio_numeris=<?=urlencode($gaminio_numeris)?>&uzsakymo_numeris=<?=urlencode($uzsakymo_numeris)?>&uzsakovas=<?=urlencode($uzsakovas)?>&gaminio_pavadinimas=<?=urlencode($gaminio_pavadinimas)?>&uzsakymo_id=<?=urlencode($uzsakymo_id)?>&grupe=<?=urlencode($grupe)?>"
            class="btn btn-sm btn-danger" onclick="return confirm('Šalinti?')">Trint.</a>
     </td>
 </tr>
