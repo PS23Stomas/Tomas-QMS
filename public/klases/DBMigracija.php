@@ -22,6 +22,7 @@ class DBMigracija {
         $this->pridetiIssiustaKamStulpeli();
         $this->pataisytiVarcharLaukus();
         $this->pridetiSablonoGrupesStulpeli();
+        $this->pridetiGaminioPavadinimaStulpeli();
         $this->sinchronizuotiSekas();
     }
 
@@ -204,6 +205,17 @@ class DBMigracija {
             if ($tipas && $tipas !== 'text') {
                 $alter = "ALTER TABLE {$lentele} ALTER COLUMN {$laukas} TYPE TEXT";
                 $this->conn->exec($alter);
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiGaminioPavadinimaStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'pavadinimas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN pavadinimas TEXT DEFAULT NULL");
             }
         } catch (PDOException $e) {
         }

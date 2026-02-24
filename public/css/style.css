@@ -2094,6 +2094,17 @@ textarea.form-control {
 .gaminiu-tab-nr {
     font-weight: 600;
 }
+.gaminiu-tab-pav {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
 .gaminiu-tab-status {
     font-size: 11px;
     padding: 1px 6px;

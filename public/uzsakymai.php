@@ -39,7 +39,7 @@ $page_title = $filtro_grupe . ' Užsakymai';
 $clients = $pdo->query('SELECT id, uzsakovas FROM uzsakovai ORDER BY uzsakovas')->fetchAll();
 $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinimas')->fetchAll();
 
-$message = '';
+$message = $_GET['msg'] ?? '';
 $error = '';
 
 // POST veiksmų apdorojimas: kūrimas, atnaujinimas arba trynimas
@@ -116,6 +116,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rusis_id_upd = $upd_row['gaminiu_rusis_id'] ?? null;
         $sukurtas_upd = $upd_row['sukurtas'] ?? null;
         $message = 'Užsakymas atnaujintas.';
+    } elseif ($action === 'update_gaminys') {
+        $gam_id = (int)($_POST['gaminio_id'] ?? 0);
+        $gam_nr = trim($_POST['gaminio_numeris'] ?? '');
+        $gam_pav = trim($_POST['gaminio_pavadinimas'] ?? '');
+        if ($gam_id > 0 && $gam_nr !== '') {
+            $stmt = $pdo->prepare('UPDATE gaminiai SET gaminio_numeris = :nr, pavadinimas = :pav WHERE id = :id');
+            $stmt->execute([
+                'nr' => $gam_nr,
+                'pav' => $gam_pav !== '' ? $gam_pav : null,
+                'id' => $gam_id,
+            ]);
+            $message = 'Gaminio duomenys atnaujinti.';
+        }
+        $grupe_p = $_POST['grupe'] ?? ($filtro_grupe ?? '');
+        $uzs_id_p = $_POST['uzsakymo_id'] ?? '';
+        header('Location: /uzsakymai.php?grupe=' . urlencode($grupe_p) . '&id=' . urlencode($uzs_id_p) . '&gaminys=' . $gam_id . '&msg=' . urlencode($message));
+        exit;
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
         $patvirtinimas = trim($_POST['patvirtinimo_nr'] ?? '');
@@ -244,9 +261,11 @@ if ($view_id) {
         $uzbaigtumo_procentai = round(($uzbaigtumo_atlikta / $uzbaigtumo_viso) * 100);
 
         $aktyvaus_gaminio_nr = '';
+        $aktyvaus_gaminio_pav = '';
         foreach ($order_products as $p) {
             if ((int)$p['id'] === $gaminio_id_mt) {
                 $aktyvaus_gaminio_nr = $p['gaminio_numeris'] ?? '';
+                $aktyvaus_gaminio_pav = $p['pavadinimas'] ?? '';
                 break;
             }
         }
@@ -381,8 +400,11 @@ require_once __DIR__ . '/includes/header.php';
                 $is_active = ((int)$p['id'] === $gaminio_id_mt);
                 $g_url = '/uzsakymai.php?grupe=' . urlencode($filtro_grupe) . '&id=' . $view_id . '&gaminys=' . $p['id'];
             ?>
-            <a href="<?= $g_url ?>" class="gaminiu-tab <?= $is_active ? 'gaminiu-tab-active' : '' ?>" data-testid="product-tab-<?= ($idx + 1) ?>">
+            <a href="<?= $g_url ?>" class="gaminiu-tab <?= $is_active ? 'gaminiu-tab-active' : '' ?>" data-testid="product-tab-<?= ($idx + 1) ?>" <?= !empty($p['pavadinimas']) ? 'title="' . h($p['pavadinimas']) . '"' : '' ?>>
                 <span class="gaminiu-tab-nr"><?= h($p['gaminio_numeris'] ?: ($idx + 1)) ?></span>
+                <?php if (!empty($p['pavadinimas'])): ?>
+                <span class="gaminiu-tab-pav"><?= h($p['pavadinimas']) ?></span>
+                <?php endif; ?>
                 <?php
                     $g_cache = $uzbaigtumo_cache[(int)$p['id']] ?? null;
                     if ($g_cache && $g_cache['steps'] > 0):
@@ -402,7 +424,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="card-header uzs-detail-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <?= h($filtro_grupe) ?> Gaminių Langas<?php if ($aktyvaus_gaminio_nr): ?> — <?= h($aktyvaus_gaminio_nr) ?><?php endif; ?>
+            <?= h($filtro_grupe) ?> Gaminių Langas<?php if ($aktyvaus_gaminio_nr): ?> — <?= h($aktyvaus_gaminio_nr) ?><?php endif; ?><?php if (!empty($aktyvaus_gaminio_pav)): ?> <span style="font-weight:400;color:var(--text-secondary);font-size:0.85em;">(<?= h($aktyvaus_gaminio_pav) ?>)</span><?php endif; ?>
         </span>
         <?php if (isset($uzbaigtumo_procentai)): ?>
         <div class="uzbaigtumo-rodiklis" data-testid="text-completion-indicator">
@@ -473,6 +495,15 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </a>
             <?php endif; ?>
+            <div class="mt-tile" onclick="openModal('editProductModal')" data-testid="tile-redaguoti-gamini" style="cursor: pointer;">
+                <div class="mt-tile-icon" style="background: #f0f9ff; color: #0284c7;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
+                </div>
+                <div class="mt-tile-text">
+                    <div class="mt-tile-title">Redaguoti gaminį</div>
+                    <div class="mt-tile-desc">Numeris, pavadinimas</div>
+                </div>
+            </div>
             <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
                 <div class="mt-tile-icon mt-tile-icon-slate">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -588,6 +619,39 @@ require_once __DIR__ . '/includes/header.php';
         </form>
     </div>
 </div>
+
+<?php if ($gaminio_id_mt > 0): ?>
+<div class="modal-overlay" id="editProductModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Redaguoti gaminį</h3>
+            <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
+        </div>
+        <form method="POST" action="/uzsakymai.php">
+            <input type="hidden" name="action" value="update_gaminys">
+            <input type="hidden" name="gaminio_id" value="<?= $gaminio_id_mt ?>">
+            <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
+            <input type="hidden" name="uzsakymo_id" value="<?= $view_id ?>">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Gaminio numeris</label>
+                    <input type="text" class="form-control" name="gaminio_numeris" value="<?= h($aktyvaus_gaminio_nr) ?>" required data-testid="input-gaminio-numeris">
+                    <small style="color:var(--text-secondary);font-size:12px;">Šis numeris bus rodomas kortelėje ir dokumentuose</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gaminio pavadinimas</label>
+                    <input type="text" class="form-control" name="gaminio_pavadinimas" value="<?= h($aktyvaus_gaminio_pav ?? '') ?>" placeholder="pvz. Skydas Nr.1" data-testid="input-gaminio-pavadinimas">
+                    <small style="color:var(--text-secondary);font-size:12px;">Individualus šio gaminio pavadinimas (neprivaloma)</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Atšaukti</button>
+                <button type="submit" class="btn btn-primary" data-testid="button-save-product">Išsaugoti</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php else: ?>
 
