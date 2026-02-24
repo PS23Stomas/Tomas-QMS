@@ -1,36 +1,21 @@
 <?php
-header('Content-Type: application/json');
-
 require_once __DIR__ . '/../klases/Database.php';
+require_once __DIR__ . '/../klases/Sesija.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.gc_maxlifetime', 1800);
-    ini_set('session.cookie_lifetime', 0);
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
-}
-
-if (!isset($_SESSION['vartotojas_id'])) {
-    http_response_code(401);
-    echo json_encode(['ok' => false, 'error' => 'Neprisijungta']);
-    exit;
-}
-
-$_SESSION['paskutine_veikla'] = time();
+Sesija::pradzia();
+Sesija::tikrintiPrisijungima();
 
 $conn = Database::getConnection();
-$gaminys_id = (int)($_POST['gaminys_id'] ?? 0);
-$lentele = $_POST['istrinti_lentele'] ?? '';
+$gaminys_id = (int)($_REQUEST['gaminys_id'] ?? 0);
+$lentele = $_REQUEST['lentele'] ?? '';
+$gaminio_numeris = $_REQUEST['gaminio_numeris'] ?? '';
+$uzsakymo_numeris = $_REQUEST['uzsakymo_numeris'] ?? '';
+$uzsakovas = $_REQUEST['uzsakovas'] ?? '';
+$gaminio_pavadinimas = $_REQUEST['gaminio_pavadinimas'] ?? '';
+$uzsakymo_id = $_REQUEST['uzsakymo_id'] ?? '';
 
 if ($gaminys_id <= 0 || empty($lentele)) {
-    echo json_encode(['ok' => false, 'error' => 'Trūksta parametrų']);
-    exit;
+    die('Klaida: trūksta parametrų');
 }
 
 try {
@@ -51,13 +36,25 @@ try {
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->commit();
     } else {
-        echo json_encode(['ok' => false, 'error' => 'Nežinoma lentelė: ' . $lentele]);
-        exit;
+        die('Klaida: nežinoma lentelė');
     }
-    echo json_encode(['ok' => true]);
 } catch (Exception $e) {
     if ($conn->inTransaction()) {
         $conn->rollBack();
     }
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    die('Klaida trinant: ' . $e->getMessage());
 }
+
+$redirect = '/MT/mt_dielektriniai.php?' . http_build_query([
+    'gaminys_id' => $gaminys_id,
+    'gaminio_numeris' => $gaminio_numeris,
+    'uzsakymo_numeris' => $uzsakymo_numeris,
+    'uzsakovas' => $uzsakovas,
+    'gaminio_pavadinimas' => $gaminio_pavadinimas,
+    'uzsakymo_id' => $uzsakymo_id,
+    'issaugota' => 'taip',
+    't' => time(),
+]);
+
+header("Location: $redirect");
+exit;

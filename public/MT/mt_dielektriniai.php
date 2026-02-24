@@ -195,8 +195,8 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 .btn-sm { padding: 2px 6px; font-size: 12px; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; margin-bottom: 0.5rem; }
 .section-header h5 { margin: 0; }
-.btn-delete-table { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 3px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; }
-.btn-delete-table:hover { background: #fecaca; }
+.btn-delete-table { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 3px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; display: inline-block; text-decoration: none; }
+.btn-delete-table:hover { background: #fecaca; color: #dc2626; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -205,16 +205,17 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 <?php
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
     global $gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id;
-    return '<button type="button" class="btn-delete-table" 
-        data-delete-table="' . htmlspecialchars($lentele, ENT_QUOTES) . '" 
-        data-delete-label="' . htmlspecialchars($label, ENT_QUOTES) . '"
-        data-gaminys-id="' . htmlspecialchars($gaminys_id, ENT_QUOTES) . '"
-        data-gaminio-numeris="' . htmlspecialchars($gaminio_numeris, ENT_QUOTES) . '"
-        data-uzsakymo-numeris="' . htmlspecialchars($uzsakymo_numeris, ENT_QUOTES) . '"
-        data-uzsakovas="' . htmlspecialchars($uzsakovas, ENT_QUOTES) . '"
-        data-gaminio-pavadinimas="' . htmlspecialchars($gaminio_pavadinimas, ENT_QUOTES) . '"
-        data-uzsakymo-id="' . htmlspecialchars($uzsakymo_id, ENT_QUOTES) . '"
-    >🗑 ' . htmlspecialchars($label) . '</button>';
+    $params = http_build_query([
+        'lentele' => $lentele,
+        'gaminys_id' => $gaminys_id,
+        'gaminio_numeris' => $gaminio_numeris,
+        'uzsakymo_numeris' => $uzsakymo_numeris,
+        'uzsakovas' => $uzsakovas,
+        'gaminio_pavadinimas' => $gaminio_pavadinimas,
+        'uzsakymo_id' => $uzsakymo_id,
+    ]);
+    $url = '/MT/istrinti_dielektriniu_lentele.php?' . $params;
+    return '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label, ENT_QUOTES) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -618,74 +619,6 @@ function removeIzemRow(btn) {
 
 </form>
 
-<script>
-document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.btn-delete-table');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var table = btn.getAttribute('data-delete-table');
-    var label = btn.getAttribute('data-delete-label');
-    if (!table) return;
-    if (!confirm('Ar tikrai norite ištrinti: ' + label + '?')) return;
-    
-    btn.disabled = true;
-    btn.textContent = 'Trinama...';
-    
-    var gaminysId = btn.getAttribute('data-gaminys-id') || '';
-    var params = new URLSearchParams();
-    params.append('istrinti_lentele', table);
-    params.append('gaminys_id', gaminysId);
-    
-    var reloadUrl = 'mt_dielektriniai.php?' + 
-        'gaminys_id=' + encodeURIComponent(gaminysId) +
-        '&gaminio_numeris=' + encodeURIComponent(btn.getAttribute('data-gaminio-numeris') || '') +
-        '&uzsakymo_numeris=' + encodeURIComponent(btn.getAttribute('data-uzsakymo-numeris') || '') +
-        '&uzsakovas=' + encodeURIComponent(btn.getAttribute('data-uzsakovas') || '') +
-        '&gaminio_pavadinimas=' + encodeURIComponent(btn.getAttribute('data-gaminio-pavadinimas') || '') +
-        '&uzsakymo_id=' + encodeURIComponent(btn.getAttribute('data-uzsakymo-id') || '') +
-        '&issaugota=taip&t=' + Date.now();
-    
-    fetch('/MT/istrinti_dielektriniu_lentele.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: params.toString(),
-        credentials: 'same-origin'
-    })
-    .then(function(r) {
-        if (!r.ok && r.status === 401) {
-            alert('Sesija pasibaigė. Prisijunkite iš naujo.');
-            window.location.href = '/login.php';
-            return;
-        }
-        var contentType = r.headers.get('content-type') || '';
-        if (contentType.indexOf('application/json') === -1) {
-            return r.text().then(function(txt) {
-                throw new Error('Serveris grąžino ne JSON: ' + txt.substring(0, 200));
-            });
-        }
-        return r.json();
-    })
-    .then(function(data) {
-        if (!data) return;
-        if (data.ok) {
-            document.open();
-            document.write('<html><head><meta http-equiv="refresh" content="0;url=' + reloadUrl + '"></head><body>Perkraunama...</body></html>');
-            document.close();
-        } else {
-            alert('Klaida trinant: ' + (data.error || 'Nežinoma klaida'));
-            btn.disabled = false;
-            btn.textContent = '🗑 ' + label;
-        }
-    })
-    .catch(function(err) {
-        console.error('Delete error:', err);
-        alert('Klaida trinant duomenis: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '🗑 ' + label;
-    });
-});
-</script>
 
 <div class="d-flex gap-2 mb-3 align-items-center">
     <form action="/MT/generuoti_mt_dielektriniu_pdf.php" method="post" style="display:inline;">
