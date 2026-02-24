@@ -208,6 +208,7 @@ table.data-table th {
 <tbody>' . $prietaisai_html . '</tbody>
 </table>
 
+' . (!empty($vid_itampa) || !$jau_issaugota ? '
 <h3>Vidutinės įtampos (6–24 kV) kabelių bandymas</h3>
 <table class="data-table">
 <thead>
@@ -215,8 +216,9 @@ table.data-table th {
 </thead>
 <tbody>' . $vid_itampa_html . '</tbody>
 </table>
-<div class="isvada">Išvada: 10kV kabeliai bandymus išlaikė, izoliacija gera.</div>
+<div class="isvada">Išvada: 10kV kabeliai bandymus išlaikė, izoliacija gera.</div>' : '') . '
 
+' . (!empty($maz_itampa) || !$jau_issaugota ? '
 <h3>0,4kV grandinių bandymas paaukštinta įtampa</h3>
 <table class="data-table">
 <thead>
@@ -224,15 +226,16 @@ table.data-table th {
 </thead>
 <tbody>' . $maz_itampa_html . '</tbody>
 </table>
-<div class="isvada">Išvada: 0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.</div>
+<div class="isvada">Išvada: 0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.</div>' : '') . '
 
+' . (!empty($izem) || !$jau_issaugota ? '
 <h3>Grandinės tarp įžeminimo varžtų ir įžemintinų elementų tikrinimas</h3>
 <table class="data-table">
 <thead>
 <tr><th>Eil. Nr.</th><th>Įžemintinų taškų pavadinimas</th><th>Matavimo taškų skaičius</th><th>Grandinės varža (Ω)</th><th>Būdas</th><th>Būklė</th></tr>
 </thead>
 <tbody>' . $izem_html . '</tbody>
-</table>
+</table>' : '') . '
 
 <div class="pastaba"><strong>Pastaba:</strong> Matavimai atlikti varžto, skirto įžemiklio (įžeminimo kontūro) prijungimui. Įžeminimo varžos normos ribose. Matavimai atlikti pagal galiojančius standartus ir darbo instrukcijas.</div>
 
@@ -260,7 +263,7 @@ try {
     $mpdf = new \Mpdf\Mpdf([
         'mode' => 'utf-8',
         'format' => 'A4',
-        'orientation' => 'L',
+        'orientation' => 'P',
         'margin_left' => 12,
         'margin_right' => 12,
         'margin_top' => 10,
