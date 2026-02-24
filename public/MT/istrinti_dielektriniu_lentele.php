@@ -1,11 +1,28 @@
 <?php
-require_once __DIR__ . '/../klases/Database.php';
-require_once __DIR__ . '/../klases/Sesija.php';
-
-Sesija::pradzia();
-Sesija::tikrintiPrisijungima();
-
 header('Content-Type: application/json');
+
+require_once __DIR__ . '/../klases/Database.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.gc_maxlifetime', 1800);
+    ini_set('session.cookie_lifetime', 0);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+if (!isset($_SESSION['vartotojas_id'])) {
+    http_response_code(401);
+    echo json_encode(['ok' => false, 'error' => 'Neprisijungta']);
+    exit;
+}
+
+$_SESSION['paskutine_veikla'] = time();
 
 $conn = Database::getConnection();
 $gaminys_id = (int)($_POST['gaminys_id'] ?? 0);
@@ -34,10 +51,13 @@ try {
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->commit();
     } else {
-        echo json_encode(['ok' => false, 'error' => 'Nežinoma lentelė']);
+        echo json_encode(['ok' => false, 'error' => 'Nežinoma lentelė: ' . $lentele]);
         exit;
     }
     echo json_encode(['ok' => true]);
 } catch (Exception $e) {
+    if ($conn->inTransaction()) {
+        $conn->rollBack();
+    }
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }

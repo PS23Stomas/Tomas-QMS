@@ -632,12 +632,13 @@ document.addEventListener('click', function(e) {
     btn.disabled = true;
     btn.textContent = 'Trinama...';
     
+    var gaminysId = btn.getAttribute('data-gaminys-id') || '';
     var params = new URLSearchParams();
     params.append('istrinti_lentele', table);
-    params.append('gaminys_id', btn.getAttribute('data-gaminys-id') || '');
+    params.append('gaminys_id', gaminysId);
     
     var reloadUrl = 'mt_dielektriniai.php?' + 
-        'gaminys_id=' + encodeURIComponent(btn.getAttribute('data-gaminys-id') || '') +
+        'gaminys_id=' + encodeURIComponent(gaminysId) +
         '&gaminio_numeris=' + encodeURIComponent(btn.getAttribute('data-gaminio-numeris') || '') +
         '&uzsakymo_numeris=' + encodeURIComponent(btn.getAttribute('data-uzsakymo-numeris') || '') +
         '&uzsakovas=' + encodeURIComponent(btn.getAttribute('data-uzsakovas') || '') +
@@ -651,8 +652,22 @@ document.addEventListener('click', function(e) {
         body: params.toString(),
         credentials: 'same-origin'
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        if (!r.ok && r.status === 401) {
+            alert('Sesija pasibaigė. Prisijunkite iš naujo.');
+            window.location.href = '/login.php';
+            return;
+        }
+        var contentType = r.headers.get('content-type') || '';
+        if (contentType.indexOf('application/json') === -1) {
+            return r.text().then(function(txt) {
+                throw new Error('Serveris grąžino ne JSON: ' + txt.substring(0, 200));
+            });
+        }
+        return r.json();
+    })
     .then(function(data) {
+        if (!data) return;
         if (data.ok) {
             document.open();
             document.write('<html><head><meta http-equiv="refresh" content="0;url=' + reloadUrl + '"></head><body>Perkraunama...</body></html>');
@@ -664,7 +679,8 @@ document.addEventListener('click', function(e) {
         }
     })
     .catch(function(err) {
-        alert('Klaida: ' + err.message);
+        console.error('Delete error:', err);
+        alert('Klaida trinant duomenis: ' + err.message);
         btn.disabled = false;
         btn.textContent = '🗑 ' + label;
     });
