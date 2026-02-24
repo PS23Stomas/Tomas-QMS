@@ -80,11 +80,23 @@ if (isset($_GET['salinti'])) {
     exit;
 }
 
+// Protokolo numerio išsaugojimas
+if (isset($_POST['issaugoti_protokolo_nr'])) {
+    $nr = trim($_POST['protokolo_nr'] ?? '');
+    $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$nr, $gaminys_id]);
+    $protokolo_numeris = $nr;
+    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
+    header("Location: mt_dielektriniai.php?" . $redirect_params);
+    exit;
+}
+
 // Visų lentelės duomenų trynimas
 if (isset($_POST['istrinti_lentele'])) {
     $lentele = $_POST['istrinti_lentele'];
     $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
-    if ($lentele === 'vidutines_itampos') {
+    if ($lentele === 'saugikliai') {
+        $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
+    } elseif ($lentele === 'vidutines_itampos') {
         $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos'")->execute([$gaminys_id]);
     } elseif ($lentele === 'mazos_itampos') {
         $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL)")->execute([$gaminys_id]);
@@ -193,8 +205,19 @@ function deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsa
     </form>';
 }
 ?>
-<h4 class="mb-4 text-uppercase fw-bold">
-    ATLIKTŲ BANDYMŲ PROTOKOLAS NR. <?=htmlspecialchars($protokolo_numeris)?>
+<h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    ATLIKTŲ BANDYMŲ PROTOKOLAS NR.
+    <form method="post" style="display:inline-flex;align-items:center;gap:6px;margin:0;" id="protokoloNrForm">
+        <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
+        <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
+        <input type="hidden" name="uzsakymo_numeris" value="<?=htmlspecialchars($uzsakymo_numeris)?>">
+        <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
+        <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
+        <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+        <input type="hidden" name="issaugoti_protokolo_nr" value="1">
+        <input type="text" name="protokolo_nr" value="<?=htmlspecialchars($protokolo_numeris)?>" placeholder="Įveskite Nr." style="width:140px;padding:4px 8px;font-size:16px;font-weight:bold;border:1px solid #ccc;border-radius:4px;" data-testid="input-protokolo-nr">
+        <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:13px;" data-testid="button-save-protokolo-nr">Išsaugoti</button>
+    </form>
 </h4>
 
 <p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
@@ -326,7 +349,10 @@ document.querySelector('form').addEventListener('submit', function(e) {
 </script>
 
 <!-- Saugikliu ideklu blokas (3.5 / 3.6) -->
-<h5 class="mt-5 text-uppercase fw-bold">SAUGIKLIU IDEKLAI</h5>
+<div class="section-header" style="margin-top:2rem;">
+    <h5 class="text-uppercase fw-bold" style="margin:0;">SAUGIKLIU IDEKLAI</h5>
+    <?= deleteTableForm($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, 'saugikliai', 'Ištrinti') ?>
+</div>
 <table class="table table-bordered">
 <tbody>
 <?php
