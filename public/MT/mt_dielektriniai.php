@@ -32,7 +32,9 @@ $uzsakymo_numeris  = $_REQUEST['uzsakymo_numeris']  ?? '';
 $uzsakovas         = $_REQUEST['uzsakovas']         ?? '';
 $gaminio_pavadinimas = $_REQUEST['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id       = $_REQUEST['uzsakymo_id']       ?? '';
+$grupe             = $_REQUEST['grupe']     ?? 'MT';
 $issaugota         = $_REQUEST['issaugota'] ?? '';
+$istrinta          = $_REQUEST['istrinta']  ?? '';
 $pdf_sukurtas      = $_REQUEST['pdf_sukurtas'] ?? '';
 $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
 
@@ -50,12 +52,25 @@ if (empty($gaminio_pavadinimas) && !empty($gaminys['gam_pav'])) {
     $gaminio_pavadinimas = $gaminys['gam_pav'];
 }
 
+function redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe, $extra = []) {
+    return http_build_query(array_merge([
+        'gaminys_id' => $gaminys_id,
+        'gaminio_numeris' => $gaminio_numeris,
+        'uzsakymo_numeris' => $uzsakymo_numeris,
+        'uzsakovas' => $uzsakovas,
+        'gaminio_pavadinimas' => $gaminio_pavadinimas,
+        'uzsakymo_id' => $uzsakymo_id,
+        'grupe' => $grupe,
+        't' => time(),
+    ], $extra));
+}
+
 // === Prietaisų CRUD operacijos ===
 // Naujo prietaiso pridėjimas
 if (isset($_POST['prideti'])) {
     $stmt = $conn->prepare("INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([$gaminys_id, $_POST['prietaiso_tipas'], $_POST['prietaiso_nr'], $_POST['patikra_data'], $_POST['galioja_iki'], $_POST['sertifikato_nr']]);
-    header("Location: mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time());
+    header("Location: mt_dielektriniai.php?" . redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe, ['issaugota' => 'taip']));
     exit;
 }
 
@@ -63,7 +78,7 @@ if (isset($_POST['prideti'])) {
 if (isset($_POST['redaguoti'])) {
     $stmt = $conn->prepare("UPDATE bandymai_prietaisai SET prietaiso_tipas=?, prietaiso_nr=?, patikra_data=?, galioja_iki=?, sertifikato_nr=? WHERE id=? AND gaminys_id=?");
     $stmt->execute([$_POST['prietaiso_tipas'], $_POST['prietaiso_nr'], $_POST['patikra_data'], $_POST['galioja_iki'], $_POST['sertifikato_nr'], $_POST['id'], $gaminys_id]);
-    header("Location: mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time());
+    header("Location: mt_dielektriniai.php?" . redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe, ['issaugota' => 'taip']));
     exit;
 }
 
@@ -77,7 +92,7 @@ if (isset($_GET['salinti'])) {
 
     $stmt = $conn->prepare("DELETE FROM bandymai_prietaisai WHERE id=? AND gaminys_id=?");
     $stmt->execute([$id, $gaminys_id]);
-    header("Location: mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time());
+    header("Location: mt_dielektriniai.php?" . redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe, ['issaugota' => 'taip']));
     exit;
 }
 
@@ -85,7 +100,7 @@ if (isset($_GET['salinti'])) {
 $protokolo_klaida = '';
 if (isset($_POST['issaugoti_protokolo_nr'])) {
     $nr = trim($_POST['protokolo_nr'] ?? '');
-    $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id);
+    $redirect_params = redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe);
     if ($nr !== '') {
         $chk = $conn->prepare("SELECT id FROM gaminiai WHERE protokolo_nr = ? AND id != ?");
         $chk->execute([$nr, $gaminys_id]);
@@ -95,13 +110,13 @@ if (isset($_POST['issaugoti_protokolo_nr'])) {
         } else {
             $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$nr, $gaminys_id]);
             $protokolo_numeris = $nr;
-            header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip&t=" . time());
+            header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip");
             exit;
         }
     } else {
         $conn->prepare("UPDATE gaminiai SET protokolo_nr = NULL WHERE id = ?")->execute([$gaminys_id]);
         $protokolo_numeris = '';
-        header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip&t=" . time());
+        header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip");
         exit;
     }
 }
@@ -134,8 +149,8 @@ $stmt = $conn->prepare("SELECT COUNT(*) FROM bandymai_prietaisai WHERE gaminys_i
 $stmt->execute([$gaminys_id]);
 $prietaisu_sk = $stmt->fetchColumn();
 
-// Numatytųjų prietaisų automatinis įterpimas, jei dar nėra priskirtų
-if ($prietaisu_sk == 0) {
+// Numatytųjų prietaisų automatinis įterpimas, jei dar nėra priskirtų (praleidžiama po trynimo)
+if ($prietaisu_sk == 0 && $istrinta !== 'prietaisai' && $istrinta !== 'visi') {
     $default_modeliai = ['AID-70M', 'EUROTEST 61557', 'MI2077'];
     $sql = "INSERT INTO bandymai_prietaisai (gaminys_id, prietaiso_tipas, prietaiso_nr, patikra_data, galioja_iki, sertifikato_nr) VALUES (?, ?, ?, ?, ?, ?)";
     $insert = $conn->prepare($sql);
@@ -204,7 +219,7 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 
 <?php
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
-    global $gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id;
+    global $gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe;
     $params = http_build_query([
         'lentele' => $lentele,
         'gaminys_id' => $gaminys_id,
@@ -213,6 +228,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
         'uzsakovas' => $uzsakovas,
         'gaminio_pavadinimas' => $gaminio_pavadinimas,
         'uzsakymo_id' => $uzsakymo_id,
+        'grupe' => $grupe,
     ]);
     $url = '/MT/istrinti_dielektriniu_lentele.php?' . $params;
     return '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label, ENT_QUOTES) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
@@ -227,6 +243,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
         <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
         <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
         <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+        <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
         <input type="hidden" name="issaugoti_protokolo_nr" value="1">
         <input type="text" name="protokolo_nr" value="<?=htmlspecialchars($protokolo_numeris)?>" placeholder="<?=htmlspecialchars($siulomas_nr ?: 'Įveskite Nr.')?>" style="width:140px;padding:4px 8px;font-size:16px;font-weight:bold;border:1px solid <?= $protokolo_klaida ? '#dc3545' : '#ccc' ?>;border-radius:4px;" data-testid="input-protokolo-nr">
         <?php if ($siulomas_nr && empty($protokolo_numeris)): ?>
@@ -239,10 +256,21 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
 <div class="alert alert-danger" style="margin-bottom:8px;padding:8px 12px;font-size:14px;"><?=htmlspecialchars($protokolo_klaida)?></div>
 <?php endif; ?>
 
-<p><strong>Užsakymo Nr.:</strong> <?=htmlspecialchars($uzsakymo_numeris)?> |
-<strong>Užsakovas:</strong> <?=htmlspecialchars($uzsakovas)?> |
-<strong>Gaminys:</strong> <?=htmlspecialchars($individualus_pavadinimas ?: $gaminio_pavadinimas)?></p>
+<div style="background:linear-gradient(135deg,#f0f4ff,#e8edf5);border:1px solid #c7d2e0;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:14px;">
+    <div><span style="color:#64748b;font-weight:500;">Gaminio numeris:</span> <strong><?=htmlspecialchars($gaminys['gam_nr'] ?: $gaminio_numeris)?></strong></div>
+    <div><span style="color:#64748b;font-weight:500;">Užsakymo Nr.:</span> <strong><?=htmlspecialchars($uzsakymo_numeris)?></strong></div>
+    <div><span style="color:#64748b;font-weight:500;">Gaminio pavadinimas:</span> <strong><?=htmlspecialchars($individualus_pavadinimas ?: $gaminio_pavadinimas)?></strong></div>
+    <div><span style="color:#64748b;font-weight:500;">Užsakovas:</span> <strong><?=htmlspecialchars($uzsakovas)?></strong></div>
+    <?php if ($grupe !== 'MT'): ?>
+    <div><span style="color:#64748b;font-weight:500;">Grupė:</span> <strong><?=htmlspecialchars($grupe)?></strong></div>
+    <?php endif; ?>
+  </div>
+</div>
 
+<?php if ($istrinta): ?>
+<div class="alert alert-success" style="padding:10px 14px;font-size:14px;">Lentelės duomenys sėkmingai ištrinti.</div>
+<?php endif; ?>
 <?php if ($issaugota==='taip'): ?>
 <div class="alert alert-success">Duomenys sėkmingai išsaugoti.</div>
 <?php endif; ?>
@@ -260,6 +288,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
     <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
     <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
     <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+    <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
     <input type="hidden" name="id" id="prietaiso_id">
 
     <h4 class="mt-4">Matavimai atlikti prietaisais:</h4>
@@ -388,6 +417,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
    <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
    <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+   <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
 
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
@@ -399,7 +429,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
 </thead>
 <tbody>
 <?php
-if (empty($vid_itampa)) {
+if (empty($vid_itampa) && $istrinta !== 'vidutines_itampos' && $istrinta !== 'visi') {
     $t = (stripos($gaminio_pavadinimas, '2x') !== false) ? 2 : 1;
     for ($i = 1; $i <= $t; $i++) {
         $label = ($t==1) ? 'transformatorių' : "T-$i";
@@ -451,7 +481,9 @@ $default_maz = [
     ['SRS kištukinio lizdo maitinimas','230 V']
 ];
 
-if (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0) {
+if ($istrinta === 'mazos_itampos' || $istrinta === 'visi') {
+    $eilutes = [];
+} elseif (!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0) {
     $eilutes = $default_maz;
 } else {
     $eilutes = $maz_itampa;
@@ -539,6 +571,8 @@ if (!empty($izem)) {
           <td><button type='button' class='btn btn-danger btn-sm' onclick='removeIzemRow(this)'>Šalinti</button></td>
         </tr>";
     }
+} elseif ($istrinta === 'izeminimas' || $istrinta === 'visi') {
+    // Po trynimo nerodyti numatytųjų duomenų
 } else {
     $izem_data = [
         ['1.1','Įžeminimo šyna PE',1],
@@ -611,7 +645,7 @@ function removeIzemRow(btn) {
 
 <div class="d-flex gap-2 mt-3 mb-3 align-items-center">
     <button type="submit" class="btn btn-success">Išsaugoti visus pakeitimus</button>
-    <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>" class="btn btn-secondary">← Grįžti</a>
+    <a href="/uzsakymai.php?id=<?= htmlspecialchars($uzsakymo_id) ?>&grupe=<?= urlencode($grupe) ?>" class="btn btn-secondary">← Grįžti</a>
     <div style="margin-left:auto;">
         <?= deleteTableBtn('visi', 'Ištrinti visus duomenis') ?>
     </div>
@@ -628,6 +662,7 @@ function removeIzemRow(btn) {
         <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
         <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
         <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
+        <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
         <button type="submit" class="btn btn-primary" data-testid="button-generuoti-dielektriniu-pdf">Generuoti PDF</button>
     </form>
     <?php if ($turi_dielektriniu_pdf): ?>

@@ -13,6 +13,7 @@ $uzsakymo_numeris = $_REQUEST['uzsakymo_numeris'] ?? '';
 $uzsakovas = $_REQUEST['uzsakovas'] ?? '';
 $gaminio_pavadinimas = $_REQUEST['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id = $_REQUEST['uzsakymo_id'] ?? '';
+$grupe = $_REQUEST['grupe'] ?? 'MT';
 
 if ($gaminys_id <= 0 || empty($lentele)) {
     die('Klaida: trūksta parametrų');
@@ -52,7 +53,8 @@ $redirect = '/MT/mt_dielektriniai.php?' . http_build_query([
     'uzsakovas' => $uzsakovas,
     'gaminio_pavadinimas' => $gaminio_pavadinimas,
     'uzsakymo_id' => $uzsakymo_id,
-    'issaugota' => 'taip',
+    'grupe' => $grupe,
+    'istrinta' => $lentele,
     't' => time(),
 ]);
 
