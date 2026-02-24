@@ -97,47 +97,25 @@ if (isset($_GET['salinti'])) {
     exit;
 }
 
-// Protokolo numerio išsaugojimas
-$protokolo_klaida = '';
-if (isset($_POST['issaugoti_protokolo_nr'])) {
-    $nr = trim($_POST['protokolo_nr'] ?? '');
-    $redirect_params = redirectParams($gaminys_id, $gaminio_numeris, $uzsakymo_numeris, $uzsakovas, $gaminio_pavadinimas, $uzsakymo_id, $grupe);
-    if ($nr !== '') {
-        $chk = $conn->prepare("SELECT id FROM gaminiai WHERE protokolo_nr = ? AND id != ?");
-        $chk->execute([$nr, $gaminys_id]);
-        if ($chk->fetch()) {
-            $protokolo_klaida = "Protokolo Nr. \"$nr\" jau egzistuoja. Pasirinkite kitą numerį.";
-            $protokolo_numeris = $nr;
-        } else {
-            $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$nr, $gaminys_id]);
-            $protokolo_numeris = $nr;
-            header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip");
-            exit;
-        }
-    } else {
-        $conn->prepare("UPDATE gaminiai SET protokolo_nr = NULL WHERE id = ?")->execute([$gaminys_id]);
-        $protokolo_numeris = '';
-        header("Location: mt_dielektriniai.php?" . $redirect_params . "&issaugota=taip");
-        exit;
-    }
-}
 
-// Siūlomo sekančio protokolo numerio apskaičiavimas
-$siulomas_nr = '';
+// Automatinis protokolo numerio priskyrimas (d0009, d0010, ...)
 if (empty($protokolo_numeris)) {
-    $max_st = $conn->query("SELECT protokolo_nr FROM gaminiai WHERE protokolo_nr ~ '^T[0-9]+$' ORDER BY CAST(SUBSTRING(protokolo_nr FROM 2) AS INTEGER) DESC LIMIT 1");
+    $max_st = $conn->query("SELECT protokolo_nr FROM gaminiai WHERE protokolo_nr ~ '^d[0-9]+$' ORDER BY CAST(SUBSTRING(protokolo_nr FROM 2) AS INTEGER) DESC LIMIT 1");
     $max_row = $max_st->fetch(PDO::FETCH_ASSOC);
     if ($max_row) {
         $max_num = (int)substr($max_row['protokolo_nr'], 1);
-        $siulomas_nr = 'T' . ($max_num + 1);
-        while (true) {
-            $exists = $conn->prepare("SELECT 1 FROM gaminiai WHERE protokolo_nr = ?");
-            $exists->execute([$siulomas_nr]);
-            if (!$exists->fetch()) break;
-            $max_num++;
-            $siulomas_nr = 'T' . ($max_num + 1);
-        }
+    } else {
+        $max_num = 8;
     }
+    $naujas_nr = '';
+    do {
+        $max_num++;
+        $naujas_nr = 'd' . str_pad($max_num, 4, '0', STR_PAD_LEFT);
+        $exists = $conn->prepare("SELECT 1 FROM gaminiai WHERE protokolo_nr = ?");
+        $exists->execute([$naujas_nr]);
+    } while ($exists->fetch());
+    $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?")->execute([$naujas_nr, $gaminys_id]);
+    $protokolo_numeris = $naujas_nr;
 }
 
 // Lentelės trynimas vykdomas per atskirą failą /MT/istrinti_dielektriniu_lentele.php
@@ -235,27 +213,7 @@ function deleteTableBtn($lentele, $label = 'Ištrinti') {
     return '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label, ENT_QUOTES) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
 }
 ?>
-<div class="mb-2" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-    <h4 class="text-uppercase fw-bold" style="margin:0;">ATLIKTŲ BANDYMŲ PROTOKOLAS NR.</h4>
-    <form method="post" style="display:inline-flex;align-items:center;gap:6px;margin:0;" id="protokoloNrForm">
-        <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
-        <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
-        <input type="hidden" name="uzsakymo_numeris" value="<?=htmlspecialchars($uzsakymo_numeris)?>">
-        <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
-        <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
-        <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
-        <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
-        <input type="hidden" name="issaugoti_protokolo_nr" value="1">
-        <input type="text" name="protokolo_nr" value="<?=htmlspecialchars($protokolo_numeris)?>" placeholder="<?=htmlspecialchars($siulomas_nr ?: 'Įveskite Nr.')?>" style="width:140px;padding:4px 8px;font-size:16px;font-weight:bold;border:1px solid <?= $protokolo_klaida ? '#dc3545' : '#ccc' ?>;border-radius:4px;" data-testid="input-protokolo-nr">
-        <?php if ($siulomas_nr && empty($protokolo_numeris)): ?>
-        <button type="button" class="btn btn-sm btn-outline-secondary" style="padding:4px 10px;font-size:12px;" onclick="document.querySelector('[name=protokolo_nr]').value='<?=htmlspecialchars($siulomas_nr)?>';" title="Siūlomas: <?=htmlspecialchars($siulomas_nr)?>" data-testid="button-suggest-protokolo-nr"><?=htmlspecialchars($siulomas_nr)?></button>
-        <?php endif; ?>
-        <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:13px;" data-testid="button-save-protokolo-nr">Išsaugoti</button>
-    </form>
-</div>
-<?php if ($protokolo_klaida): ?>
-<div class="alert alert-danger" style="margin-bottom:8px;padding:8px 12px;font-size:14px;"><?=htmlspecialchars($protokolo_klaida)?></div>
-<?php endif; ?>
+<h4 class="mb-2 text-uppercase fw-bold">ATLIKTŲ BANDYMŲ PROTOKOLAS NR. <?=htmlspecialchars($protokolo_numeris)?></h4>
 
 <div style="background:linear-gradient(135deg,#f0f4ff,#e8edf5);border:1px solid #c7d2e0;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:14px;">
@@ -551,7 +509,7 @@ function removeRow(btn) {
     row.parentNode.removeChild(row);
 }
 </script>
-<input type="hidden" name="maz_itampa[isvada]" value="0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.">
+<input type="hidden" name="maz_itampa[isvada]" value="0,4kV įranga bandymus išlaikė, izoliacija gera.">
 <?php endif; ?>
 
 <?php if (!$izem_tusti): ?>
