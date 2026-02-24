@@ -91,12 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'objektas_id' => $_POST['objektas_id'] ?: null,
             'id' => $_POST['id'],
         ]);
-        // MT gaminio pilno pavadinimo atnaujinimas (jei nurodytas)
         $mt_pav = trim($_POST['pilnas_pavadinimas'] ?? '');
         $uzs_nr = trim($_POST['uzsakymo_numeris'] ?? '');
         if ($mt_pav !== '' && $uzs_nr !== '') {
             $gh = new Gaminys($pdo);
             $gh->irasytiPilnaPavadinima($uzs_nr, $mt_pav);
+        }
+        $gam_id = (int)($_POST['gaminio_id'] ?? 0);
+        $gam_nr = trim($_POST['gaminio_numeris'] ?? '');
+        $gam_pav = trim($_POST['gaminio_pavadinimas'] ?? '');
+        if ($gam_id > 0 && $gam_nr !== '') {
+            $stmt_g = $pdo->prepare('UPDATE gaminiai SET gaminio_numeris = :nr, pavadinimas = :pav WHERE id = :id');
+            $stmt_g->execute(['nr' => $gam_nr, 'pav' => $gam_pav !== '' ? $gam_pav : null, 'id' => $gam_id]);
         }
         $uzs_pav_upd = '';
         $obj_pav_upd = '';
@@ -495,22 +501,13 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </a>
             <?php endif; ?>
-            <div class="mt-tile" onclick="openModal('editProductModal')" data-testid="tile-redaguoti-gamini" style="cursor: pointer;">
-                <div class="mt-tile-icon" style="background: #f0f9ff; color: #0284c7;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Redaguoti gaminį</div>
-                    <div class="mt-tile-desc">Numeris, pavadinimas</div>
-                </div>
-            </div>
             <div class="mt-tile" onclick="openModal('editOrderModal')" data-testid="tile-redaguoti" style="cursor: pointer;">
                 <div class="mt-tile-icon mt-tile-icon-slate">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Redaguoti</div>
-                    <div class="mt-tile-desc">Užsakymo duomenys</div>
+                    <div class="mt-tile-desc">Gaminio ir užsakymo duomenys</div>
                 </div>
             </div>
             <?php else: ?>
@@ -569,19 +566,36 @@ require_once __DIR__ . '/includes/header.php';
 <div class="modal-overlay" id="editOrderModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>Redaguoti užsakymą</h3>
+            <h3>Redaguoti</h3>
             <button class="modal-close" onclick="closeModal('editOrderModal')">&times;</button>
         </div>
-        <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>&grupe=<?= urlencode($filtro_grupe) ?>">
+        <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>&grupe=<?= urlencode($filtro_grupe) ?><?= $gaminio_id_mt > 0 ? '&gaminys=' . $gaminio_id_mt : '' ?>">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" value="<?= $order['id'] ?>">
             <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
+            <input type="hidden" name="gaminio_id" value="<?= $gaminio_id_mt ?>">
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label"><?= h($filtro_grupe) ?> Gaminio pavadinimas</label>
-                    <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
+                <?php if ($gaminio_id_mt > 0): ?>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;display:block;">Gaminio duomenys (<?= h($aktyvaus_gaminio_nr) ?>)</label>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Gaminio numeris</label>
+                            <input type="text" class="form-control" name="gaminio_numeris" value="<?= h($aktyvaus_gaminio_nr) ?>" required data-testid="input-gaminio-numeris">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gaminio pavadinimas</label>
+                            <input type="text" class="form-control" name="gaminio_pavadinimas" value="<?= h($aktyvaus_gaminio_pav ?? '') ?>" placeholder="pvz. Skydas Nr.1" data-testid="input-gaminio-pavadinimas">
+                        </div>
+                    </div>
                 </div>
-                <div style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px;">
+                <?php endif; ?>
+                <div style="<?= $gaminio_id_mt > 0 ? 'border-top: 1px solid var(--border); padding-top: 14px;' : '' ?>">
+                    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;display:block;">Užsakymo duomenys</label>
+                    <div class="form-group">
+                        <label class="form-label"><?= h($filtro_grupe) ?> Gaminio pavadinimas</label>
+                        <input type="text" class="form-control" name="pilnas_pavadinimas" value="<?= h($esamas_pavadinimas ?? '') ?>" placeholder="pvz. MT 8x10-1x100(630)" data-testid="input-mt-pavadinimas">
+                    </div>
                     <div class="form-group">
                         <label class="form-label">Užsakymo numeris</label>
                         <input type="text" class="form-control" name="uzsakymo_numeris" value="<?= h($order['uzsakymo_numeris'] ?? '') ?>" data-testid="input-order-number-edit">
@@ -619,39 +633,6 @@ require_once __DIR__ . '/includes/header.php';
         </form>
     </div>
 </div>
-
-<?php if ($gaminio_id_mt > 0): ?>
-<div class="modal-overlay" id="editProductModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Redaguoti gaminį</h3>
-            <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
-        </div>
-        <form method="POST" action="/uzsakymai.php">
-            <input type="hidden" name="action" value="update_gaminys">
-            <input type="hidden" name="gaminio_id" value="<?= $gaminio_id_mt ?>">
-            <input type="hidden" name="grupe" value="<?= h($filtro_grupe) ?>">
-            <input type="hidden" name="uzsakymo_id" value="<?= $view_id ?>">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Gaminio numeris</label>
-                    <input type="text" class="form-control" name="gaminio_numeris" value="<?= h($aktyvaus_gaminio_nr) ?>" required data-testid="input-gaminio-numeris">
-                    <small style="color:var(--text-secondary);font-size:12px;">Šis numeris bus rodomas kortelėje ir dokumentuose</small>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Gaminio pavadinimas</label>
-                    <input type="text" class="form-control" name="gaminio_pavadinimas" value="<?= h($aktyvaus_gaminio_pav ?? '') ?>" placeholder="pvz. Skydas Nr.1" data-testid="input-gaminio-pavadinimas">
-                    <small style="color:var(--text-secondary);font-size:12px;">Individualus šio gaminio pavadinimas (neprivaloma)</small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Atšaukti</button>
-                <button type="submit" class="btn btn-primary" data-testid="button-save-product">Išsaugoti</button>
-            </div>
-        </form>
-    </div>
-</div>
-<?php endif; ?>
 
 <?php else: ?>
 
