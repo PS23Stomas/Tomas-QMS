@@ -19,12 +19,14 @@ if (!$gaminio_id) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT id, protokolo_nr, dielektriniai_issaugoti FROM gaminiai WHERE id=?");
+$stmt = $conn->prepare("SELECT id, protokolo_nr, dielektriniai_issaugoti, gaminio_numeris, pavadinimas FROM gaminiai WHERE id=?");
 $stmt->execute([$gaminio_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
 $protokolo_nr = $gaminys['protokolo_nr'] ?? '';
 $jau_issaugota = !empty($gaminys['dielektriniai_issaugoti']);
+$gaminio_numeris_db = $gaminys['gaminio_numeris'] ?? '';
+$gaminio_pavadinimas_db = $gaminys['pavadinimas'] ?? $gaminio_pavadinimas;
 
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
@@ -198,7 +200,7 @@ table.data-table th {
 
 <div class="meta-line"><strong>Užsakymo Nr.:</strong> ' . htmlspecialchars($uzsakymo_numeris) . '</div>
 <div class="meta-line"><strong>Užsakovas:</strong> ' . htmlspecialchars($uzsakovas) . '</div>
-<div class="meta-line"><strong>Pavadinimas:</strong> ' . htmlspecialchars($gaminio_pavadinimas) . '</div>
+<div class="meta-line"><strong>Gaminys:</strong> ' . htmlspecialchars($gaminio_numeris_db ?: $gaminio_pavadinimas_db) . '</div>
 
 <h3>Matavimai atlikti prietaisais:</h3>
 <table class="data-table">
