@@ -185,7 +185,7 @@ $pdfFail = isset($_GET['mt_pdf_fail']) && $_GET['mt_pdf_fail'] === '1';
           <span class="tile-title">Panaudoti komponentai</span>
         </a>
         
-        <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_numeris) ?>&uzsakovas=<?= urlencode($uzsakovas) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>" 
+        <a href="/MT/mt_dielektriniai.php?gaminio_id=<?= $gaminio_id_mt ?>&uzsakymo_numeris=<?= urlencode($uzsakymo_numeris) ?>&uzsakovas=<?= urlencode($uzsakovas) ?>&gaminio_pavadinimas=<?= urlencode($esamas_pavadinimas) ?>&grupe=<?= urlencode($grupe ?? 'MT') ?>" 
            class="tile tile-full-color tile-dielektriniai">
           <div class="tile-icon"><i class="bi bi-lightning-charge"></i></div>
           <span class="tile-title">Dielektriniai</span>

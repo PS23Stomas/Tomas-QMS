@@ -397,7 +397,8 @@ document.querySelector('form').addEventListener('submit', function(e) {
 });
 </script>
 
-<!-- Saugikliu ideklu blokas (3.5 / 3.6) -->
+<?php if ($grupe === 'MT'): ?>
+<!-- Saugikliu ideklu blokas (3.5 / 3.6) - tik MT moduliui -->
 <div class="section-header" style="margin-top:2rem;">
     <h5 class="text-uppercase fw-bold" style="margin:0;">SAUGIKLIU IDEKLAI</h5>
     <?= deleteTableBtn('saugikliai', 'Ištrinti') ?>
@@ -410,6 +411,7 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
 ?>
 </tbody>
 </table>
+<?php endif; ?>
 
 <form action="/MT/issaugoti_mt_dielektriniai.php" method="post">
    <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
