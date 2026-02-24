@@ -124,8 +124,9 @@ if (empty($protokolo_numeris)) {
 }
 
 // Visų lentelės duomenų trynimas
-if (isset($_POST['istrinti_lentele'])) {
-    $lentele = $_POST['istrinti_lentele'];
+$istrinti_lentele = $_POST['istrinti_lentele'] ?? $_GET['istrinti_lentele'] ?? null;
+if ($istrinti_lentele) {
+    $lentele = $istrinti_lentele;
     $redirect_params = "gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id) . "&issaugota=taip&t=" . time();
     if ($lentele === 'saugikliai') {
         $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
@@ -225,8 +226,11 @@ table.prietaisu-lentele th:nth-child(7), table.prietaisu-lentele td:nth-child(7)
 <div class="container mt-4">
 
 <?php
+$delete_base_url = "mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=" . urlencode($gaminio_numeris) . "&uzsakymo_numeris=" . urlencode($uzsakymo_numeris) . "&uzsakovas=" . urlencode($uzsakovas) . "&gaminio_pavadinimas=" . urlencode($gaminio_pavadinimas) . "&uzsakymo_id=" . urlencode($uzsakymo_id);
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
-    return '<button type="button" class="btn-delete-table" onclick="istrintiLentele(\'' . htmlspecialchars($lentele) . '\', \'' . htmlspecialchars($label) . '\')">🗑 ' . htmlspecialchars($label) . '</button>';
+    global $delete_base_url;
+    $url = $delete_base_url . '&istrinti_lentele=' . urlencode($lentele);
+    return '<a href="' . htmlspecialchars($url) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -629,24 +633,6 @@ function removeIzemRow(btn) {
 </div>
 
 </form>
-
-<form method="post" id="deleteLenteleForm" style="display:none;">
-    <input type="hidden" name="gaminys_id" value="<?=$gaminys_id?>">
-    <input type="hidden" name="gaminio_numeris" value="<?=htmlspecialchars($gaminio_numeris)?>">
-    <input type="hidden" name="uzsakymo_numeris" value="<?=htmlspecialchars($uzsakymo_numeris)?>">
-    <input type="hidden" name="uzsakovas" value="<?=htmlspecialchars($uzsakovas)?>">
-    <input type="hidden" name="gaminio_pavadinimas" value="<?=htmlspecialchars($gaminio_pavadinimas)?>">
-    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
-    <input type="hidden" name="istrinti_lentele" id="deleteLenteleValue" value="">
-</form>
-<script>
-function istrintiLentele(lentele, label) {
-    if (confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
-        document.getElementById('deleteLenteleValue').value = lentele;
-        document.getElementById('deleteLenteleForm').submit();
-    }
-}
-</script>
 
 <div class="d-flex gap-2 mb-3 align-items-center">
     <form action="/MT/generuoti_mt_dielektriniu_pdf.php" method="post" style="display:inline;">
