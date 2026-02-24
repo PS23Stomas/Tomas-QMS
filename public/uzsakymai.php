@@ -732,12 +732,18 @@ require_once __DIR__ . '/includes/header.php';
                                     $diel_gaminiai = $pdo->prepare("SELECT id, gaminio_numeris, pavadinimas FROM gaminiai WHERE uzsakymo_id = ? AND mt_dielektriniu_failas IS NOT NULL ORDER BY id");
                                     $diel_gaminiai->execute([$o['id']]);
                                     $diel_all = $diel_gaminiai->fetchAll(PDO::FETCH_ASSOC);
-                                    $diel_count = count($diel_all);
-                                    foreach ($diel_all as $di => $dg):
-                                        $diel_label = $diel_count === 1 ? 'PDF' : 'PDF ' . ($di + 1);
-                                    ?>
-                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $dg['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 6px; margin: 1px;" title="<?= htmlspecialchars($dg['pavadinimas'] ?: $dg['gaminio_numeris']) ?>" data-testid="button-dielektriniu-pdf-<?= $dg['id'] ?>"><?= $diel_label ?></a>
-                                    <?php endforeach; ?>
+                                    if (count($diel_all) === 1): ?>
+                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $diel_all[0]['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" data-testid="button-dielektriniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                    <?php else: ?>
+                                    <div class="pdf-dropdown" data-testid="dropdown-dielektriniu-pdf-<?= $o['id'] ?>">
+                                        <button type="button" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" onclick="togglePdfDropdown(this)">PDF ▾</button>
+                                        <div class="pdf-dropdown-list">
+                                        <?php foreach ($diel_all as $dg): ?>
+                                            <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $dg['id'] ?>" target="_blank"><?= htmlspecialchars($dg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($dg['pavadinimas'] ?: '—') ?></a>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                 <?php endif; ?>
@@ -745,13 +751,28 @@ require_once __DIR__ . '/includes/header.php';
                             <td data-label="Funkc." class="uzs-cell-pdfs" style="text-align: center;">
                                 <?php if (($o['funkciniu_pdf_sk'] ?? 0) > 0): ?>
                                     <?php
-                                    $funk_gaminys = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_funkciniu_failas IS NOT NULL LIMIT 1");
-                                    $funk_gaminys->execute([$o['id']]);
-                                    $funk_g = $funk_gaminys->fetch();
-                                    ?>
-                                    <?php if ($funk_g): ?>
+                                    $funk_gaminiai = $pdo->prepare("SELECT id, gaminio_numeris, pavadinimas FROM gaminiai WHERE uzsakymo_id = ? AND mt_funkciniu_failas IS NOT NULL ORDER BY id");
+                                    $funk_gaminiai->execute([$o['id']]);
+                                    $funk_all = $funk_gaminiai->fetchAll(PDO::FETCH_ASSOC);
+                                    if (count($funk_all) === 1): ?>
                                     <span style="display:inline-flex;align-items:center;gap:3px;">
-                                        <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $funk_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-funkciniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $funk_all[0]['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" data-testid="button-funkciniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <?php if ($uzb_funk_err > 0): ?>
+                                        <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                        </span>
+                                        <?php endif; ?>
+                                    </span>
+                                    <?php else: ?>
+                                    <span style="display:inline-flex;align-items:center;gap:3px;">
+                                        <div class="pdf-dropdown" data-testid="dropdown-funkciniu-pdf-<?= $o['id'] ?>">
+                                            <button type="button" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" onclick="togglePdfDropdown(this)">PDF ▾</button>
+                                            <div class="pdf-dropdown-list">
+                                            <?php foreach ($funk_all as $fg): ?>
+                                                <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $fg['id'] ?>" target="_blank"><?= htmlspecialchars($fg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($fg['pavadinimas'] ?: '—') ?></a>
+                                            <?php endforeach; ?>
+                                            </div>
+                                        </div>
                                         <?php if ($uzb_funk_err > 0): ?>
                                         <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -892,6 +913,17 @@ async function importuotiIsQualityTomas() {
     }, 5000);
 }
 
+function togglePdfDropdown(btn) {
+    var dropdown = btn.closest('.pdf-dropdown');
+    var wasOpen = dropdown.classList.contains('open');
+    document.querySelectorAll('.pdf-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dropdown.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.pdf-dropdown')) {
+        document.querySelectorAll('.pdf-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    }
+});
 </script>
 
 <div class="modal-overlay" id="createOrderModal">

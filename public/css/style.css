@@ -2119,3 +2119,40 @@ textarea.form-control {
     background: #fef3c7;
     color: #d97706;
 }
+.pdf-dropdown {
+    position: relative;
+    display: inline-block;
+}
+.pdf-dropdown-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+.pdf-dropdown-list {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 200px;
+    padding: 4px 0;
+    margin-top: 2px;
+}
+.pdf-dropdown.open .pdf-dropdown-list {
+    display: block;
+}
+.pdf-dropdown-list a {
+    display: block;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #1e293b;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.pdf-dropdown-list a:hover {
+    background: #f1f5f9;
+}
