@@ -228,7 +228,7 @@ table.data-table th {
 </thead>
 <tbody>' . $maz_itampa_html . '</tbody>
 </table>
-<div class="isvada">Išvada: 0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.</div>' : '') . '
+<div class="isvada">Išvada: 0,4kV įranga bandymus išlaikė, izoliacija gera.</div>' : '') . '
 
 ' . (!empty($izem) || !$jau_issaugota ? '
 <h3>Grandinės tarp įžeminimo varžtų ir įžemintinų elementų tikrinimas</h3>
