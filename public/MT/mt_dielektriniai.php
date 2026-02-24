@@ -422,6 +422,13 @@ include __DIR__ . '/mt_saugikliai_blokas.php';
    <input type="hidden" name="uzsakymo_id" value="<?=htmlspecialchars($uzsakymo_id)?>">
    <input type="hidden" name="grupe" value="<?=htmlspecialchars($grupe)?>">
 
+<?php
+$vid_itampa_tusti = empty($vid_itampa) && ($jau_issaugota || $istrinta === 'vidutines_itampos' || $istrinta === 'visi');
+$maz_itampa_tusti = ((!isset($maz_itampa) || !is_array($maz_itampa) || count($maz_itampa) === 0)) && ($jau_issaugota || $istrinta === 'mazos_itampos' || $istrinta === 'visi');
+$izem_tusti = empty($izem) && ($jau_issaugota || $istrinta === 'izeminimas' || $istrinta === 'visi');
+?>
+
+<?php if (!$vid_itampa_tusti): ?>
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">VIDUTINĖS ĮTAMPOS (6–24 kV) KABELIŲ BANDYMAS</h5>
     <?= deleteTableBtn('vidutines_itampos', 'Ištrinti') ?>
@@ -463,7 +470,9 @@ if (empty($vid_itampa) && !$jau_issaugota && $istrinta !== 'vidutines_itampos' &
 </tbody>
 </table>
 <input type="hidden" name="vid_itampa[isvada]" value="10kV kabeliai bandymus išlaikė, izoliacija gera.">
+<?php endif; ?>
 
+<?php if (!$maz_itampa_tusti): ?>
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">0,4kV GRANDINIŲ BANDYMAS PAAUKŠTINTA ĮTAMPA</h5>
     <?= deleteTableBtn('mazos_itampos', 'Ištrinti') ?>
@@ -543,7 +552,9 @@ function removeRow(btn) {
 }
 </script>
 <input type="hidden" name="maz_itampa[isvada]" value="0,4kV kabeliai ir laidai bandymus išlaikė, izoliacija gera.">
+<?php endif; ?>
 
+<?php if (!$izem_tusti): ?>
 <div class="section-header">
     <h5 class="text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
     <?= deleteTableBtn('izeminimas', 'Ištrinti') ?>
@@ -640,6 +651,7 @@ function removeIzemRow(btn) {
     renumberIzemRows();
 }
 </script>
+<?php endif; ?>
 
 <p class="fw-bold"><em>Pastaba:</em> Matavimai atlikti varžto, skirto įžemiklio (įžeminimo kontūro) prijungimui. Įžeminimo varžos normos ribose.
  Matavimai atlikti pagal galiojančius standartus ir darbo instrukcijas.</p>
