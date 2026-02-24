@@ -388,7 +388,7 @@ require_once __DIR__ . '/includes/header.php';
                 <p><strong>Pavadinimas:</strong> <?= h($esamas_pavadinimas ?: ($aktyvus_gaminys['gaminio_tipas'] ?? '-')) ?></p>
                 <p><strong>Kiekis:</strong> <?= count($order_products) ?></p>
                 <p><strong>Sukūrė:</strong> <?= h(($order['vardas'] ?? '') . ' ' . ($order['pavarde'] ?? '')) ?></p>
-                <p><strong>Data:</strong> <?= h($order['sukurtas'] ?? '') ?></p>
+                <p><strong>Data:</strong> <?= !empty($order['sukurtas']) ? date('Y-m-d H:i:s', strtotime($order['sukurtas'])) : '' ?></p>
             </div>
         </div>
     </div>
@@ -680,7 +680,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td class="uzs-cell-nr"><a href="/uzsakymai.php?id=<?= $o['id'] ?>" style="color: var(--primary); font-weight: 500;" data-testid="link-order-<?= $o['id'] ?>"><?= h($o['uzsakymo_numeris'] ?: 'Be nr.') ?></a></td>
                             <td data-label="Užsakovas"><?= h($o['uzsakovas'] ?? '-') ?></td>
                             <td data-label="Sukūrė"><?= h(($o['vardas'] ?? '') . ' ' . ($o['pavarde'] ?? '')) ?></td>
-                            <td data-label="Data" style="color: var(--text-secondary);"><?= h($o['sukurtas'] ?? '') ?></td>
+                            <td data-label="Data" style="color: var(--text-secondary);"><?= !empty($o['sukurtas']) ? date('Y-m-d H:i:s', strtotime($o['sukurtas'])) : '' ?></td>
                             <td data-label="Užbaigtumas" style="text-align: center;">
                                 <?php
                                     $gid = (int)($o['pirmasis_gaminio_id'] ?? 0);
