@@ -32,16 +32,13 @@ $uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
 
 $conn = Database::getConnection();
 
-/* --- Gamybos reikalavimų sąrašas iš šablono lentelės (pagal grupę) --- */
-$grupe_sab = 'MT';
+/* --- Gamybos reikalavimų sąrašas iš šablono lentelės (pagal užsakymo modulį) --- */
+$rusis_id_sab = 2;
 if ($gaminio_id > 0) {
-    $stmt_gr = $conn->prepare("SELECT COALESCE(gt.grupe, 'MT') FROM gaminiai g JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id = ?");
+    $stmt_gr = $conn->prepare("SELECT u.gaminiu_rusis_id FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE g.id = ?");
     $stmt_gr->execute([$gaminio_id]);
-    $grupe_sab = $stmt_gr->fetchColumn() ?: 'MT';
+    $rusis_id_sab = (int)($stmt_gr->fetchColumn() ?: 2);
 }
-$stmt_rusis = $conn->prepare("SELECT id FROM gaminiu_rusys WHERE pavadinimas = ? LIMIT 1");
-$stmt_rusis->execute([$grupe_sab]);
-$rusis_id_sab = (int)($stmt_rusis->fetchColumn() ?: 2);
 
 $stmt_sab = $conn->prepare("SELECT pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
 $stmt_sab->execute([$rusis_id_sab]);
@@ -141,7 +138,10 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         <div class="alert alert-danger">PDF generavimo klaida: <?= htmlspecialchars($pdf_klaida) ?></div>
     <?php endif; ?>
 
-    <h2 class="text-center mb-4">MT gaminio atliktų darbų pildymo forma</h2>
+    <?php
+        $modulio_pav = $_SESSION['aktyvus_modulis_pav'] ?? 'MT';
+    ?>
+    <h2 class="text-center mb-4"><?= htmlspecialchars($modulio_pav) ?> gaminio atliktų darbų pildymo forma</h2>
 
     <form action="/issaugoti_mt_bandyma.php" method="post" enctype="multipart/form-data">
         <div class="d-flex justify-content-end mb-2">
