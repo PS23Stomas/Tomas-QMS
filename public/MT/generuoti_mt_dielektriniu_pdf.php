@@ -200,7 +200,7 @@ table.data-table th {
 
 <div class="meta-line"><strong>Užsakymo Nr.:</strong> ' . htmlspecialchars($uzsakymo_numeris) . '</div>
 <div class="meta-line"><strong>Užsakovas:</strong> ' . htmlspecialchars($uzsakovas) . '</div>
-<div class="meta-line"><strong>Gaminys:</strong> ' . htmlspecialchars($gaminio_numeris_db ?: $gaminio_pavadinimas_db) . '</div>
+<div class="meta-line"><strong>Gaminys:</strong> ' . htmlspecialchars($gaminio_pavadinimas_db ?: $gaminio_numeris_db) . '</div>
 
 <h3>Matavimai atlikti prietaisais:</h3>
 <table class="data-table">
