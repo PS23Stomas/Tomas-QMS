@@ -230,7 +230,7 @@ $delete_base_url = "mt_dielektriniai.php?gaminys_id=$gaminys_id&gaminio_numeris=
 function deleteTableBtn($lentele, $label = 'Ištrinti') {
     global $delete_base_url;
     $url = $delete_base_url . '&istrinti_lentele=' . urlencode($lentele);
-    return '<a href="' . htmlspecialchars($url) . '" class="btn-delete-table" onclick="return confirm(\'Ar tikrai norite ištrinti: ' . htmlspecialchars($label) . '?\')">🗑 ' . htmlspecialchars($label) . '</a>';
+    return '<button type="button" class="btn-delete-table" onclick="istrintiLentele(\'' . htmlspecialchars($url) . '\', \'' . htmlspecialchars($label) . '\')">🗑 ' . htmlspecialchars($label) . '</button>';
 }
 ?>
 <h4 class="mb-2 text-uppercase fw-bold" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -633,6 +633,15 @@ function removeIzemRow(btn) {
 </div>
 
 </form>
+
+<script>
+function istrintiLentele(url, label) {
+    if (confirm('Ar tikrai norite ištrinti: ' + label + '?')) {
+        window.onbeforeunload = null;
+        window.location.href = url;
+    }
+}
+</script>
 
 <div class="d-flex gap-2 mb-3 align-items-center">
     <form action="/MT/generuoti_mt_dielektriniu_pdf.php" method="post" style="display:inline;">
