@@ -18,10 +18,14 @@ if (!$gaminio_id) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT id, protokolo_nr FROM gaminiai WHERE id=?");
+$stmt = $conn->prepare("SELECT id, protokolo_nr, pavadinimas, gaminio_numeris FROM gaminiai WHERE id=?");
 $stmt->execute([$gaminio_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$gaminys) die("Klaida: gaminys nerastas");
+$gaminio_pavadinimas_db = $gaminys['pavadinimas'] ?? '';
+if (!empty($gaminio_pavadinimas_db)) {
+    $gaminio_pavadinimas = $gaminio_pavadinimas_db;
+}
 
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
@@ -151,7 +155,7 @@ table.data-table th {
 
 <div class="meta-line"><strong>Užsakymo Nr.:</strong> ' . htmlspecialchars($uzsakymo_numeris) . '</div>
 <div class="meta-line"><strong>Užsakovas:</strong> ' . htmlspecialchars($uzsakovas) . '</div>
-<div class="meta-line"><strong>Pavadinimas:</strong> ' . htmlspecialchars($gaminio_pavadinimas) . '</div>
+<div class="meta-line"><strong>Gaminys:</strong> ' . htmlspecialchars($gaminio_pavadinimas) . '</div>
 <div class="meta-line"><strong>Data:</strong> ' . htmlspecialchars($data) . '</div>
 
 <h3>Gamybos reikalavimai ir atliktų darbų rezultatai</h3>
