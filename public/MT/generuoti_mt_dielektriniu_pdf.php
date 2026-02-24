@@ -234,7 +234,7 @@ table.data-table th {
 <h3>Grandinės tarp įžeminimo varžtų ir įžemintinų elementų tikrinimas</h3>
 <table class="data-table">
 <thead>
-<tr><th>Eil. Nr.</th><th>Įžemintinų taškų pavadinimas</th><th>Matavimo taškų skaičius</th><th>Grandinės varža (Ω)</th><th>Būdas</th><th>Būklė</th></tr>
+<tr><th style="width:8%">Eil. Nr.</th><th style="width:35%">Įžemintinų taškų pavadinimas</th><th style="width:17%">Matavimo taškų skaičius</th><th style="width:18%">Grandinės varža (Ω)</th><th style="width:11%">Būdas</th><th style="width:11%">Būklė</th></tr>
 </thead>
 <tbody>' . $izem_html . '</tbody>
 </table>' : '') . '
