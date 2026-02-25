@@ -931,19 +931,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function updateTheadTop() {
-    var cardHeader = document.getElementById('ordersCardHeader');
-    var topHeader = document.querySelector('.top-header');
-    if (cardHeader && topHeader) {
-        var topH = topHeader.offsetHeight;
-        var cardH = cardHeader.offsetHeight;
-        document.documentElement.style.setProperty('--orders-thead-top', (topH + cardH) + 'px');
-        cardHeader.style.top = topH + 'px';
-    }
-}
-window.addEventListener('load', updateTheadTop);
-window.addEventListener('resize', updateTheadTop);
-updateTheadTop();
 </script>
 
 <div class="modal-overlay" id="createOrderModal">

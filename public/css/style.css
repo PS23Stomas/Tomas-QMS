@@ -2161,19 +2161,26 @@ textarea.form-control {
     font-size: 14px;
 }
 
+#ordersCard {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 110px);
+}
 #ordersCardHeader {
-    position: sticky;
-    top: 56px;
-    z-index: 20;
+    flex-shrink: 0;
     background: #fff;
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    z-index: 2;
+}
+#ordersCard > .card-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 #ordersTable thead th {
     position: sticky;
-    top: var(--orders-thead-top, 112px);
-    z-index: 19;
+    top: 0;
+    z-index: 1;
     background: #f8f9fa;
     border-bottom: 2px solid var(--border);
-    box-shadow: 0 2px 0 var(--border);
 }
