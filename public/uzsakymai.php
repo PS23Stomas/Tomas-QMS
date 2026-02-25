@@ -930,6 +930,16 @@ document.addEventListener('click', function(e) {
         document.querySelectorAll('.pdf-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
     }
 });
+
+function updateTheadTop() {
+    var header = document.getElementById('ordersCardHeader');
+    if (header) {
+        var h = 56 + header.offsetHeight;
+        document.documentElement.style.setProperty('--orders-thead-top', h + 'px');
+    }
+}
+updateTheadTop();
+window.addEventListener('resize', updateTheadTop);
 </script>
 
 <div class="modal-overlay" id="createOrderModal">

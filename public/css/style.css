@@ -2171,8 +2171,7 @@ textarea.form-control {
 }
 #ordersTable thead th {
     position: sticky;
-    top: 112px;
+    top: var(--orders-thead-top, 112px);
     z-index: 19;
     background: #f8f9fa;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
