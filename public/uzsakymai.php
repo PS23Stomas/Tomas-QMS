@@ -932,14 +932,18 @@ document.addEventListener('click', function(e) {
 });
 
 function updateTheadTop() {
-    var header = document.getElementById('ordersCardHeader');
-    if (header) {
-        var h = 56 + header.offsetHeight;
-        document.documentElement.style.setProperty('--orders-thead-top', h + 'px');
+    var cardHeader = document.getElementById('ordersCardHeader');
+    var topHeader = document.querySelector('.top-header');
+    if (cardHeader && topHeader) {
+        var topH = topHeader.offsetHeight;
+        var cardH = cardHeader.offsetHeight;
+        document.documentElement.style.setProperty('--orders-thead-top', (topH + cardH) + 'px');
+        cardHeader.style.top = topH + 'px';
     }
 }
-updateTheadTop();
+window.addEventListener('load', updateTheadTop);
 window.addEventListener('resize', updateTheadTop);
+updateTheadTop();
 </script>
 
 <div class="modal-overlay" id="createOrderModal">

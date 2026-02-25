@@ -2167,11 +2167,13 @@ textarea.form-control {
     z-index: 20;
     background: #fff;
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 #ordersTable thead th {
     position: sticky;
     top: var(--orders-thead-top, 112px);
     z-index: 19;
     background: #f8f9fa;
+    border-bottom: 2px solid var(--border);
+    box-shadow: 0 2px 0 var(--border);
 }
