@@ -2160,3 +2160,19 @@ textarea.form-control {
     content: '📄';
     font-size: 14px;
 }
+
+#ordersCardHeader {
+    position: sticky;
+    top: 56px;
+    z-index: 20;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+#ordersTable thead th {
+    position: sticky;
+    top: 112px;
+    z-index: 19;
+    background: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}

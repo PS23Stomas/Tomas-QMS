@@ -635,8 +635,8 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php else: ?>
 
-<div class="card">
-    <div class="card-header">
+<div class="card" id="ordersCard">
+    <div class="card-header" id="ordersCardHeader">
         <span class="card-title">Visi užsakymai (<?= count($orders) ?>)</span>
         <div class="uzs-header-actions" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
             <div class="uzs-search-wrap" style="position:relative;">
