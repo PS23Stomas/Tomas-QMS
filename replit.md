@@ -8,6 +8,15 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - Language: Lithuanian (lietuvių kalba)
 - Technology preference: PHP, CSS, JavaScript, HTML
 
+## Workflow & Server Configuration
+
+### Critical Notes
+- **Server**: PHP 8.3 built-in dev server launched via `npm run dev` → `tsx server/index.ts` → spawns `php -S 0.0.0.0:5000 -t public public/router.php`
+- **Workflow timeout**: The `restartWorkflow` timeout parameter acts as a process lifetime limit. Use a large value (e.g., 86400) when restarting to prevent premature process termination.
+- **Health check**: Replit's webview health checker (from 172.31.80.162) requests GET `/` and expects HTTP 200. The login page must NOT return 302 redirects for authenticated users at `/` — uses client-side redirect (meta-refresh + JS) instead.
+- **Sessions**: PHP sessions stored in `/tmp/sess_*`. The health checker preserves cookies across requests, so sessions persist. If the health checker gets a 302 redirect, the workflow is marked as FAILED.
+- **"Project" workflow**: The `.replit` file contains an immutable "Project" workflow (`runButton = "Project"`) that chains to "Start application". This cannot be removed via the API.
+
 ## System Architecture
 
 ### Modular Architecture (Gaminių rūšys)
