@@ -3,7 +3,10 @@ import { exec, ChildProcess } from "child_process";
 function startPhp(): ChildProcess {
   const phpProcess = exec(
     "php -S 0.0.0.0:5000 -t public public/router.php",
-    { cwd: process.cwd() }
+    { 
+      cwd: process.cwd(),
+      env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" }
+    }
   );
 
   phpProcess.stdout?.pipe(process.stdout);
