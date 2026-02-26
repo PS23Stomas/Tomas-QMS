@@ -31,12 +31,12 @@ $pdo = new PDO($dsn, $parsed['user'], $parsed['pass'], [
 $klaida = '';
 
 // Automatinio prisijungimo tikrinimas per „prisiminti mane" slapuką (remember_token)
+// Pastaba: GET užklausoms nenukreipiame - tiesiog nustatome sesiją ir rodome formą
 if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     $token = $_COOKIE['remember_token'];
     $hashed_token = hash('sha256', $token);
     
     try {
-        // Užklausa: ieškomas galiojantis remember_token ir susiejamas su vartotoju
         $stmt = $pdo->prepare("
             SELECT v.id, v.vardas, v.pavarde, v.role 
             FROM remember_tokens rt
@@ -47,7 +47,6 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
         $user = $stmt->fetch();
         
         if ($user) {
-            // Sėkmingas automatinis prisijungimas: kuriama nauja sesija
             session_regenerate_id(true);
             $_SESSION['vartotojas_id'] = $user['id'];
             $_SESSION['vardas'] = $user['vardas'];
@@ -65,12 +64,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
                 ON CONFLICT (session_id) DO UPDATE SET 
                     paskutine_veikla = CURRENT_TIMESTAMP");
             $stmt_ins->execute([$user['id'], $session_id, $user['vardas'], $user['pavarde'], $ip, $user_agent]);
-            
-            http_response_code(200);
-            echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/moduliai.php"></head><body><p>Nukreipiama...</p><script>window.location.replace("/moduliai.php")</script></body></html>';
-            exit;
         } else {
-            // Negaliojantis slapukas - ištrinamas
             setcookie('remember_token', '', [
                 'expires' => time() - 3600,
                 'path' => '/',
@@ -83,12 +77,8 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     }
 }
 
-// Jei vartotojas jau prisijungęs - nukreipiame į pagrindinį puslapį
-if (isset($_SESSION['vartotojas_id'])) {
-    http_response_code(200);
-    echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/moduliai.php"></head><body><p>Nukreipiama...</p><script>window.location.replace("/moduliai.php")</script></body></html>';
-    exit;
-}
+// Jei vartotojas jau prisijungęs ir tai GET užklausa - rodome nukreipimo nuorodą formoje (ne 302)
+$jau_prisijunges = isset($_SESSION['vartotojas_id']);
 
 // POST užklausos apdorojimas: prisijungimo formos duomenų tikrinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -314,6 +304,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-card">
         <h2>MT Modulis</h2>
         <p class="login-subtitle">Gamybos valdymo sistema</p>
+        <?php if ($jau_prisijunges): ?>
+            <div data-testid="text-already-logged-in" style="text-align:center;padding:1.5rem 0;">
+                <p style="color:#333;margin-bottom:1rem;">Jūs jau esate prisijungęs kaip <strong><?= htmlspecialchars($_SESSION['vardas'] ?? '') ?> <?= htmlspecialchars($_SESSION['pavarde'] ?? '') ?></strong></p>
+                <a href="/moduliai.php" class="btn-login" style="display:inline-block;text-decoration:none;text-align:center;padding:0.85rem 2rem;" data-testid="link-go-to-modules">Tęsti į sistemą</a>
+            </div>
+        <?php else: ?>
         <?php if (isset($_GET['sesija_pasibaige']) && $_GET['sesija_pasibaige'] == '1'): ?>
             <div class="alert alert-warning" data-testid="text-session-expired" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.75rem 1rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.9rem;">
                 Jūsų sesija baigėsi dėl neaktyvumo. Prašome prisijungti iš naujo.
@@ -351,6 +347,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="forgot-link">
             <a href="/slaptazodis_atstatymas.php" data-testid="link-forgot-password">Pamiršau slaptažodį</a>
         </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>

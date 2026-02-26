@@ -11,10 +11,10 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 ## Workflow & Server Configuration
 
 ### Critical Notes
-- **Server**: PHP 8.3 built-in dev server launched via `npm run dev` → `tsx server/index.ts` → spawns `php -S 0.0.0.0:5000 -t public public/router.php`
-- **Workflow timeout**: The `restartWorkflow` timeout parameter acts as a process lifetime limit. Use a large value (e.g., 86400) when restarting to prevent premature process termination.
-- **Health check**: Replit's webview health checker (from 172.31.80.162) requests GET `/` and expects HTTP 200. The login page must NOT return 302 redirects for authenticated users at `/` — uses client-side redirect (meta-refresh + JS) instead.
-- **Sessions**: PHP sessions stored in `/tmp/sess_*`. The health checker preserves cookies across requests, so sessions persist. If the health checker gets a 302 redirect, the workflow is marked as FAILED.
+- **Server**: PHP 8.3 built-in dev server launched via `npm run dev` → `tsx server/index.ts` → clears stale sessions → spawns `php -S 0.0.0.0:5000 -t public public/router.php` with auto-restart.
+- **Workflow timeout**: The `restartWorkflow` timeout parameter acts as a process lifetime limit. ALWAYS use `restartWorkflow({timeout: 86400})` to prevent premature process termination. Auto-restarts by the system use a short default (~30s) that kills the process.
+- **Health check**: Replit's webview health checker (from 172.31.80.162) requests GET `/` and expects HTTP 200. The login page (`login.php`) MUST NEVER return 302 redirects on GET requests — it always returns 200 OK. If the user is already logged in, it shows a "you are logged in" message with a link instead of redirecting. Only POST requests (form submission) redirect after successful login.
+- **Sessions**: PHP sessions stored in `/tmp/sess_*`. The health checker preserves cookies (PHPSESSID, remember_token) across requests. Sessions are cleared on every server startup to prevent stale cookies from causing issues.
 - **"Project" workflow**: The `.replit` file contains an immutable "Project" workflow (`runButton = "Project"`) that chains to "Start application". This cannot be removed via the API.
 
 ## System Architecture
