@@ -11,9 +11,16 @@
 $uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($uri, PHP_URL_PATH);
 
-// Šakninio kelio nukreipimas į pagrindinį puslapį
+// Sveikatos patikros endpointas (health check)
+if ($path === '/__healthcheck' || $path === '/__replit_health') {
+    http_response_code(200);
+    echo 'OK';
+    return true;
+}
+
+// Šakninio kelio nukreipimas į prisijungimo puslapį
 if ($path === '/') {
-    $path = '/index.php';
+    $path = '/login.php';
 }
 
 // Pilno failo kelio sudarymas

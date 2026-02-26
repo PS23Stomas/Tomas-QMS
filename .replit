@@ -38,10 +38,10 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "while true; do php -S 0.0.0.0:5000 -t public public/router.php; echo '[PHP] Server stopped, restarting...'; sleep 1; done"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "php -S 0.0.0.0:5000 -t public public/router.php"
+waitForPort = 5000
