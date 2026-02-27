@@ -903,7 +903,17 @@ async function importuotiIsQualityTomas() {
                 bar.style.background = 'var(--success, #10b981)';
                 label.innerHTML = '<span style="color:var(--success,#10b981);">Baigta!</span>';
                 proc.style.color = 'var(--success, #10b981)';
-                details.textContent = '+' + (rez.nauji || 0) + ' nauji';
+                var parts = [];
+                if (rez.nauji > 0) parts.push('+' + rez.nauji + ' nauji užs.');
+                if (rez.atnaujinti > 0) parts.push(rez.atnaujinti + ' atnaujinti');
+                if (rez.gaminiai > 0) parts.push(rez.gaminiai + ' gaminiai');
+                if (rez.bandymai > 0) parts.push(rez.bandymai + ' bandymai');
+                if (rez.komponentai > 0) parts.push(rez.komponentai + ' komponentai');
+                details.textContent = parts.length > 0 ? parts.join(', ') : 'Nėra naujų duomenų';
+                if (rez.klaidos && rez.klaidos.length > 0) {
+                    details.textContent += ' | Klaidos: ' + rez.klaidos.join('; ');
+                    details.style.color = 'var(--danger, #dc2626)';
+                }
                 if (rez.nauji > 0) {
                     setTimeout(function() { location.reload(); }, 2000);
                 }
@@ -911,7 +921,12 @@ async function importuotiIsQualityTomas() {
                 bar.style.background = 'var(--danger, #dc2626)';
                 label.innerHTML = '<span style="color:var(--danger,#dc2626);">Klaida</span>';
                 proc.style.color = 'var(--danger, #dc2626)';
-                details.textContent = finalData.klaida || '';
+                var errMsg = finalData.klaida || '';
+                if (finalData.rezultatas && finalData.rezultatas.klaidos && finalData.rezultatas.klaidos.length > 0) {
+                    errMsg += (errMsg ? ' | ' : '') + finalData.rezultatas.klaidos.join('; ');
+                }
+                details.textContent = errMsg;
+                details.style.color = 'var(--danger, #dc2626)';
             }
         }
     } catch (e) {
