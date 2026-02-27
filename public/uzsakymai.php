@@ -601,21 +601,37 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Užsakovas</label>
-                        <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($clients as $c): ?>
-                            <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="select-with-add">
+                            <select class="form-control" name="uzsakovas_id" data-testid="select-client-edit" data-qa-select="uzsakovas">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($clients as $c): ?>
+                                <option value="<?= $c['id'] ?>" <?= $c['id'] == $order['uzsakovas_id'] ? 'selected' : '' ?>><?= h($c['uzsakovas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" class="btn-quick-add" onclick="toggleQuickAdd('uzsakovas','edit')" title="Pridėti naują užsakovą" data-testid="button-add-client-edit">+</button>
+                        </div>
+                        <div class="quick-add-row" id="qa-uzsakovas-edit" style="display:none;">
+                            <input type="text" class="form-control" placeholder="Naujo užsakovo pavadinimas" data-testid="input-new-client-edit">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="saveQuickAdd('uzsakovas','edit')" data-testid="button-save-new-client-edit">Pridėti</button>
+                            <span class="quick-add-error"></span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Objektas</label>
-                        <select class="form-control" name="objektas_id" data-testid="select-object-edit">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($objects as $o): ?>
-                            <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="select-with-add">
+                            <select class="form-control" name="objektas_id" data-testid="select-object-edit" data-qa-select="objektas">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($objects as $o): ?>
+                                <option value="<?= $o['id'] ?>" <?= $o['id'] == $order['objektas_id'] ? 'selected' : '' ?>><?= h($o['pavadinimas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" class="btn-quick-add" onclick="toggleQuickAdd('objektas','edit')" title="Pridėti naują objektą" data-testid="button-add-object-edit">+</button>
+                        </div>
+                        <div class="quick-add-row" id="qa-objektas-edit" style="display:none;">
+                            <input type="text" class="form-control" placeholder="Naujo objekto pavadinimas" data-testid="input-new-object-edit">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="saveQuickAdd('objektas','edit')" data-testid="button-save-new-object-edit">Pridėti</button>
+                            <span class="quick-add-error"></span>
+                        </div>
                     </div>
                 </div>
                 <?php if ($gaminio_id_mt > 0): ?>
@@ -950,21 +966,37 @@ document.addEventListener('click', function(e) {
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Užsakovas</label>
-                        <select class="form-control" name="uzsakovas_id" data-testid="select-client">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($clients as $c): ?>
-                            <option value="<?= $c['id'] ?>"><?= h($c['uzsakovas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="select-with-add">
+                            <select class="form-control" name="uzsakovas_id" data-testid="select-client" data-qa-select="uzsakovas">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($clients as $c): ?>
+                                <option value="<?= $c['id'] ?>"><?= h($c['uzsakovas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" class="btn-quick-add" onclick="toggleQuickAdd('uzsakovas','create')" title="Pridėti naują užsakovą" data-testid="button-add-client-create">+</button>
+                        </div>
+                        <div class="quick-add-row" id="qa-uzsakovas-create" style="display:none;">
+                            <input type="text" class="form-control" placeholder="Naujo užsakovo pavadinimas" data-testid="input-new-client-create">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="saveQuickAdd('uzsakovas','create')" data-testid="button-save-new-client-create">Pridėti</button>
+                            <span class="quick-add-error"></span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Objektas</label>
-                        <select class="form-control" name="objektas_id" data-testid="select-object">
-                            <option value="">-- Pasirinkite --</option>
-                            <?php foreach ($objects as $o): ?>
-                            <option value="<?= $o['id'] ?>"><?= h($o['pavadinimas']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="select-with-add">
+                            <select class="form-control" name="objektas_id" data-testid="select-object" data-qa-select="objektas">
+                                <option value="">-- Pasirinkite --</option>
+                                <?php foreach ($objects as $o): ?>
+                                <option value="<?= $o['id'] ?>"><?= h($o['pavadinimas']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" class="btn-quick-add" onclick="toggleQuickAdd('objektas','create')" title="Pridėti naują objektą" data-testid="button-add-object-create">+</button>
+                        </div>
+                        <div class="quick-add-row" id="qa-objektas-create" style="display:none;">
+                            <input type="text" class="form-control" placeholder="Naujo objekto pavadinimas" data-testid="input-new-object-create">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="saveQuickAdd('objektas','create')" data-testid="button-save-new-object-create">Pridėti</button>
+                            <span class="quick-add-error"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -1033,4 +1065,130 @@ document.getElementById('deleteConfirmInput').addEventListener('input', function
 </script>
 <?php endif; ?>
 
+<style>
+.select-with-add { display: flex; gap: 6px; align-items: center; }
+.select-with-add select { flex: 1; min-width: 0; }
+.btn-quick-add {
+    width: 34px; height: 34px; min-width: 34px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-card, #fff); color: var(--primary);
+    font-size: 1.2rem; font-weight: 700; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+}
+.btn-quick-add:hover { background: var(--primary); color: #fff; }
+.quick-add-row {
+    display: flex; gap: 6px; align-items: center; margin-top: 6px;
+}
+.quick-add-row input { flex: 1; min-width: 0; }
+.quick-add-row .btn { white-space: nowrap; }
+.quick-add-error { color: #dc2626; font-size: 0.8rem; }
+</style>
+<script>
+function toggleQuickAdd(type, prefix) {
+    var row = document.getElementById('qa-' + type + '-' + prefix);
+    if (!row) return;
+    var visible = row.style.display !== 'none';
+    row.style.display = visible ? 'none' : 'flex';
+    if (!visible) {
+        var inp = row.querySelector('input');
+        if (inp) { inp.value = ''; inp.focus(); }
+        row.querySelector('.quick-add-error').textContent = '';
+    }
+}
+
+function addOptionToAllSelects(type, id, name) {
+    document.querySelectorAll('select[data-qa-select="' + type + '"]').forEach(function(sel) {
+        var exists = Array.from(sel.options).some(function(o) { return o.value == id; });
+        if (!exists) {
+            var opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = name;
+            sel.appendChild(opt);
+        }
+        var options = Array.from(sel.options).slice(1);
+        options.sort(function(a, b) { return a.textContent.localeCompare(b.textContent, 'lt'); });
+        while (sel.options.length > 1) sel.remove(1);
+        options.forEach(function(o) { sel.appendChild(o); });
+    });
+}
+
+function ensureOptionExists(type, id, name) {
+    document.querySelectorAll('select[data-qa-select="' + type + '"]').forEach(function(sel) {
+        var exists = Array.from(sel.options).some(function(o) { return o.value == id; });
+        if (!exists) {
+            var opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = name;
+            sel.appendChild(opt);
+            var options = Array.from(sel.options).slice(1);
+            options.sort(function(a, b) { return a.textContent.localeCompare(b.textContent, 'lt'); });
+            while (sel.options.length > 1) sel.remove(1);
+            options.forEach(function(o) { sel.appendChild(o); });
+        }
+    });
+}
+
+async function saveQuickAdd(type, prefix) {
+    var row = document.getElementById('qa-' + type + '-' + prefix);
+    if (!row) return;
+    var inp = row.querySelector('input');
+    var errSpan = row.querySelector('.quick-add-error');
+    var btn = row.querySelector('button');
+    var name = (inp.value || '').trim();
+    errSpan.textContent = '';
+
+    if (!name) {
+        errSpan.textContent = 'Įveskite pavadinimą';
+        inp.focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    try {
+        var resp = await fetch('/api/quick_add.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type, name: name })
+        });
+        if (!resp.ok) { errSpan.textContent = 'Serverio klaida (' + resp.status + ')'; btn.disabled = false; btn.textContent = 'Pridėti'; return; }
+        var data;
+        try { data = await resp.json(); } catch(pe) { errSpan.textContent = 'Neteisingas atsakymas'; btn.disabled = false; btn.textContent = 'Pridėti'; return; }
+
+        if (data.success) {
+            addOptionToAllSelects(type, data.id, data.name);
+            var thisSelect = row.closest('.form-group').querySelector('select[data-qa-select="' + type + '"]');
+            if (thisSelect) thisSelect.value = data.id;
+            row.style.display = 'none';
+            inp.value = '';
+        } else {
+            if (data.existing_id) {
+                ensureOptionExists(type, data.existing_id, name);
+                var thisSelect = row.closest('.form-group').querySelector('select[data-qa-select="' + type + '"]');
+                if (thisSelect) thisSelect.value = data.existing_id;
+                row.style.display = 'none';
+                inp.value = '';
+            } else {
+                errSpan.textContent = data.error || 'Klaida';
+            }
+        }
+    } catch (e) {
+        errSpan.textContent = 'Tinklo klaida';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Pridėti';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.closest('.quick-add-row')) {
+        e.preventDefault();
+        var row = e.target.closest('.quick-add-row');
+        var btn = row.querySelector('button');
+        if (btn) btn.click();
+    }
+});
+</script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
