@@ -31,11 +31,22 @@ $statusai = [
     'atmesta' => ['label' => 'Atmesta', 'color' => '#95a5a6', 'bg' => '#f4f6f6']
 ];
 
-// Pranešimų kintamieji klaidoms ir sėkmės žinutėms
 $klaida = '';
 $sekminga = '';
 
-// POST užklausų apdorojimas (kūrimas, redagavimas, šalinimas)
+$msg_map = ['sukurta' => 'Pretenzija sėkmingai užregistruota', 'atnaujinta' => 'Pretenzija atnaujinta', 'statusas' => 'Statusas atnaujintas', 'istrinta' => 'Pretenzija ištrinta'];
+if (isset($_GET['msg']) && isset($msg_map[$_GET['msg']])) {
+    $sekminga = $msg_map[$_GET['msg']];
+}
+
+function pretenzijosRedirect($msg) {
+    $params = ['msg' => $msg];
+    if (!empty($_GET['tipas'])) $params['tipas'] = $_GET['tipas'];
+    if (!empty($_GET['statusas'])) $params['statusas'] = $_GET['statusas'];
+    header('Location: /pretenzijos.php?' . http_build_query($params));
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $veiksmas = $_POST['veiksmas'] ?? '';
 
@@ -111,14 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $sekminga = 'Pretenzija sėkmingai užregistruota';
+                pretenzijosRedirect('sukurta');
             } catch (PDOException $e) {
                 $klaida = 'Klaida kuriant pretenziją: ' . $e->getMessage();
             }
         }
     }
 
-    // Pretenzijos statuso atnaujinimas
     if ($veiksmas === 'atnaujinti_statusa') {
         $id = (int)($_POST['id'] ?? 0);
         $statusas = $_POST['statusas'] ?? '';
@@ -127,11 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uzbaigimo = ($statusas === 'uzbaigta' || $statusas === 'atmesta') ? 'CURRENT_DATE' : 'NULL';
             $stmt = $pdo->prepare("UPDATE pretenzijos SET statusas = :statusas, uzbaigimo_data = $uzbaigimo, atnaujinta = NOW() WHERE id = :id");
             $stmt->execute([':statusas' => $statusas, ':id' => $id]);
-            $sekminga = 'Statusas atnaujintas';
+            pretenzijosRedirect('statusas');
         }
     }
 
-    // Pretenzijos detalių redagavimas (priežastis, veiksmai, atsakingas asmuo)
     if ($veiksmas === 'atnaujinti') {
         $id = (int)($_POST['id'] ?? 0);
         $priezastis = trim($_POST['priezastis'] ?? '');
@@ -150,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':atsakingas' => $atsakingas ?: null,
                 ':id' => $id
             ]);
-            $sekminga = 'Pretenzija atnaujinta';
+            pretenzijosRedirect('atnaujinta');
         }
     }
 
@@ -166,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($id > 0) {
                 $pdo->prepare("DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = :id")->execute([':id' => $id]);
                 $pdo->prepare("DELETE FROM pretenzijos WHERE id = :id")->execute([':id' => $id]);
-                $sekminga = 'Pretenzija ištrinta';
+                pretenzijosRedirect('istrinta');
             }
         }
     }
