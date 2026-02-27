@@ -100,6 +100,21 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         .col-issiusta { width: 180px; }
         .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
         .nuotr-input { font-size: 11px; }
+        .nuotr-wrap { position: relative; display: inline-block; }
+        .nuotr-del { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #dc3545; color: #fff; border: 2px solid #fff; font-size: 11px; line-height: 14px; text-align: center; cursor: pointer; z-index: 2; padding: 0; }
+        .nuotr-del:hover { background: #a71d2a; }
+        .lb-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
+        .lb-overlay.active { display: flex; }
+        .lb-content { background: #fff; border-radius: 10px; max-width: 800px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+        .lb-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+        .lb-header h5 { margin: 0; font-size: 15px; }
+        .lb-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0 4px; }
+        .lb-close:hover { color: #000; }
+        .lb-img-wrap { text-align: center; padding: 16px; background: #f8f9fa; }
+        .lb-img-wrap img { max-width: 100%; max-height: 60vh; border-radius: 4px; }
+        .lb-info { padding: 16px; }
+        .lb-info-row { margin-bottom: 8px; font-size: 14px; }
+        .lb-info-label { font-weight: 600; color: #555; }
         .btn-siusti { background: #3498db; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
         .btn-siusti:hover { background: #2980b9; }
         .btn-siusti:disabled { background: #95a5a6; cursor: not-allowed; }
@@ -205,11 +220,15 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                             <input type="hidden" name="reikalavimas[<?= $i ?>]" value="<?= htmlspecialchars($reik) ?>">
                             <input type="hidden" name="eil_nr[<?= $i ?>]" value="<?= (int)$eil_nr ?>">
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" id="nuotr-cell-<?= $eil_nr ?>">
                             <?php if (!empty($nuotrauka)): ?>
-                                <a href="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>" target="_blank">
-                                    <img src="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>&thumb=1" class="nuotr-preview" alt="Nuotrauka" title="<?= htmlspecialchars($nuotrauka) ?>">
-                                </a>
+                                <div class="nuotr-wrap">
+                                    <img src="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>&thumb=1"
+                                         class="nuotr-preview" alt="Nuotrauka" title="<?= htmlspecialchars($nuotrauka) ?>"
+                                         onclick="atidarytiLightbox(<?= $gaminio_id ?>, <?= $eil_nr ?>)"
+                                         data-testid="img-photo-<?= $eil_nr ?>">
+                                    <button type="button" class="nuotr-del" onclick="istrintiNuotrauka(<?= $gaminio_id ?>, <?= $eil_nr ?>)" title="Ištrinti nuotrauką" data-testid="button-delete-photo-<?= $eil_nr ?>">&times;</button>
+                                </div>
                             <?php endif; ?>
                             <input type="file" name="nuotrauka_<?= $eil_nr ?>" accept="image/*" capture="environment" class="form-control nuotr-input mt-1" data-testid="input-photo-<?= $eil_nr ?>">
                         </td>
@@ -405,6 +424,73 @@ function siustiMasiniai() {
 
 document.getElementById('siuntimo-modal').addEventListener('click', function(e) {
     if (e.target === this) uzdarytiSiuntima();
+});
+
+function atidarytiLightbox(gid, eilNr) {
+    var row = document.querySelector('tr[data-eil-nr="' + eilNr + '"]');
+    var reikalavimas = row ? row.getAttribute('data-reikalavimas') : '';
+    var defektasInput = row ? row.querySelector('input[name^="defektas"]') : null;
+    var defektas = defektasInput ? defektasInput.value : '';
+
+    document.getElementById('lb-img').src = '/defekto_nuotrauka.php?gaminio_id=' + gid + '&eil_nr=' + eilNr;
+    document.getElementById('lb-eilnr').textContent = eilNr;
+    document.getElementById('lb-reikalavimas').textContent = reikalavimas || '-';
+    document.getElementById('lb-defektas').textContent = defektas || 'Nėra';
+    document.getElementById('nuotr-lightbox').classList.add('active');
+}
+
+function uzdarytiLightbox() {
+    document.getElementById('nuotr-lightbox').classList.remove('active');
+    document.getElementById('lb-img').src = '';
+}
+
+function istrintiNuotrauka(gid, eilNr) {
+    if (!confirm('Ar tikrai norite ištrinti šią nuotrauką?')) return;
+
+    fetch('/api/delete_defekto_nuotrauka.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gaminio_id: gid, eil_nr: eilNr })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            var cell = document.getElementById('nuotr-cell-' + eilNr);
+            var wrap = cell ? cell.querySelector('.nuotr-wrap') : null;
+            if (wrap) wrap.remove();
+        } else {
+            alert(data.error || 'Klaida trinant nuotrauką');
+        }
+    })
+    .catch(function() { alert('Tinklo klaida'); });
+}
+
+
+</script>
+
+<div class="lb-overlay" id="nuotr-lightbox">
+    <div class="lb-content">
+        <div class="lb-header">
+            <h5>Defekto nuotrauka — punktas <span id="lb-eilnr"></span></h5>
+            <button class="lb-close" onclick="uzdarytiLightbox()" data-testid="button-close-lightbox">&times;</button>
+        </div>
+        <div class="lb-img-wrap">
+            <img id="lb-img" src="" alt="Defekto nuotrauka">
+        </div>
+        <div class="lb-info">
+            <div class="lb-info-row"><span class="lb-info-label">Reikalavimas:</span> <span id="lb-reikalavimas"></span></div>
+            <div class="lb-info-row"><span class="lb-info-label">Defektas/Trūkumas:</span> <span id="lb-defektas"></span></div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('nuotr-lightbox').addEventListener('click', function(e) {
+    if (e.target === this) uzdarytiLightbox();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('nuotr-lightbox').classList.contains('active')) {
+        uzdarytiLightbox();
+    }
 });
 </script>
 </body>

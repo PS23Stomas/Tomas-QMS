@@ -42,7 +42,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **Database Interaction**: PDO with PostgreSQL driver, using prepared statements and `htmlspecialchars()` for security.
 - **Core Features**: CRUD operations for orders, products, clients, objects, claims, devices, and users.
 - **Manufacturing Process Tracking**:
-    - **Functional Tests**: Management of 21 manufacturing requirements, including defect tracking, photo uploads, and PDF generation. Supports editable templates for requirements.
+    - **Functional Tests**: Management of 21 manufacturing requirements, including defect tracking, photo uploads (with lightbox preview and AJAX delete), and PDF generation. Supports editable templates for requirements.
     - **Component Management**: Tracking of mounted components (18 default items).
     - **Dielectric Tests**: Recording of instrument data, voltage tests, and grounding checks, with PDF generation. Includes medium voltage data management.
     - **Fuse Holder Management**: Supports 1x and 2x transformer logic for fuse holders (3.5 and 3.6 types).
