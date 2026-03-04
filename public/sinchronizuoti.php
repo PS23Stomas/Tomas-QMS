@@ -19,6 +19,9 @@ $conn = $pdo;
 $importas_stream = ($_POST['importas_stream'] ?? '') === '1';
 
 if ($importas_stream) {
+    ignore_user_abort(true);
+    set_time_limit(300);
+
     header('Content-Type: text/event-stream; charset=utf-8');
     header('Cache-Control: no-cache');
     header('Connection: keep-alive');
@@ -30,8 +33,10 @@ if ($importas_stream) {
     while (ob_get_level()) ob_end_flush();
 
     $lastProc = -1;
-    $progressCallback = function(int $proc, int $viso, string $zinute) use (&$lastProc) {
-        if ($proc === $lastProc && $proc < 100) return;
+    $msgCount = 0;
+    $progressCallback = function(int $proc, int $viso, string $zinute) use (&$lastProc, &$msgCount) {
+        $msgCount++;
+        if ($proc === $lastProc && $proc < 100 && $msgCount % 5 !== 0) return;
         $lastProc = $proc;
         echo "data: " . json_encode(['proc' => $proc, 'viso' => $viso, 'zinute' => $zinute]) . "\n\n";
         flush();
@@ -55,6 +60,8 @@ if ($importas_stream) {
 }
 
 if ($importas) {
+    ignore_user_abort(true);
+    set_time_limit(300);
     try {
         $rezultatas = TomoQMS::importuotiILocalDB($conn);
         $success = empty($rezultatas['klaidos']);

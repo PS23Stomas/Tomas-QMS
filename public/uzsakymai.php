@@ -909,7 +909,12 @@ async function importuotiIsQualityTomas() {
                 if (rez.gaminiai > 0) parts.push(rez.gaminiai + ' gaminiai');
                 if (rez.bandymai > 0) parts.push(rez.bandymai + ' bandymai');
                 if (rez.komponentai > 0) parts.push(rez.komponentai + ' komponentai');
-                details.textContent = parts.length > 0 ? parts.join(', ') : 'Nėra naujų duomenų';
+                var f2parts = [];
+                if (rez.faze2_apdoroti > 0) f2parts.push(rez.faze2_apdoroti + ' su gaminiais');
+                if (rez.faze2_be_gaminiu > 0) f2parts.push(rez.faze2_be_gaminiu + ' be gaminių');
+                if (rez.faze2_praleisti > 0) f2parts.push(rez.faze2_praleisti + ' praleisti');
+                if (f2parts.length > 0) parts.push('Fazė 2: ' + f2parts.join(', '));
+                details.textContent = parts.length > 0 ? parts.join(' | ') : 'Nėra naujų duomenų';
                 if (rez.klaidos && rez.klaidos.length > 0) {
                     details.textContent += ' | Klaidos: ' + rez.klaidos.join('; ');
                     details.style.color = 'var(--danger, #dc2626)';

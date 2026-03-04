@@ -497,7 +497,7 @@ class TomoQMS {
             return ['klaida' => 'Nepavyko prisijungti prie quality_tomas duomenų bazės'];
         }
 
-        $rezultatas = ['nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'bandymai' => 0, 'komponentai' => 0, 'klaidos' => [], 'qt_gaminiu' => 0, 'praleisti_gaminiai' => 0];
+        $rezultatas = ['nauji' => 0, 'atnaujinti' => 0, 'gaminiai' => 0, 'bandymai' => 0, 'komponentai' => 0, 'klaidos' => [], 'qt_gaminiu' => 0, 'praleisti_gaminiai' => 0, 'faze2_apdoroti' => 0, 'faze2_be_gaminiu' => 0, 'faze2_praleisti' => 0];
 
         try {
             $qt_cols_check = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'uzsakymai' AND table_schema = 'public'")->fetchAll(PDO::FETCH_COLUMN);
@@ -618,24 +618,35 @@ class TomoQMS {
             $has_parinkta = in_array('parinkta_projektui', $qt_mk_cols);
 
             foreach ($mt_uzsakymai as $idx2 => $uzs) {
+                $nr = trim($uzs['uzsakymo_numeris'] ?? '');
                 if ($progressCallback) {
                     $proc = 50 + (int)(($idx2 / max($viso_uzsakymu, 1)) * 50);
-                    $progressCallback($proc, $viso_uzsakymu, 'Gaminiai/bandymai: ' . ($idx2 + 1) . ' / ' . $viso_uzsakymu);
+                    $progressCallback($proc, $viso_uzsakymu, 'Fazė 2: ' . ($idx2 + 1) . '/' . $viso_uzsakymu . ' (užs. ' . $nr . ')');
                 }
-                $nr = trim($uzs['uzsakymo_numeris'] ?? '');
                 if ($nr === '' || !isset($existing_local[$nr])) {
                     if ($nr !== '') {
+                        $rezultatas['faze2_praleisti']++;
                         $rezultatas['praleisti_gaminiai']++;
-                        error_log("importuotiILocalDB: praleidžiamas užsakymas '$nr' - nerastas local DB");
                     }
                     continue;
                 }
                 $local_uzs_id = $existing_local[$nr];
 
-                $gam_stmt = $qt->prepare("SELECT id as qt_gam_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
-                $gam_stmt->execute([$uzs['qt_id']]);
-                $gaminiai = $gam_stmt->fetchAll(PDO::FETCH_ASSOC);
+                try {
+                    $gam_stmt = $qt->prepare("SELECT id as qt_gam_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr FROM gaminiai WHERE uzsakymo_id = ?");
+                    $gam_stmt->execute([$uzs['qt_id']]);
+                    $gaminiai = $gam_stmt->fetchAll(PDO::FETCH_ASSOC);
+                } catch (Exception $e) {
+                    $rezultatas['klaidos'][] = "QT gaminiai uzs=$nr: {$e->getMessage()}";
+                    continue;
+                }
                 $rezultatas['qt_gaminiu'] += count($gaminiai);
+
+                if (empty($gaminiai)) {
+                    $rezultatas['faze2_be_gaminiu']++;
+                } else {
+                    $rezultatas['faze2_apdoroti']++;
+                }
 
                 foreach ($gaminiai as $gam) {
                     $local_gid = false;
@@ -731,8 +742,9 @@ class TomoQMS {
             if ($progressCallback) $progressCallback(100, $viso_uzsakymu, 'Baigta!');
 
             $log_detail = sprintf(
-                'Užs: +%d nauji, %d atn., %d praleisti | QT gaminiai: %d, local: %d | Bandymai: %d | Komponentai: %d',
-                $rezultatas['nauji'], $rezultatas['atnaujinti'], $rezultatas['praleisti_gaminiai'],
+                'Užs: +%d nauji, %d atn. | Fazė2: %d apdoroti, %d be gaminių, %d praleisti | QT gaminiai: %d, local: %d | Bandymai: %d | Komponentai: %d',
+                $rezultatas['nauji'], $rezultatas['atnaujinti'],
+                $rezultatas['faze2_apdoroti'], $rezultatas['faze2_be_gaminiu'], $rezultatas['faze2_praleisti'],
                 $rezultatas['qt_gaminiu'], $rezultatas['gaminiai'],
                 $rezultatas['bandymai'], $rezultatas['komponentai']
             );
