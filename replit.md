@@ -48,6 +48,8 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
     - **Fuse Holder Management**: Supports 1x and 2x transformer logic for fuse holders (3.5 and 3.6 types).
     - **Document Generation**: Automated PDF generation for functional tests, dielectric tests, and MT passports using mPDF.
 - **Data Synchronization**: Manual trigger for comprehensive data sync (orders, products, tests, components, PDFs) to an external Tomo QMS database. Includes a sync log viewer.
+    - **Import optimization**: The `importuotiILocalDB()` method uses batch queries — 3 large SELECT queries to quality_tomas (gaminiai, bandymai, komponentai) instead of per-order queries. Prepared statements are reused across iterations. Import includes `ignore_user_abort(true)` and `set_time_limit(300)` for production reliability.
+    - **Import diagnostics**: Result includes `faze2_apdoroti`, `faze2_be_gaminiu`, `faze2_praleisti` counters for Phase 2 visibility.
 - **User Management**: Admin-only user creation, editing, and role assignment (admin, user, skaitytojas).
 - **Class-based Architecture**: Utilizes PHP classes for database interaction, migrations, email handling, and specific data models (e.g., `Gaminys`, `TomoQMS`).
 - **Auto-migration**: Idempotent database migrations on page load (`DBMigracija.php`).
