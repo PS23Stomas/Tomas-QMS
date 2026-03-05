@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Prisijungimas - MT Modulis</title>
+    <title>Prisijungimas - Tomo-QMS</title>
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -302,8 +302,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="login-card">
-        <h2>MT Modulis</h2>
-        <p class="login-subtitle">Gamybos valdymo sistema</p>
+        <h2>Tomo_QMS sistema </h2>
+        <p class="login-subtitle">Kokybės valdymo sistema</p>
         <?php if ($jau_prisijunges): ?>
             <div data-testid="text-already-logged-in" style="text-align:center;padding:1.5rem 0;">
                 <p style="color:#333;margin-bottom:1rem;">Jūs jau esate prisijungęs kaip <strong><?= htmlspecialchars($_SESSION['vardas'] ?? '') ?> <?= htmlspecialchars($_SESSION['pavarde'] ?? '') ?></strong></p>
