@@ -1,0 +1,532 @@
+================================================================================
+                    TOMAS QMS - GAMYBOS KOKYBES VALDYMO SISTEMA
+                         Pilnas funkcionalumo aprasymas
+================================================================================
+
+Sistemos paskirtis:
+Tomas QMS yra gamybos kokybes valdymo sistema, skirta moduliniu transformatoriniu
+(MT) ir kitu gaminiu gamybos procesu sekimui, kokybes kontrolei, bandymu
+dokumentavimui ir ataskaitu generavimui. Sistema leidzia valdyti uzsakymus,
+sekti gaminiu gamybos etapus, fiksuoti bandymu rezultatus, generuoti PDF
+dokumentus ir sinchronizuoti duomenis su isoriniu kokybes valdymo sistema.
+
+Sistema pasiekiama per interneto narsykle. Visi meniu ir sasaja yra lietuviu kalba.
+
+================================================================================
+1. PRISIJUNGIMAS IR VARTOTOJU VALDYMAS
+================================================================================
+
+1.1. PRISIJUNGIMAS (login.php)
+-----------------------------
+- Prisijungimo forma su laukais: Vardas, Pavarde, Slaptazodis
+- "Prisiminti mane" funkcija — automatinis prisijungimas 30 dienu
+  (naudojamas saugus slapukas su sifruotu raktu)
+- Saugios sesijos su HttpOnly, Secure, SameSite=Lax parametrais
+- Aktyviu vartotoju sekimas duomenu bazeje
+
+Kaip tikrinti:
+  a) Atidarykite sistema narsykleje
+  b) Iveskite teisingus prisijungimo duomenis — turi nukreipti i pagrindini puslapi
+  c) Iveskite neteisingus duomenis — turi parodyti klaidos pranesima
+  d) Pazymekite "Prisiminti mane", uzdarykite narsykle, atidarykite vel —
+     turi prisijungti automatiskai
+
+1.2. ATSIJUNGIMAS (logout.php)
+------------------------------
+- Istrina sesijos duomenis ir slapukus
+- Nukreipia i prisijungimo puslapi
+
+1.3. VARTOTOJU VALDYMAS (vartotojai.php) — tik administratoriams
+-----------------------------------------------------------------
+- Nauju vartotoju kurimas (vardas, pavarde, slaptazodis, role)
+- Vartotoju redagavimas ir salinimas
+- Vartotojo patvirtinimas (aktyvavimas/deaktyvavimas)
+- Roles priskyrimas
+
+Vartotoju roles:
+  - admin (Administratorius) — pilna prieiga prie visu funkciju,
+    iskaitant vartotoju valdyma ir uzsakymu trynima
+  - user (Vartotojas) — standartine prieiga: kuria ir redaguoja irasus
+  - skaitytojas (Skaitytojas) — tik skaitymo rezimas, negali kurti ar
+    redaguoti irasu
+
+Kaip tikrinti:
+  a) Prisijunkite kaip administratorius
+  b) Atidarykite "Vartotojai" — turi matytis vartotoju sarasas
+  c) Sukurkite nauja vartotoja su role "skaitytojas"
+  d) Prisijunkite kaip skaitytojas — neturi buti galimybes kurti irasu
+
+1.4. PROFILIS (profilis.php)
+----------------------------
+- Vartotojas gali perziureti ir keisti savo el. pasto adresa
+- Vartotojas gali keisti slaptazodi (reikia ivesti dabartini slaptazodi)
+
+1.5. SLAPTAZODZIO ATSTATYMAS (slaptazodis_atstatymas.php, slaptazodis_keitimas.php)
+------------------------------------------------------------------------------------
+- Vartotojas gali uzsisakyti slaptazodzio atstatymo nuoroda el. pastu
+- Generuojamas unikalus raktas, galiojantis 1 valanda
+- Paspaudus nuoroda, galima nustatyti nauja slaptazodi
+
+================================================================================
+2. PAGRINDINIS PUSLAPIS — KOKYBES RODIKLIAI (index.php)
+================================================================================
+
+Pagrindinis puslapis rodo kokybes statistika su trimis kortelemis (tabs):
+
+2.1. 30 DIENU RODIKLIAI (pirma kortele)
+----------------------------------------
+Rodomi pagrindiniai KPI rodikliai:
+  - Patikrinta gaminiu — kiek unikalu gaminiu patikrinta per 30 dienu
+  - Viso neatitikimu — kiek defektu rasta visuose bandymu taskuose
+  - Neatitikimu % — vidutinis nepavykusiu bandymu procentas
+  - Aktyvus nepataisyti — kiek defektu dar nera istaisyti
+
+Grafikai:
+  - Menesine suvestine — stulpeline diagrama su savaitiniu patikrintu
+    gaminiu ir rastu neatitikimu skaiciumi
+
+TOP 5 klaidos:
+  - Dazniausi defektu tipai surikiuoti pagal dazni
+
+Aktyviu defektu lentele:
+  - Detali lentele su neistaisytais defektais: uzsakymo numeris,
+    gaminio tipas, bandymo tasko numeris, defekto aprasymas
+
+Kaip tikrinti:
+  a) Atidarykite pagrindini puslapi
+  b) Turi matytis 4 KPI korteliutes su skaiciais
+  c) Turi matytis grafikai ir TOP 5 klaidu sarasas
+  d) Paspaudus ant aktyvaus defekto — turi nukreipti i atitinkama gamini
+
+2.2. KETVIRCIU PALYGINIMAS (antra kortele)
+------------------------------------------
+- Galimybe palyginti du ketvircius (pvz., Q1 ir Q2 tam tikru metu)
+- Palyginamoji lentele su:
+  - Uzsakymu skaiciumi, patikrintu gaminiu skaiciumi
+  - Bandymu tasku skaiciumi, rastu defektu skaiciumi
+  - Defektu procentu ir defektu vidurkiu vienam gaminiui
+  - Vizualines tendenciju zenkleliais (gereja/blogeja)
+- Menesiniu darbuotoju statistika:
+  - TOP 11 darbuotoju pagal atliktu bandymu skaiciu
+  - TOP 11 darbuotoju su daugiausia klaidu
+- Problemisciausios operacijos — bandymu taskai su didziausia klaidu norma
+
+Kaip tikrinti:
+  a) Pasirinkite antra kortele "Ketvirciu palyginimas"
+  b) Pasirinkite du ketvircius ir spauskite "Palyginti"
+  c) Turi matytis palyginamoji lentele ir darbuotoju statistika
+
+2.3. ISPLESTINE STATISTIKA (trecia kortele)
+--------------------------------------------
+- Filtracija pagal: uzsakymo numeri, laikotarpi (1 men., 6 men., 1 m.),
+  konketu menesi arba pasirinkta datu intervala
+- Suvestines korteliutes: patikrinti uzsakymai, klaidu skaicius,
+  5 dazniausios klaidos
+- Savaitinis grafikas pagal pasirinkta filtra
+- Duomenu lenteles:
+  - Uzsakymai ir defektai su statusu (Pataisyta/Nepataisyta)
+  - Aktyviu nepataisytu defektu sarasas
+
+Kaip tikrinti:
+  a) Pasirinkite trecia kortele
+  b) Filtruokite pagal uzsakymo numeri — turi rodyti tik to uzsakymo duomenis
+  c) Filtruokite pagal datu intervala — turi rodyti tik to laikotarpio duomenis
+
+================================================================================
+3. PDF ATASKAITOS
+================================================================================
+
+Sistema generuoja sesiu tipu PDF ataskaitas:
+
+3.1. 30 dienu kokybes ataskaita (kokybe_30d_pdf.php)
+  - Pagrindinio puslapio 30 dienu rodikliu suvestine PDF formatu
+
+3.2. Isplestines statistikos ataskaita (kokybe_isplestine_pdf.php)
+  - Ataskaita pagal pasirinktus filtrus is isplestines statistikos
+
+3.3. Ketvirciu palyginimo ataskaita (generuoti_ketvirciu_pdf.php)
+  - Dvieju ketvirciu palyginamoji ataskaita su darbuotoju statistika
+
+3.4. Funkciniu bandymu protokolas (MT/generuoti_mt_funkciniu_pdf.php)
+  - Konkretaus gaminio funkciniu bandymu rezultatai
+
+3.5. Dielektriniu bandymu protokolas (MT/generuoti_mt_dielektriniu_pdf.php)
+  - Aukstosios itampos ir izoliacijos bandymu rezultatai
+
+3.6. Gaminio pasas (MT/generuoti_mt_paso_pdf.php)
+  - Techninis gaminio pasas/sertifikatas
+
+Kaip tikrinti:
+  a) Kiekvienoje ataskaitoje spauskite PDF generavimo mygtuka
+  b) Turi atsidaryti PDF failas su teisingais duomenimis
+  c) Patikrinkite ar PDF failuose matosi teisingi skaiciai ir lenteles
+
+================================================================================
+4. UZSAKYMU VALDYMAS (uzsakymai.php)
+================================================================================
+
+4.1. UZSAKYMU SARASAS
+---------------------
+- Rodo visu uzsakymu sarasa, filtruota pagal gaminiu grupe (MT, USN ir kt.)
+- Rikiavimas pagal sukurimo data (naujiausi virsuje)
+- Kiekvienas uzsakymas rodo: numeri, uzsakova, objekta, kieki, data
+
+4.2. NAUJO UZSAKYMO KURIMAS
+----------------------------
+- Laukai: uzsakymo numeris, uzsakovas (klientas), objektas, kiekis
+- Automatinis gaminiu generavimas pagal kieki:
+  Pvz., uzsakymas "16500" su kiekiu 3 sukuria gaminius:
+  16500-1, 16500-2, 16500-3
+- Greito pridejimo funkcija — galima prideti nauja uzsakova ar objekta
+  tiesiai is uzsakymo kurimo formos (be puslapio perkrovimo)
+
+4.3. UZSAKYMO REDAGAVIMAS
+--------------------------
+- Galima keisti uzsakymo numeri, uzsakova, objekta
+- Galima keisti gaminio numeri ir pavadinima
+- Pavadinimo keitimas automatiskai atnaujina visus susijusius gaminius
+
+4.4. UZSAKYMO TRYNIMAS
+-----------------------
+- Tik administratoriams
+- Saugumo mechanizmas: reikia ranka ivesti uzsakymo numeri patvirtinimui
+- Kaskadiniai trynimas — istrina uzsakyma ir VISUS susijusius duomenis:
+  gaminius, funkcinius bandymus, komponentus, dielektrinius bandymus,
+  saugiklius, izeminimo patikras, paso korekcijas, pretenzijas su nuotraukomis
+
+4.5. DETALI UZSAKYMO PERZIURA
+------------------------------
+- Atidarius uzsakyma matosi visi jam priklausantys gaminiai kaip korteliu juosta
+- Kiekvieno gaminio korteleje rodomas:
+  - Gaminio numeris
+  - Isspejimo zenklas, jei yra defektu
+  - Uzbaigtumo procentas (pagal atliktus etapus)
+- Gaminiu etapai (MT moduliui):
+  1. Funkciniai bandymai
+  2. Sumontuoti komponentai
+  3. Dielektriniai bandymai
+  4. Techninis pasas
+
+4.6. IMPORTAS IS QUALITY_TOMAS
+-------------------------------
+- Mygtukas "Importuoti naujus" importuoja uzsakymus is isorines
+  quality_tomas duomenu bazes
+- Importo metu rodoma progreso juosta su realiu laiku (SSE srautas)
+- Importas vyksta dviem fazemis:
+  Faze 1: Uzsakymu importas (sukuria naujus arba atnaujina esamus)
+  Faze 2: Gaminiu, bandymu ir komponentu importas
+- Po importo rodoma statistika: kiek nauju, atnaujintu, gaminiu,
+  bandymu, komponentu importuota
+
+Kaip tikrinti:
+  a) Atidarykite "Uzsakymai"
+  b) Sukurkite nauja uzsakyma — turi atsirasti sarase su gaminiais
+  c) Atidarykite uzsakyma — turi matytis gaminiu korteles
+  d) Pabandykite istrinti uzsakyma (kaip admin) — turi prasyti patvirtinimo
+  e) Spauskite "Importuoti naujus" — turi rodyti progreso juosta ir rezultata
+
+================================================================================
+5. MT MODULIS — GAMINIO PILDYMO FORMA
+================================================================================
+
+MT modulis apima keturis pagrindinius gamybos etapus kiekvienam gaminiui:
+
+5.1. FUNKCINIAI BANDYMAI (mt_funkciniai_bandymai.php)
+-----------------------------------------------------
+21 gamybos reikalavimu kontrolinis sarasas. Kiekvienas bandymo taskas turi:
+  - Eiles numeri
+  - Reikalavimo aprasyma (pvz., "Konstrukcija atitinka projekta")
+  - Isvada: Atitinka / Nepadaryta / Nera (netaikoma)
+  - Defekto aprasyma (jei nepadaryta)
+  - Kas atliko darba
+  - Kas irase rezultata
+
+Papildomos funkcijos:
+  - Defekto nuotraukos ikelijimas — galima prikabinti nuotrauka prie defekto
+  - Nuotraukos perziura — paspaudus ant miniaturos atsidaro didesne nuotrauka
+    (lightbox) su defekto aprasymu ir reikalavimu
+  - Nuotraukos trynimas — raudonas X mygtukas ant miniaturos (AJAX, be
+    puslapio perkrovimo)
+  - Defekto siuntimas el. pastu — galima issiusti pranesima apie defekta
+    atsakingiems asmenims
+
+Kaip tikrinti:
+  a) Atidarykite gamini ir pasirinkite "Funkciniai bandymai"
+  b) Uzpildykite kelis bandymo taskus — pasirinkite "Atitinka" ir "Nepadaryta"
+  c) Prie "Nepadaryta" irasyto defekto ikelkite nuotrauka
+  d) Spauskite ant nuotraukos — turi atsidaryti didesne versija
+  e) Spauskite raudona X ant nuotraukos — turi istrinti nuotrauka
+  f) Issaugokite — duomenys turi issisaugoti
+
+5.2. SUMONTUOTI KOMPONENTAI (MT/mt_sumontuoti_komponentai.php)
+--------------------------------------------------------------
+18+ standartiniu komponentu sarasas, kuriuos reikia sumontuoti gaminyje.
+Kiekvienam komponentui fiksuojama:
+  - Eiles numeris
+  - Aprasymas (pvz., "Siemens 10kV skirstomasis irenginys")
+  - Gamintojo kodas
+  - Gamintojas
+  - Kiekis
+  - "Parinkta projektui" zymejimas
+
+Kaip tikrinti:
+  a) Atidarykite gamini ir pasirinkite "Komponentai"
+  b) Uzpildykite komponentu duomenis
+  c) Issaugokite — duomenys turi issisaugoti
+  d) Perkraukite puslapi — duomenys turi islikti
+
+5.3. DIELEKTRINIAI BANDYMAI (MT/mt_dielektriniai.php)
+-----------------------------------------------------
+Aukstosios itampos saugumo bandymai. Apima:
+
+Prietaisu valdymas:
+  - Bandymu prietaisu sarasas (pvz., AID-70M, MI2077)
+  - Kalibravimo datos ir sertifikatu numeriai
+  - Galima prideti, redaguoti, istrinti prietaisus
+
+Vidutine itampa (6-24 kV):
+  - Kabeliu ir schemu bandymai
+  - Izoliacijos varzos matavimai
+
+Zema itampa (0,4 kV):
+  - Sinu ir pagalbiniu grandziu bandymai
+  - Izoliacijos tikrinimas
+
+Izeminimas:
+  - Izeminimo grandziu patikra
+  - Varzos matavimai
+
+Kaip tikrinti:
+  a) Atidarykite gamini ir pasirinkite "Dielektriniai bandymai"
+  b) Pasirinkite matavimo prietaisa is saraso
+  c) Iveskite matavimo rezultatus
+  d) Issaugokite — duomenys turi issisaugoti
+  e) Generuokite PDF — turi susikurti protokolo dokumentas
+
+5.4. SAUGIKLIAI (MT/mt_saugikliai_blokas.php)
+----------------------------------------------
+Saugikliu tipu ir poziciju sekimas. Sistema automatiskai nustato
+saugikliu issidestmyma pagal gaminio pavadinima:
+  - Vienas transformatorius (1x) — rodomas vieno transformatoriaus sablonas
+  - Du transformatoriai (2x) — rodomas dvieju transformatoriu sablonas
+  - Skirtingi sekciju tipai (3.5 ir 3.6)
+
+Kaip tikrinti:
+  a) Sukurkite uzsakyma su gaminio pavadinimu, kuriame yra "1x250"
+  b) Atidarykite saugikliu forma — turi rodyti vieno transformatoriaus issidestmyma
+  c) Sukurkite uzsakyma su "2x250" — turi rodyti dvieju transformatoriu issidestmyma
+
+5.5. GAMINIO PASAS (MT/mt_pasas.php)
+-------------------------------------
+Techninis gaminio pasas/sertifikatas, dazniausiai reikalaujamas operatoriaus
+(pvz., ESO — Energijos Skirstymo Operatorius).
+
+Funkcijos:
+  - Komponentu susiejimas su konkreciu paso tasku
+  - Teksto koregavimas — galimybe ranka koreguoti konkreciu paso skyriu tekstus
+  - Keliu kalbu palaikymas (lt — lietuviu)
+  - Skirtingu techniniu standartu palaikymas (pvz., 15.6.1, 15.6.2 skirtingu
+    galiu transformatoriams)
+  - Inzinieriaus paraso zymejimas
+  - PDF generavimas — oficialus gaminio pasas PDF formatu
+
+Kaip tikrinti:
+  a) Atidarykite gamini ir pasirinkite "Pasas"
+  b) Patikrinkite ar matosi komponentu duomenys
+  c) Pakeiskite kokia nors teksto reiksme
+  d) Generuokite PDF — turi susikurti paso dokumentas su teisingais duomenimis
+
+================================================================================
+6. PRETENZIJOS (pretenzijos.php)
+================================================================================
+
+Kokybes pretenziju valdymo sistema.
+
+Pretenziju tipai:
+  - Vidine pretenzija — rastas defektas gamybos metu
+  - Kliento pretenzija — kliento pateikta pretenzija
+  - Tiekejo pretenzija — pretenzija del tiekejo medziagu/komponentu
+
+Pretenzijos darbo eiga (statusai):
+  1. Nauja — ka tik uzregistruota
+  2. Tiriama — vyksta tyrimas
+  3. Vykdoma — sprendimas vykdomas
+  4. Atlikta — pretenzija isspresta
+  5. Atmesta — pretenzija atmesta
+
+Papildomos funkcijos:
+  - Nuotrauku ikelijimas prie pretenzijos
+  - Filtracija pagal tipa ir statusa
+  - Tik administratoriai gali trinti pretenzijas
+  - Skaitytojai negali kurti ar redaguoti pretenziju
+
+Kaip tikrinti:
+  a) Atidarykite "Pretenzijos"
+  b) Sukurkite nauja pretenzija — pasirinkite tipa, iveskite aprasyma
+  c) Pridekite nuotrauka
+  d) Pakeiskite statusa is "Nauja" i "Tiriama" — turi issisaugoti
+  e) Prisijunkite kaip skaitytojas — neturi buti galimybes kurti pretenziju
+
+================================================================================
+7. UZSAKOVAI IR OBJEKTAI
+================================================================================
+
+7.1. UZSAKOVAI (uzsakovai.php)
+------------------------------
+- Uzsakovu (klientu) sarasas
+- Naujo uzsakovo kurimas
+- Uzsakovo redagavimas ir trynimas
+
+7.2. OBJEKTAI (objektai.php)
+----------------------------
+- Objektu (montavimo vietu/projektu) sarasas
+- Naujo objekto kurimas
+- Objekto redagavimas ir trynimas
+
+Kaip tikrinti:
+  a) Atidarykite "Uzsakovai" — turi matytis sarasas
+  b) Pridekite nauja uzsakova — turi atsirasti sarase
+  c) Redaguokite — pakeitimai turi issisaugoti
+  d) Tas pats su "Objektai"
+
+================================================================================
+8. PRIETAISAI (prietaisai.php)
+================================================================================
+
+Matavimo prietaisu valdymas:
+  - Prietaisu sarasas su pavadinimais
+  - Kalibravimo datos sekimas
+  - Sertifikatu numeriai
+  - Sertifikato failo ikelijimas ir perziura
+  - Prietaisu kurimas, redagavimas, trynimas
+
+Kaip tikrinti:
+  a) Atidarykite "Prietaisai"
+  b) Pridekite nauja prietaisa su kalibravimo data ir sertifikatu
+  c) Patikrinkite ar galima atidaryti sertifikato faila
+
+================================================================================
+9. SABLONAS FUNKCINIAMS BANDYMAMS (sablonas_funkciniai.php)
+================================================================================
+
+Funkciniu bandymu sablono valdymas:
+  - Galima redaguoti standartiniu 21 bandymo tasku reikalavimus
+  - Sablonas filtruojamas pagal gaminiu grupe (MT, USN ir kt.)
+  - Pakeistas sablonas taikomas naujiems gaminiams
+
+Kaip tikrinti:
+  a) Atidarykite "Funkciniu bandymu sablonas"
+  b) Pakeiskite vieno reikalavimo teksta
+  c) Sukurkite nauja gamini — turi matytis atnaujintas reikalavimas
+
+================================================================================
+10. DUOMENU SINCHRONIZACIJA
+================================================================================
+
+10.1. SINCHRONIZACIJA SU TOMO QMS (sinchronizuoti.php)
+------------------------------------------------------
+Sistema sinchronizuoja duomenis su isoriniu "Tomo QMS" kokybes valdymo sistema.
+
+Sinchronizacijos rezmai:
+  - Individualus — sinchronizuoja viena uzsakyma
+  - Masinis — sinchronizuoja visus uzsakymus
+  - Importas — importuoja naujus uzsakymus is isorines sistemos
+
+Sinchronizuojami duomenys:
+  - Uzsakymai
+  - Gaminiai su numeriais ir tipais
+  - Funkciniai bandymai (su defektu nuotraukomis)
+  - Sumontuoti komponentai
+  - Dielektriniai bandymai
+  - Saugikliai
+  - PDF dokumentai (pasai, protokolai)
+
+Importo procesas:
+  - Faze 1: Uzsakymu importas/atnaujinimas
+  - Faze 2: Gaminiu, bandymu ir komponentu importas
+  - Progreso juosta su realaus laiko atsiliepimais (SSE)
+  - Diagnostinis rezultatas: kiek apdorota, kiek praleista, kiek klaidu
+
+10.2. SINCHRONIZACIJOS ZURNALAS (sync_log.php)
+-----------------------------------------------
+- Visu sinchronizacijos bandymu istorijasinchronizacijos bandymu istorija
+- Filtracija pagal data, busena (OK/Klaida), lentele
+- Rodoma: data, vartotojas, veiksmas, lentele, busena, klaidos pranesimas
+
+Kaip tikrinti:
+  a) Atidarykite uzsakyma ir spauskite "Sinchronizuoti"
+  b) Atidarykite "Sinchronizacijos zurnalas" — turi matytis naujas irasas
+  c) Spauskite "Importuoti naujus" — turi rodyti progreso juosta
+
+================================================================================
+11. MODULINE ARCHITEKTURA
+================================================================================
+
+Sistema naudoja moduline architektura. Kiekviena gaminiu grupe (modulis)
+turi atskirai:
+  - Kokybes rodiklius (index.php?grupe=XXX)
+  - Uzsakymu sarasa (uzsakymai.php?grupe=XXX)
+  - Funkciniu bandymu sablona (sablonas_funkciniai.php?grupe=XXX)
+
+Dabar palaikomi moduliai:
+  - MT (Modulines transformatorines) — pilnas funkcionalumas
+  - USN — bazinis uzsakymu valdymas
+  - SI-04 — bazinis uzsakymu valdymas
+  - GVX — bazinis uzsakymu valdymas
+  - 10kV — bazinis uzsakymu valdymas
+
+MT modulis turi papildomu funkciju, kuriu kiti moduliai neturi:
+komponentai, dielektriniai bandymai, saugikliai, techninis pasas.
+
+Kaip tikrinti:
+  a) Atidarykite "Moduliai" — turi matytis visu moduliu korteles
+  b) Pasirinkite MT — turi atsidaryti MT uzsakymu sarasas
+  c) Pasirinkite kita moduli — turi atsidaryti to modulio uzsakymu sarasas
+  d) MT modulyje gaminio langai turi tureti visas 4 korteles
+  e) Kituose moduliuose turi buti tik funkciniai bandymai
+
+================================================================================
+12. DARBUOTOJU STATISTIKA (darbuotoju_statistika.php)
+================================================================================
+
+- Rodoma darbuotoju darbo statistika
+- Kiek bandymu atlikta kiekvieno darbuotojo
+- Defektu skaiciai ir procentai
+- Filtravimas pagal laikotarpi
+
+================================================================================
+13. TECHNINE INFORMACIJA
+================================================================================
+
+Naudojamos technologijos:
+  - Programavimo kalba: PHP 8.3
+  - Duomenu baze: PostgreSQL
+  - PDF generavimas: mPDF biblioteka
+  - Dizainas: CSS su kintamaisiais, Inter sriftas
+  - Interaktyvumas: JavaScript (vanilla)
+  - El. pastas: Resend API
+  - Serveris: PHP integruotas web serveris
+
+Duomenu bazes pagrindines lenteles:
+  - vartotojai — sistemos vartotojai
+  - uzsakymai — gamybos uzsakymai
+  - gaminiai — konkretūs gaminiai (produktai)
+  - uzsakovai — klientai/uzsakovai
+  - objektai — montavimo vietos/projektai
+  - mt_funkciniai_bandymai — funkciniu bandymu rezultatai
+  - mt_komponentai — sumontuotu komponentu sarasas
+  - mt_dielektriniai_bandymai — dielektriniu bandymu rezultatai
+  - pretenzijos — kokybes pretenzijos
+  - prietaisai — matavimo prietaisai
+  - sinchronizacijos_zurnalas — sinch. istorijasinchronizacijos istorija
+
+Saugumas:
+  - Slaptazodziai sifruojami su bcrypt algoritmu
+  - SQL injekciju apsauga su Prepared Statements
+  - XSS apsauga su htmlspecialchars() funkcija
+  - Sesiju apsauga su HttpOnly, Secure slapukais
+  - Roliu tikrinimas kiekvienam veiksmuikiekvienam veiksmui
+
+================================================================================
+                              DOKUMENTO PABAIGA
+================================================================================
