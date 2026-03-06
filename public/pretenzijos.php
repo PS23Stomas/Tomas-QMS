@@ -143,21 +143,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($veiksmas === 'atnaujinti') {
         $id = (int)($_POST['id'] ?? 0);
-        $priezastis = trim($_POST['priezastis'] ?? '');
-        $veiksmai_txt = trim($_POST['veiksmai'] ?? '');
-        $atsakingas = trim($_POST['atsakingas_asmuo'] ?? '');
+        $tipas_upd            = $_POST['tipas'] ?? 'vidine';
+        $aprasymas_upd        = trim($_POST['aprasymas'] ?? '');
+        $gavimo_data_upd      = !empty($_POST['gavimo_data']) ? $_POST['gavimo_data'] : null;
+        $terminas_upd         = !empty($_POST['terminas']) ? $_POST['terminas'] : null;
+        $aptikimo_vieta_upd   = trim($_POST['aptikimo_vieta'] ?? '');
+        $gaminys_info_upd     = trim($_POST['gaminys_info'] ?? '');
+        $uzsakymo_nr_upd      = trim($_POST['uzsakymo_numeris_ranka'] ?? '');
+        $atsakingas_pad_upd   = trim($_POST['atsakingas_padalinys'] ?? '');
+        $siulomas_spr_upd     = trim($_POST['siulomas_sprendimas'] ?? '');
+        $uzfiksavo_pad_upd    = trim($_POST['uzfiksavo_padalinys'] ?? '');
+        $uzfiksavo_asm_upd    = trim($_POST['uzfiksavo_asmuo'] ?? '');
+        $priezastis           = trim($_POST['priezastis'] ?? '');
+        $veiksmai_txt         = trim($_POST['veiksmai'] ?? '');
+        $atsakingas           = trim($_POST['atsakingas_asmuo'] ?? '');
 
-        if ($id > 0) {
+        if ($id > 0 && !empty($aprasymas_upd)) {
             $stmt = $pdo->prepare("
-                UPDATE pretenzijos 
-                SET priezastis = :priezastis, veiksmai = :veiksmai, atsakingas_asmuo = :atsakingas, atnaujinta = NOW()
+                UPDATE pretenzijos SET
+                    tipas = :tipas,
+                    aprasymas = :aprasymas,
+                    gavimo_data = :gavimo_data,
+                    terminas = :terminas,
+                    aptikimo_vieta = :aptikimo_vieta,
+                    gaminys_info = :gaminys_info,
+                    uzsakymo_numeris_ranka = :uzsakymo_numeris_ranka,
+                    atsakingas_padalinys = :atsakingas_padalinys,
+                    siulomas_sprendimas = :siulomas_sprendimas,
+                    uzfiksavo_padalinys = :uzfiksavo_padalinys,
+                    uzfiksavo_asmuo = :uzfiksavo_asmuo,
+                    priezastis = :priezastis,
+                    veiksmai = :veiksmai,
+                    atsakingas_asmuo = :atsakingas_asmuo,
+                    atnaujinta = NOW()
                 WHERE id = :id
             ");
             $stmt->execute([
-                ':priezastis' => $priezastis ?: null,
-                ':veiksmai' => $veiksmai_txt ?: null,
-                ':atsakingas' => $atsakingas ?: null,
-                ':id' => $id
+                ':tipas'                  => $tipas_upd,
+                ':aprasymas'              => $aprasymas_upd ?: null,
+                ':gavimo_data'            => $gavimo_data_upd,
+                ':terminas'               => $terminas_upd,
+                ':aptikimo_vieta'         => $aptikimo_vieta_upd ?: null,
+                ':gaminys_info'           => $gaminys_info_upd ?: null,
+                ':uzsakymo_numeris_ranka' => $uzsakymo_nr_upd ?: null,
+                ':atsakingas_padalinys'   => $atsakingas_pad_upd ?: null,
+                ':siulomas_sprendimas'    => $siulomas_spr_upd ?: null,
+                ':uzfiksavo_padalinys'    => $uzfiksavo_pad_upd ?: null,
+                ':uzfiksavo_asmuo'        => $uzfiksavo_asm_upd ?: null,
+                ':priezastis'             => $priezastis ?: null,
+                ':veiksmai'               => $veiksmai_txt ?: null,
+                ':atsakingas_asmuo'       => $atsakingas ?: null,
+                ':id'                     => $id
             ]);
             pretenzijosRedirect('atnaujinta');
         }
@@ -912,40 +948,110 @@ function viewPretenzija(id) {
 function editPretenzija(id) {
   const p = pretenzijosData.find(x => x.id == id);
   if (!p) return;
-  
+
   let statusOptions = '';
   for (const [k, v] of Object.entries(statusai)) {
     statusOptions += `<option value="${k}" ${p.statusas === k ? 'selected' : ''}>${v.label}</option>`;
   }
-  
+
+  const tipaiOpts = [
+    ['vidine', 'Vidinė'],
+    ['kliento', 'Kliento'],
+    ['tiekejo', 'Tiekėjo']
+  ].map(([k, l]) => `<option value="${k}" ${p.tipas === k ? 'selected' : ''}>${l}</option>`).join('');
+
+  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
   let html = `
     <input type="hidden" name="veiksmas" value="atnaujinti">
     <input type="hidden" name="id" value="${id}">
-    
-    <div style="margin-bottom:1rem;">
-      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Statusas</label>
-      <select name="statusas" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" onchange="this.form.querySelector('[name=veiksmas]').value='atnaujinti_statusa';this.form.submit();" data-testid="select-edit-status">
-        ${statusOptions}
-      </select>
-      <small style="color:#6c757d;font-size:0.8rem;">Pakeitus statusą forma bus automatiškai išsaugota</small>
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #0d6efd;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#0d6efd;margin-bottom:0.75rem;"><i class="bi bi-info-circle me-1"></i>Pagrindinė informacija</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Tipas</label>
+          <select name="tipas" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" data-testid="select-edit-tipas">${tipaiOpts}</select>
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Gavimo data</label>
+          <input type="date" name="gavimo_data" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.gavimo_data ? p.gavimo_data.substring(0,10) : '')}" data-testid="input-edit-gavimo-data">
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Terminas</label>
+          <input type="date" name="terminas" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.terminas ? p.terminas.substring(0,10) : '')}" data-testid="input-edit-terminas">
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Problemos aprašymas <span style="color:#e74c3c;">*</span></label>
+        <textarea name="aprasymas" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;resize:vertical;" rows="3" placeholder="Aprašykite problemą..." required data-testid="input-edit-aprasymas">${esc(p.aprasymas)}</textarea>
+      </div>
     </div>
-    
-    <div style="margin-bottom:1rem;">
-      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Priežastis</label>
-      <textarea name="priezastis" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="3" placeholder="Nustatyta priežastis..." data-testid="input-edit-priezastis">${p.priezastis || ''}</textarea>
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #6c757d;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#6c757d;margin-bottom:0.75rem;"><i class="bi bi-geo-alt me-1"></i>Aptikimo ir gaminio informacija</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Aptikimo vieta</label>
+          <input type="text" name="aptikimo_vieta" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.aptikimo_vieta)}" placeholder="Kur aptikta problema..." data-testid="input-edit-aptikimo-vieta">
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Gaminys / informacija</label>
+          <input type="text" name="gaminys_info" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.gaminys_info)}" placeholder="Gaminys arba detalė..." data-testid="input-edit-gaminys-info">
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Užsakymo nr. (rankinis)</label>
+          <input type="text" name="uzsakymo_numeris_ranka" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.uzsakymo_numeris_ranka)}" placeholder="pvz. UŽ-2024-001" data-testid="input-edit-uzsakymo-nr">
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Atsakingas padalinys</label>
+          <input type="text" name="atsakingas_padalinys" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.atsakingas_padalinys)}" placeholder="Padalinys..." data-testid="input-edit-atsakingas-padalinys">
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Siūlomas sprendimas</label>
+        <textarea name="siulomas_sprendimas" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;resize:vertical;" rows="2" placeholder="Siūlomas sprendimas..." data-testid="input-edit-siulomas-sprendimas">${esc(p.siulomas_sprendimas)}</textarea>
+      </div>
     </div>
-    
-    <div style="margin-bottom:1rem;">
-      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Korekciniai veiksmai</label>
-      <textarea name="veiksmai" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" rows="3" placeholder="Kokie veiksmai bus/buvo atlikti..." data-testid="input-edit-veiksmai">${p.veiksmai || ''}</textarea>
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #198754;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#198754;margin-bottom:0.75rem;"><i class="bi bi-person-check me-1"></i>Registravimo duomenys</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Užfiksavo padalinys</label>
+          <input type="text" name="uzfiksavo_padalinys" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.uzfiksavo_padalinys)}" placeholder="Padalinys..." data-testid="input-edit-uzfiksavo-padalinys">
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Užfiksavo asmuo</label>
+          <input type="text" name="uzfiksavo_asmuo" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.uzfiksavo_asmuo)}" placeholder="Vardas Pavardė..." data-testid="input-edit-uzfiksavo-asmuo">
+        </div>
+      </div>
     </div>
-    
-    <div style="margin-bottom:1rem;">
-      <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Atsakingas asmuo</label>
-      <input type="text" name="atsakingas_asmuo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" value="${p.atsakingas_asmuo || ''}" data-testid="input-edit-atsakingas">
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #dc3545;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#dc3545;margin-bottom:0.75rem;"><i class="bi bi-search me-1"></i>Tyrimas ir sprendimas</div>
+      <div style="margin-bottom:0.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Statusas</label>
+        <select name="statusas" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" onchange="this.form.querySelector('[name=veiksmas]').value='atnaujinti_statusa';this.form.submit();" data-testid="select-edit-status">
+          ${statusOptions}
+        </select>
+        <small style="color:#6c757d;font-size:0.78rem;">Pakeitus statusą forma bus automatiškai išsaugota</small>
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Nustatyta priežastis</label>
+        <textarea name="priezastis" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;resize:vertical;" rows="3" placeholder="Nustatyta priežastis..." data-testid="input-edit-priezastis">${esc(p.priezastis)}</textarea>
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Korekciniai veiksmai</label>
+        <textarea name="veiksmai" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;resize:vertical;" rows="3" placeholder="Kokie veiksmai bus/buvo atlikti..." data-testid="input-edit-veiksmai">${esc(p.veiksmai)}</textarea>
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Atsakingas asmuo</label>
+        <input type="text" name="atsakingas_asmuo" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.atsakingas_asmuo)}" placeholder="Vardas Pavardė..." data-testid="input-edit-atsakingas">
+      </div>
     </div>
   `;
-  
+
   document.getElementById('editContent').innerHTML = html;
   document.getElementById('modalEdit').style.display = 'flex';
 }
