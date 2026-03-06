@@ -24,8 +24,16 @@ class Emailas {
         return $key;
     }
 
+    private static $lastError = '';
+    private static $lastResponse = '';
+
+    public static function getLastError(): string { return self::$lastError; }
+    public static function getLastResponse(): string { return self::$lastResponse; }
+
     /** Išsiunčia el. laišką per Resend API nurodytam gavėjui su tema ir HTML turiniu */
     public static function siusti(string $kam, string $tema, string $html): bool {
+        self::$lastError = '';
+        self::$lastResponse = '';
         $apiKey = self::getApiKey();
 
         $data = json_encode([
@@ -49,9 +57,24 @@ class Emailas {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
-        return $httpCode >= 200 && $httpCode < 300;
+        self::$lastResponse = $response ?: '';
+
+        if ($curlError) {
+            self::$lastError = 'Ryšio klaida: ' . $curlError;
+            return false;
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $body = json_decode($response, true);
+            $msg = $body['message'] ?? $body['error'] ?? $response;
+            self::$lastError = "Resend API klaida (HTTP {$httpCode}): {$msg}";
+            return false;
+        }
+
+        return true;
     }
 
     /** Išsiunčia slaptažodžio atstatymo el. laišką su unikalia nuoroda vartotojui */

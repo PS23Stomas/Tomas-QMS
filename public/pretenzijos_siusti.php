@@ -144,7 +144,8 @@ try {
         echo json_encode(['success' => true, 'message' => 'Laiškas išsiųstas sėkmingai']);
     } else {
         $pdo->prepare("DELETE FROM pretenzijos_email_history WHERE id = ?")->execute([$history_id]);
-        echo json_encode(['success' => false, 'message' => 'Nepavyko išsiųsti laiško']);
+        $errDetail = Emailas::getLastError();
+        echo json_encode(['success' => false, 'message' => 'Nepavyko išsiųsti laiško' . ($errDetail ? ': ' . $errDetail : '')]);
     }
 } catch (Exception $e) {
     $pdo->prepare("DELETE FROM pretenzijos_email_history WHERE id = ?")->execute([$history_id]);
