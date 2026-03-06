@@ -24,6 +24,7 @@ class DBMigracija {
         $this->pridetiSablonoGrupesStulpeli();
         $this->pridetiGaminioPavadinimaStulpeli();
         $this->pridetiDielektriniuIssaugotiStulpeli();
+        $this->sukurtiPretenzijoEmailHistoryLentele();
         $this->sinchronizuotiSekas();
     }
 
@@ -238,6 +239,26 @@ class DBMigracija {
                 }
             } catch (PDOException $e) {
             }
+        }
+    }
+
+    private function sukurtiPretenzijoEmailHistoryLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS pretenzijos_email_history (
+                    id SERIAL PRIMARY KEY,
+                    pretenzija_id INTEGER NOT NULL REFERENCES pretenzijos(id) ON DELETE CASCADE,
+                    email_delegated_to VARCHAR(255),
+                    email_cc TEXT,
+                    email_subject VARCHAR(500),
+                    sent_by VARCHAR(255),
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    feedback_text TEXT,
+                    feedback_at TIMESTAMP,
+                    feedback_by VARCHAR(255)
+                )
+            ");
+        } catch (PDOException $e) {
         }
     }
 

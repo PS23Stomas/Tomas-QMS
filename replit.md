@@ -41,6 +41,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **Authentication**: Session-based with `password_verify()` for bcrypt hashes. Includes password reset via email and user profile management.
 - **Database Interaction**: PDO with PostgreSQL driver, using prepared statements and `htmlspecialchars()` for security.
 - **Core Features**: CRUD operations for orders, products, clients, objects, claims, devices, and users.
+- **Claims Module (Pretenzijos)**: Full claim lifecycle with PDF export (`pretenzijos_pdf.php`, PR 28/2 form), email sending with delegation (`pretenzijos_siusti.php`), email history with feedback tracking (`pretenzijos_email_history` table), public feedback page (`pretenzijos_atsakymas.php`), and photo compression loading indicator.
 - **Manufacturing Process Tracking**:
     - **Functional Tests**: Management of 21 manufacturing requirements, including defect tracking, photo uploads (with lightbox preview and AJAX delete), and PDF generation. Supports editable templates for requirements.
     - **Component Management**: Tracking of mounted components (18 default items).
@@ -67,7 +68,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 
 ### Database
 - **Type**: PostgreSQL.
-- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `mt_komponentai`, `mt_funkciniai_bandymai`, `mt_dielektriniai_bandymai`, `pretenzijos`, `prietaisai`, `gvx_dokumentai`.
+- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `mt_komponentai`, `mt_funkciniai_bandymai`, `mt_dielektriniai_bandymai`, `pretenzijos`, `pretenzijos_email_history`, `prietaisai`, `gvx_dokumentai`.
 
 ## External Dependencies
 

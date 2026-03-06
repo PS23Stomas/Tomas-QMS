@@ -31,6 +31,18 @@ $statusai = [
     'atmesta' => ['label' => 'Atmesta', 'color' => '#95a5a6', 'bg' => '#f4f6f6']
 ];
 
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'email_history') {
+    header('Content-Type: application/json; charset=utf-8');
+    $pid = (int)($_GET['pretenzija_id'] ?? 0);
+    if (!$pid) { echo json_encode([]); exit; }
+    $st = $pdo->prepare("SELECT id, email_delegated_to, email_cc, email_subject, sent_by, sent_at,
+        feedback_text, feedback_at, feedback_by
+        FROM pretenzijos_email_history WHERE pretenzija_id = ? ORDER BY sent_at DESC");
+    $st->execute([$pid]);
+    echo json_encode($st->fetchAll(PDO::FETCH_ASSOC));
+    exit;
+}
+
 $klaida = '';
 $sekminga = '';
 
@@ -457,6 +469,7 @@ include __DIR__ . '/includes/header.php';
   
   .btn-action.view { background: #ebf5fb; color: #2980b9; }
   .btn-action.pdf { background: #fdedec; color: #c0392b; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-action.email { background: #eafaf1; color: #27ae60; }
   .btn-action.edit { background: #fef9e7; color: #b7950b; }
   .btn-action.delete { background: #fdedec; color: #c0392b; }
   
@@ -652,6 +665,14 @@ include __DIR__ . '/includes/header.php';
             <button class="btn-action view" onclick="viewPretenzija(<?= $p['id'] ?>)" title="Peržiūrėti" data-testid="button-view-<?= $p['id'] ?>">
               <i class="bi bi-eye"></i>
             </button>
+            <a class="btn-action pdf" href="pretenzijos_pdf.php?id=<?= $p['id'] ?>" target="_blank" title="PDF" data-testid="button-pdf-<?= $p['id'] ?>">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            <?php if (!$arSkaitytojas): ?>
+            <button class="btn-action email" onclick="openEmailModal(<?= $p['id'] ?>)" title="Siųsti el. paštu" data-testid="button-email-<?= $p['id'] ?>">
+              <i class="bi bi-envelope"></i>
+            </button>
+            <?php endif; ?>
             <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" data-testid="button-edit-<?= $p['id'] ?>">
               <i class="bi bi-pencil"></i>
             </button>
@@ -840,6 +861,33 @@ include __DIR__ . '/includes/header.php';
   </div>
 </div>
 
+<div id="modalEmail" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;width:95%;max-width:500px;">
+    <div style="background:linear-gradient(135deg,#27ae60 0%,#1e8449 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-envelope me-2"></i>Siųsti pretenziją el. paštu</h5>
+      <button type="button" onclick="document.getElementById('modalEmail').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding:1.5rem;">
+      <input type="hidden" id="emailPretenzijaId">
+      <div style="margin-bottom:1rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Kam (el. paštas) <span style="color:#e74c3c;">*</span></label>
+        <input type="email" id="emailTo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="gavėjas@imone.lt" required data-testid="input-email-to">
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">CC (kopija, neprivaloma)</label>
+        <input type="text" id="emailCc" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="kopija1@imone.lt, kopija2@imone.lt" data-testid="input-email-cc">
+      </div>
+      <div id="emailStatus" style="display:none;margin-bottom:1rem;padding:0.6rem 0.8rem;border-radius:6px;font-size:0.85rem;"></div>
+    </div>
+    <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
+      <button type="button" onclick="document.getElementById('modalEmail').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
+      <button type="button" onclick="sendEmail()" id="btnSendEmail" style="padding:0.4rem 1rem;border:none;border-radius:6px;background:#27ae60;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-send-email">
+        <i class="bi bi-send me-1"></i>Siųsti
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="modalEdit" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
   <div style="background:white;border-radius:12px;width:95%;max-width:800px;margin-bottom:2rem;">
     <div style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
@@ -939,10 +987,55 @@ function viewPretenzija(id) {
         </div>
       </div>
     ` : ''}
+    
+    <div id="emailHistorySection" style="margin-top:1rem;">
+      <div style="text-align:center;color:#6c757d;font-size:0.85rem;padding:0.5rem;"><i class="bi bi-hourglass-split me-1"></i>Kraunama el. pašto istorija...</div>
+    </div>
   `;
   
   document.getElementById('viewContent').innerHTML = html;
   document.getElementById('modalView').style.display = 'flex';
+  
+  fetch('pretenzijos.php?ajax=email_history&pretenzija_id=' + id)
+    .then(r => r.json())
+    .then(history => {
+      const section = document.getElementById('emailHistorySection');
+      if (!history || history.length === 0) {
+        section.innerHTML = '';
+        return;
+      }
+      function escH(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+      let hhtml = '<div style="border-top:1px solid #dee2e6;padding-top:1rem;">';
+      hhtml += '<strong style="text-transform:uppercase;font-size:0.88rem;"><i class="bi bi-envelope-paper me-1"></i>El. pašto istorija (' + history.length + ')</strong>';
+      history.forEach(h => {
+        const hasF = !!h.feedback_text;
+        const badge = hasF 
+          ? '<span style="background:#d4edda;color:#155724;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;">Atsakyta</span>'
+          : '<span style="background:#fff3cd;color:#856404;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;">Laukiama</span>';
+        hhtml += '<div style="background:#f8f9fa;padding:0.6rem 0.8rem;border-radius:6px;margin-top:0.5rem;border:1px solid #e9ecef;font-size:0.85rem;">';
+        hhtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">';
+        hhtml += '<span><i class="bi bi-send me-1"></i><strong>' + escH(h.email_delegated_to) + '</strong></span>';
+        hhtml += badge;
+        hhtml += '</div>';
+        hhtml += '<div style="color:#6c757d;font-size:0.8rem;">';
+        hhtml += 'Siuntė: ' + escH(h.sent_by || '-') + ' | ' + (h.sent_at ? new Date(h.sent_at).toLocaleString('lt-LT') : '-');
+        if (h.email_cc) hhtml += ' | CC: ' + escH(h.email_cc);
+        hhtml += '</div>';
+        if (hasF) {
+          hhtml += '<div style="background:#e8f5e9;padding:0.5rem 0.6rem;border-radius:4px;margin-top:0.4rem;border-left:3px solid #27ae60;">';
+          hhtml += '<div style="font-size:0.78rem;color:#6c757d;margin-bottom:0.2rem;">' + escH(h.feedback_by || 'Anonim.') + ' — ' + (h.feedback_at ? new Date(h.feedback_at).toLocaleString('lt-LT') : '') + '</div>';
+          hhtml += '<div>' + escH(h.feedback_text).replace(/\n/g, '<br>') + '</div>';
+          hhtml += '</div>';
+        }
+        hhtml += '</div>';
+      });
+      hhtml += '</div>';
+      section.innerHTML = hhtml;
+    })
+    .catch(() => {
+      const section = document.getElementById('emailHistorySection');
+      if (section) section.innerHTML = '';
+    });
 }
 
 function editPretenzija(id) {
@@ -1061,9 +1154,13 @@ let compressedFiles = [];
 document.getElementById('photoInput').addEventListener('change', async function(e) {
   const preview = document.getElementById('photoPreview');
   const placeholder = document.querySelector('.upload-placeholder');
+  const originalPlaceholderHTML = placeholder.innerHTML;
   
   if (this.files.length > 0) {
-    placeholder.style.display = 'none';
+    placeholder.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div><span style="font-size:0.95rem;">Apdorojama...</span>';
+    placeholder.style.display = 'flex';
+    placeholder.style.alignItems = 'center';
+    placeholder.style.justifyContent = 'center';
     
     compressedFiles = [];
     preview.innerHTML = '';
@@ -1087,6 +1184,11 @@ document.getElementById('photoInput').addEventListener('change', async function(
         console.error('Klaida suspaudžiant:', err);
       }
     }
+    
+    placeholder.innerHTML = originalPlaceholderHTML;
+    placeholder.style.display = 'none';
+    placeholder.style.alignItems = '';
+    placeholder.style.justifyContent = '';
     
     updateFileInput();
   }
@@ -1217,7 +1319,69 @@ document.querySelector('#modalKurti form').addEventListener('submit', function(e
   }
 });
 
-document.querySelectorAll('#modalKurti, #modalView, #modalEdit').forEach(modal => {
+function openEmailModal(id) {
+  document.getElementById('emailPretenzijaId').value = id;
+  document.getElementById('emailTo').value = '';
+  document.getElementById('emailCc').value = '';
+  const status = document.getElementById('emailStatus');
+  status.style.display = 'none';
+  status.innerHTML = '';
+  document.getElementById('btnSendEmail').disabled = false;
+  document.getElementById('modalEmail').style.display = 'flex';
+}
+
+function sendEmail() {
+  const pid = document.getElementById('emailPretenzijaId').value;
+  const emailTo = document.getElementById('emailTo').value.trim();
+  const emailCc = document.getElementById('emailCc').value.trim();
+  const status = document.getElementById('emailStatus');
+  const btn = document.getElementById('btnSendEmail');
+  
+  if (!emailTo) {
+    status.style.display = 'block';
+    status.style.background = '#fdedec';
+    status.style.color = '#721c24';
+    status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Įveskite gavėjo el. pašto adresą';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Siunčiama...';
+  status.style.display = 'none';
+  
+  const fd = new FormData();
+  fd.append('pretenzija_id', pid);
+  fd.append('email_delegated_to', emailTo);
+  fd.append('email_cc', emailCc);
+  
+  fetch('pretenzijos_siusti.php', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      status.style.display = 'block';
+      if (data.success) {
+        status.style.background = '#d4edda';
+        status.style.color = '#155724';
+        status.innerHTML = '<i class="bi bi-check-circle me-1"></i>' + data.message;
+        setTimeout(() => { document.getElementById('modalEmail').style.display = 'none'; }, 2000);
+      } else {
+        status.style.background = '#fdedec';
+        status.style.color = '#721c24';
+        status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + data.message;
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
+    })
+    .catch(err => {
+      status.style.display = 'block';
+      status.style.background = '#fdedec';
+      status.style.color = '#721c24';
+      status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Klaida siunčiant';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
+    });
+}
+
+document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').forEach(modal => {
   modal.addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
   });
