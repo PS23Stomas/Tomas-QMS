@@ -895,24 +895,26 @@ include __DIR__ . '/includes/header.php';
       <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-envelope me-2"></i>Siųsti pretenziją el. paštu</h5>
       <button type="button" onclick="document.getElementById('modalEmail').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
     </div>
-    <div style="padding:1.5rem;">
-      <input type="hidden" id="emailPretenzijaId">
-      <div style="margin-bottom:1rem;">
-        <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Kam (el. paštas) <span style="color:#e74c3c;">*</span></label>
-        <input type="email" id="emailTo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="gavėjas@imone.lt" required data-testid="input-email-to">
+    <form onsubmit="event.preventDefault(); sendEmail();">
+      <div style="padding:1.5rem;">
+        <input type="hidden" id="emailPretenzijaId">
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Kam (el. paštas) <span style="color:#e74c3c;">*</span></label>
+          <input type="email" id="emailTo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="gavėjas@imone.lt" required data-testid="input-email-to">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">CC (kopija, neprivaloma)</label>
+          <input type="text" id="emailCc" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="kopija1@imone.lt, kopija2@imone.lt" data-testid="input-email-cc">
+        </div>
+        <div id="emailStatus" style="display:none;margin-bottom:1rem;padding:0.6rem 0.8rem;border-radius:6px;font-size:0.85rem;"></div>
       </div>
-      <div style="margin-bottom:1rem;">
-        <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">CC (kopija, neprivaloma)</label>
-        <input type="text" id="emailCc" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="kopija1@imone.lt, kopija2@imone.lt" data-testid="input-email-cc">
+      <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" onclick="document.getElementById('modalEmail').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
+        <button type="submit" id="btnSendEmail" style="padding:0.4rem 1rem;border:none;border-radius:6px;background:#27ae60;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-send-email">
+          <i class="bi bi-send me-1"></i>Siųsti
+        </button>
       </div>
-      <div id="emailStatus" style="display:none;margin-bottom:1rem;padding:0.6rem 0.8rem;border-radius:6px;font-size:0.85rem;"></div>
-    </div>
-    <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
-      <button type="button" onclick="document.getElementById('modalEmail').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
-      <button type="button" onclick="sendEmail()" id="btnSendEmail" style="padding:0.4rem 1rem;border:none;border-radius:6px;background:#27ae60;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-send-email">
-        <i class="bi bi-send me-1"></i>Siųsti
-      </button>
-    </div>
+    </form>
   </div>
 </div>
 
