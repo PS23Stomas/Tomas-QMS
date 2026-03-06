@@ -286,8 +286,24 @@ while ($row = $nuotraukosStmt->fetch(PDO::FETCH_ASSOC)) {
     $nuotraukos_map[$pid][] = ['id' => $row['id'], 'pavadinimas' => $row['pavadinimas']];
 }
 
+$email_stats_map = [];
+$emailStatsStmt = $pdo->query("
+    SELECT pretenzija_id,
+        COUNT(*) as total_sent,
+        COUNT(feedback_text) as total_answered
+    FROM pretenzijos_email_history
+    GROUP BY pretenzija_id
+");
+while ($row = $emailStatsStmt->fetch(PDO::FETCH_ASSOC)) {
+    $email_stats_map[(int)$row['pretenzija_id']] = [
+        'sent' => (int)$row['total_sent'],
+        'answered' => (int)$row['total_answered']
+    ];
+}
+
 foreach ($pretenzijos as &$p) {
     $p['nuotraukos'] = $nuotraukos_map[$p['id']] ?? [];
+    $p['email_stats'] = $email_stats_map[$p['id']] ?? ['sent' => 0, 'answered' => 0];
 }
 unset($p);
 
@@ -711,6 +727,18 @@ include __DIR__ . '/includes/header.php';
           <?php if ($p['terminas']): ?>
             <span><i class="bi bi-clock"></i>Terminas: <?= date('Y-m-d', strtotime($p['terminas'])) ?></span>
           <?php endif; ?>
+          <?php 
+          $es = $p['email_stats'];
+          if ($es['sent'] > 0):
+            $waiting = $es['sent'] - $es['answered'];
+            if ($es['answered'] === $es['sent']): ?>
+              <span style="background:#d4edda;color:#155724;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;"><i class="bi bi-check-circle-fill me-1"></i><?= $es['answered'] ?>/<?= $es['sent'] ?> atsakyta</span>
+            <?php elseif ($es['answered'] > 0): ?>
+              <span style="background:#fff3cd;color:#856404;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;"><i class="bi bi-hourglass-split me-1"></i><?= $es['answered'] ?>/<?= $es['sent'] ?> atsakyta</span>
+            <?php else: ?>
+              <span style="background:#fef9e7;color:#b7950b;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;"><i class="bi bi-envelope me-1"></i>Laukiama <?= $es['sent'] ?></span>
+            <?php endif; ?>
+          <?php endif; ?>
         </div>
       </div>
     <?php endforeach; ?>
@@ -988,9 +1016,21 @@ function viewPretenzija(id) {
       </div>
     ` : ''}
     
-    <div id="emailHistorySection" style="margin-top:1rem;">
-      <div style="text-align:center;color:#6c757d;font-size:0.85rem;padding:0.5rem;"><i class="bi bi-hourglass-split me-1"></i>Kraunama el. pašto istorija...</div>
+    ${p.email_stats && p.email_stats.sent > 0 ? `
+    <div style="border-top:1px solid #dee2e6;margin-top:1rem;padding-top:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <strong style="text-transform:uppercase;font-size:0.88rem;"><i class="bi bi-envelope-paper me-1"></i>El. pašto istorija</strong>
+        <div style="font-size:0.8rem;">
+          <span style="background:#ebf5fb;color:#2980b9;padding:0.2rem 0.5rem;border-radius:8px;margin-right:0.3rem;">Išsiųsta: ${p.email_stats.sent}</span>
+          <span style="background:#d4edda;color:#155724;padding:0.2rem 0.5rem;border-radius:8px;margin-right:0.3rem;">Atsakyta: ${p.email_stats.answered}</span>
+          ${p.email_stats.sent - p.email_stats.answered > 0 ? `<span style="background:#fff3cd;color:#856404;padding:0.2rem 0.5rem;border-radius:8px;">Laukiama: ${p.email_stats.sent - p.email_stats.answered}</span>` : ''}
+        </div>
+      </div>
+      <div id="emailHistorySection">
+        <div style="text-align:center;color:#6c757d;font-size:0.85rem;padding:0.5rem;"><div class="spinner-border spinner-border-sm me-2"></div>Kraunama istorija...</div>
+      </div>
     </div>
+    ` : '<div id="emailHistorySection"></div>'}
   `;
   
   document.getElementById('viewContent').innerHTML = html;
@@ -1005,8 +1045,7 @@ function viewPretenzija(id) {
         return;
       }
       function escH(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-      let hhtml = '<div style="border-top:1px solid #dee2e6;padding-top:1rem;">';
-      hhtml += '<strong style="text-transform:uppercase;font-size:0.88rem;"><i class="bi bi-envelope-paper me-1"></i>El. pašto istorija (' + history.length + ')</strong>';
+      let hhtml = '';
       history.forEach(h => {
         const hasF = !!h.feedback_text;
         const badge = hasF 
@@ -1029,7 +1068,6 @@ function viewPretenzija(id) {
         }
         hhtml += '</div>';
       });
-      hhtml += '</div>';
       section.innerHTML = hhtml;
     })
     .catch(() => {
