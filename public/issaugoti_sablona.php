@@ -28,11 +28,6 @@ foreach ($pavadinimai as $pav) {
     if ($pav !== '') $filtruoti[] = $pav;
 }
 
-if (empty($filtruoti)) {
-    header('Location: /sablonas_funkciniai.php?grupe=' . urlencode($filtro_grupe) . '&klaida=' . urlencode('Šablonas negali būti tuščias – turi būti bent vienas punktas'));
-    exit;
-}
-
 $conn = Database::getConnection();
 
 try {
