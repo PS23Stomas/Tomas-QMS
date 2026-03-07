@@ -44,10 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
             $stmt->execute([$modulis]);
             if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'gaminių tipų';
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
-            $stmt->execute([$id]);
-            if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'tikrinimo šablonų';
-
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM uzsakymai u JOIN gaminiu_rusys gr ON gr.id = u.gaminiu_rusis_id WHERE gr.pavadinimas = ?");
             $stmt->execute([$modulis]);
             if ((int)$stmt->fetchColumn() > 0) $kliutys[] = 'užsakymų';
@@ -57,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
                 header('Location: /moduliai.php?klaida=' . urlencode($msg));
                 exit;
             }
+
+            $stmt = $pdo->prepare("DELETE FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
+            $stmt->execute([$id]);
 
             $stmt = $pdo->prepare("DELETE FROM gaminiu_rusys WHERE id = ?");
             $stmt->execute([$id]);
