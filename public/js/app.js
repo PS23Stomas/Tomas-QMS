@@ -92,19 +92,59 @@ document.addEventListener('DOMContentLoaded', function() {
  * Atidaro modalinį langą pagal jo ID
  * @param {string} id - Modalinio lango elemento identifikatorius
  */
+var _modalTriggerElement = null;
+
 function openModal(id) {
+    _modalTriggerElement = document.activeElement;
     var modal = document.getElementById(id);
-    if (modal) modal.classList.add('active');
+    if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        var firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea, button:not(.modal-close)');
+        if (firstInput) setTimeout(function() { firstInput.focus(); }, 50);
+    }
 }
 
-/**
- * Uždaro modalinį langą pagal jo ID
- * @param {string} id - Modalinio lango elemento identifikatorius
- */
 function closeModal(id) {
     var modal = document.getElementById(id);
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+        if (_modalTriggerElement) {
+            _modalTriggerElement.focus();
+            _modalTriggerElement = null;
+        }
+    }
 }
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        var activeModals = document.querySelectorAll('.modal-overlay.active, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"]');
+        activeModals.forEach(function(m) {
+            m.classList.remove('active');
+            m.style.display = 'none';
+        });
+        if (_modalTriggerElement) {
+            _modalTriggerElement.focus();
+            _modalTriggerElement = null;
+        }
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    var activeModal = document.querySelector('.modal-overlay.active, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"]');
+    if (!activeModal) return;
+    var focusable = activeModal.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+});
 
 /**
  * Ištrynimo patvirtinimo funkcija - rodo patvirtinimo dialogą ir

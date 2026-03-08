@@ -172,7 +172,7 @@ include __DIR__ . '/includes/header.php';
     <div class="modal" style="max-width:400px;">
         <div class="modal-header">
             <h3>Naujas modulis</h3>
-            <button class="modal-close" onclick="closeModal('createModuleModal')">&times;</button>
+            <button class="modal-close" onclick="closeModal('createModuleModal')" aria-label="Uždaryti">&times;</button>
         </div>
         <form method="POST">
             <input type="hidden" name="action" value="sukurti">

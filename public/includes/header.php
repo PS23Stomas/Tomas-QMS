@@ -33,11 +33,12 @@ $aktyvus_grupe = $_SESSION['aktyvus_grupe'] ?? '';
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content" data-testid="link-skip-content">Pereiti prie turinio</a>
     <div class="app-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">Tomo-QMS</div>
-                <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close">&times;</button>
+                <button class="sidebar-close" id="sidebarClose" data-testid="button-sidebar-close" aria-label="Uždaryti navigaciją">&times;</button>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-section-label">Moduliai</div>
@@ -104,9 +105,25 @@ $aktyvus_grupe = $_SESSION['aktyvus_grupe'] ?? '';
         </aside>
         <div class="main-content">
             <header class="top-header">
-                <button class="menu-toggle" id="menuToggle" data-testid="button-menu-toggle">
+                <button class="menu-toggle" id="menuToggle" data-testid="button-menu-toggle" aria-label="Atidaryti navigacijos meniu">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
-                <h1 class="page-title" data-testid="text-page-title"><?= h($page_title ?? 'MT Modulis') ?></h1>
+                <div class="page-header-info">
+                    <nav class="breadcrumb" aria-label="Navigacijos kelias" data-testid="nav-breadcrumb">
+                        <?php
+                        $bc = [];
+                        if ($aktyvus_modulis && !in_array($current_page, ['moduliai', 'pretenzijos', 'prietaisai', 'vartotojai', 'profilis'])) {
+                            $bc[] = '<a href="/moduliai.php">Moduliai</a>';
+                            $bc[] = '<a href="/index.php?grupe=' . urlencode($aktyvus_grupe) . '">' . h($aktyvus_grupe) . '</a>';
+                        }
+                        if (!empty($bc)) {
+                            echo implode('<span class="breadcrumb-sep" aria-hidden="true">/</span>', $bc);
+                            echo '<span class="breadcrumb-sep" aria-hidden="true">/</span>';
+                            echo '<span class="breadcrumb-current">' . h($page_title ?? 'Puslapis') . '</span>';
+                        }
+                        ?>
+                    </nav>
+                    <h1 class="page-title" data-testid="text-page-title"><?= h($page_title ?? 'MT Modulis') ?></h1>
+                </div>
             </header>
-            <main class="content-area">
+            <main class="content-area" id="main-content">

@@ -34,6 +34,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **Responsiveness**: Mobile-friendly with collapsible sidebar.
 - **UI Pattern**: Server-rendered PHP pages utilizing modal dialogs for forms.
 - **UI/UX Decisions**: All UI elements are in Lithuanian. Dashboard (Kokybiniai rodikliai) serves as the main page, featuring a tabbed navigation for various statistics (30-day indicators, quarterly comparison, extended statistics). Tiles are used for navigation within product windows (e.g., MT product navigation).
+- **Usability & Accessibility**: Styled 404 error page, breadcrumb navigation for module sub-pages, skip-to-content link for keyboard users, ARIA labels on all icon-only buttons and modal close buttons, `role="alert"` on notification messages, Escape key closes modals, Tab key focus trap within modals, focus returns to trigger element after modal close, form validation CSS indicators (red/green borders), required field asterisks.
 
 ### Backend
 - **Language**: PHP 8.3

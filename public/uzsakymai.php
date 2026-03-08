@@ -359,10 +359,10 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <?php if ($message): ?>
-<div class="alert alert-success"><?= h($message) ?></div>
+<div class="alert alert-success" role="alert"><?= h($message) ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-<div class="alert alert-danger"><?= h($error) ?></div>
+<div class="alert alert-danger" role="alert"><?= h($error) ?></div>
 <?php endif; ?>
 
 <?php if ($view_id && $order): ?>
@@ -574,7 +574,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="modal">
         <div class="modal-header">
             <h3>Redaguoti</h3>
-            <button class="modal-close" onclick="closeModal('editOrderModal')">&times;</button>
+            <button class="modal-close" onclick="closeModal('editOrderModal')" aria-label="Uždaryti">&times;</button>
         </div>
         <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>&grupe=<?= urlencode($filtro_grupe) ?><?= $gaminio_id_mt > 0 ? '&gaminys=' . $gaminio_id_mt : '' ?>">
             <input type="hidden" name="action" value="update">
@@ -973,7 +973,7 @@ document.addEventListener('click', function(e) {
     <div class="modal">
         <div class="modal-header">
             <h3>Naujas užsakymas</h3>
-            <button class="modal-close" onclick="closeModal('createOrderModal')">&times;</button>
+            <button class="modal-close" onclick="closeModal('createOrderModal')" aria-label="Uždaryti">&times;</button>
         </div>
         <form method="POST" action="/uzsakymai.php?grupe=<?= urlencode($filtro_grupe) ?>">
             <input type="hidden" name="action" value="create">
@@ -1038,7 +1038,7 @@ document.addEventListener('click', function(e) {
     <div class="modal" style="max-width: 480px;">
         <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
             <h3 style="color: #dc2626;">Užsakymo trynimas</h3>
-            <button class="modal-close" onclick="closeModal('deleteOrderModal')" data-testid="button-close-delete-modal">&times;</button>
+            <button class="modal-close" onclick="closeModal('deleteOrderModal')" aria-label="Uždaryti" data-testid="button-close-delete-modal">&times;</button>
         </div>
         <form method="POST" id="deleteOrderForm" data-testid="form-delete-order">
             <input type="hidden" name="action" value="delete">

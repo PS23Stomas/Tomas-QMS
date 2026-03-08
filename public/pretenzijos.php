@@ -605,16 +605,16 @@ include __DIR__ . '/includes/header.php';
 </style>
 
 <?php if ($klaida): ?>
-  <div class="alert alert-danger alert-dismissible fade show mb-3" style="background:#fdedec;border-color:#f5c6cb;color:#721c24;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-error">
+  <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="background:#fdedec;border-color:#f5c6cb;color:#721c24;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-error">
     <i class="bi bi-exclamation-circle me-2"></i><?= h($klaida) ?>
-    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#721c24;" onclick="this.parentElement.remove()">&times;</button>
+    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#721c24;" onclick="this.parentElement.remove()" aria-label="Uždaryti pranešimą">&times;</button>
   </div>
 <?php endif; ?>
 
 <?php if ($sekminga): ?>
-  <div class="alert alert-success alert-dismissible fade show mb-3" style="background:#d4edda;border-color:#c3e6cb;color:#155724;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-success">
+  <div class="alert alert-success alert-dismissible fade show mb-3" role="alert" style="background:#d4edda;border-color:#c3e6cb;color:#155724;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;" data-testid="alert-success">
     <i class="bi bi-check-circle me-2"></i><?= h($sekminga) ?>
-    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#155724;" onclick="this.parentElement.remove()">&times;</button>
+    <button type="button" style="float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#155724;" onclick="this.parentElement.remove()" aria-label="Uždaryti pranešimą">&times;</button>
   </div>
 <?php endif; ?>
 
@@ -678,22 +678,22 @@ include __DIR__ . '/includes/header.php';
             <span class="badge-statusas" style="background:<?= $st['bg'] ?>;color:<?= $st['color'] ?>"><?= $st['label'] ?></span>
           </div>
           <div class="pretenzija-actions">
-            <button class="btn-action view" onclick="viewPretenzija(<?= $p['id'] ?>)" title="Peržiūrėti" data-testid="button-view-<?= $p['id'] ?>">
+            <button class="btn-action view" onclick="viewPretenzija(<?= $p['id'] ?>)" title="Peržiūrėti" aria-label="Peržiūrėti pretenziją #<?= $p['id'] ?>" data-testid="button-view-<?= $p['id'] ?>">
               <i class="bi bi-eye"></i>
             </button>
-            <a class="btn-action pdf" href="pretenzijos_pdf.php?id=<?= $p['id'] ?>" target="_blank" title="PDF" data-testid="button-pdf-<?= $p['id'] ?>">
+            <a class="btn-action pdf" href="pretenzijos_pdf.php?id=<?= $p['id'] ?>" target="_blank" title="PDF" aria-label="Atsisiųsti PDF pretenzijai #<?= $p['id'] ?>" data-testid="button-pdf-<?= $p['id'] ?>">
               <i class="bi bi-file-earmark-pdf"></i>
             </a>
             <?php if (!$arSkaitytojas): ?>
-            <button class="btn-action email" onclick="openEmailModal(<?= $p['id'] ?>)" title="Siųsti el. paštu" data-testid="button-email-<?= $p['id'] ?>">
+            <button class="btn-action email" onclick="openEmailModal(<?= $p['id'] ?>)" title="Siųsti el. paštu" aria-label="Siųsti el. laišką pretenzijai #<?= $p['id'] ?>" data-testid="button-email-<?= $p['id'] ?>">
               <i class="bi bi-envelope"></i>
             </button>
             <?php endif; ?>
-            <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" data-testid="button-edit-<?= $p['id'] ?>">
+            <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" aria-label="Redaguoti pretenziją #<?= $p['id'] ?>" data-testid="button-edit-<?= $p['id'] ?>">
               <i class="bi bi-pencil"></i>
             </button>
             <?php if (currentUser()['role'] === 'admin'): ?>
-            <button class="btn-action delete" title="Trinti" data-testid="button-delete-<?= $p['id'] ?>"
+            <button class="btn-action delete" title="Šis veiksmas negrįžtamas – pretenzija bus ištrinta" aria-label="Trinti pretenziją #<?= $p['id'] ?>" data-testid="button-delete-<?= $p['id'] ?>"
                 onclick="atidarytiPretenzijosTrinyma(<?= $p['id'] ?>, '<?= h($p['nr'] ?? $p['id']) ?>')">
               <i class="bi bi-trash"></i>
             </button>
@@ -1433,7 +1433,7 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').fo
     <div class="modal" style="max-width: 420px;">
         <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
             <h3 style="color: #dc2626;">Pretenzijos trynimas</h3>
-            <button class="modal-close" onclick="closeModal('deletePretModal')">&times;</button>
+            <button class="modal-close" onclick="closeModal('deletePretModal')" aria-label="Uždaryti">&times;</button>
         </div>
         <form method="POST" id="deletePretForm">
             <input type="hidden" name="veiksmas" value="trinti">
