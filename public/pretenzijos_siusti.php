@@ -71,6 +71,8 @@ $feedback_url = "{$protocol}://{$host}/pretenzijos_atsakymas.php?id={$history_id
 
 $esc = function($s) { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); };
 
+$imone = getImonesNustatymai();
+
 $html_body = '
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
     <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 15px 20px; border-radius: 8px 8px 0 0; color: white;">
@@ -124,7 +126,7 @@ $html_body = '
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
         <p style="color: #aaa; font-size: 11px; text-align: center;">
-            Kokybės valdymo sistema — UAB "ELGA"
+            Kokybės valdymo sistema — ' . htmlspecialchars($imone['pavadinimas']) . '
         </p>
     </div>
 </div>';

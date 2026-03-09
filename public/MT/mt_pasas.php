@@ -499,12 +499,13 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="paso-page" id="paso-print-area">
 
+    <?php $imone = getImonesNustatymai(); ?>
     <div class="paso-company-header">
-        <div class="company-name">UAB <span>ELGA</span></div>
+        <div class="company-name"><?= h($imone['pavadinimas']) ?></div>
         <div class="company-details">
-            Pramonės g. 12, LT-78150 Šiauliai, Lietuva<br>
-            Tel. +370 41 594710, Faks. +370 41 594725<br>
-            El. paštas: info@elga.lt | Internetas: <a href="http://www.elga.lt">www.elga.lt</a><br>
+            <?= h($imone['adresas']) ?><br>
+            Tel. <?= h($imone['telefonas']) ?>, Faks. <?= h($imone['faksas']) ?><br>
+            El. paštas: <?= h($imone['el_pastas']) ?> | Internetas: <a href="http://<?= h($imone['internetas']) ?>"><?= h($imone['internetas']) ?></a><br>
             Gaminio pasas <?= htmlspecialchars($gaminio_pasas) ?>
         </div>
     </div>
@@ -898,7 +899,7 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="paso-info-section">
         <p><?= htmlspecialchars($gaminio_pavadinimas) ?> (gaminio serijos Nr. <?= htmlspecialchars($serijos_nr) ?> ) sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271-202 standartą bandymų protokolo Nr. <?= htmlspecialchars($protokolo_nr ?: '437A') ?>.</p>
         <p>Komplektuojamajai skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271 standartą. Komplektuojamajam SI-04R skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 61439-1 ir LST EN 61439-2 standartus. Bandymų protokolo Nr <?= htmlspecialchars($protokolo_nr ?: '437A') ?>.</p>
-        <p><?= htmlspecialchars($gaminio_pavadinimas) ?> ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (UAB ELGA) įsipareigoja vykdyti transformatorinės <?= htmlspecialchars($gaminio_pavadinimas) ?> garantinį aptarnavimą 24 mėn.</p>
+        <p><?= htmlspecialchars($gaminio_pavadinimas) ?> ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (<?= h($imone['pavadinimas']) ?>) įsipareigoja vykdyti transformatorinės <?= htmlspecialchars($gaminio_pavadinimas) ?> garantinį aptarnavimą 24 mėn.</p>
     </div>
 
     <div class="paso-signature-zone">

@@ -194,6 +194,8 @@ if ($trafo_kiekis >= 2) {
     $saugikliu_36_html = generuotiSaugikliuHtml($mt_saugikliai_36, $poz_36);
 }
 
+$imone = getImonesNustatymai();
+
 $html = '
 <style>
 body {
@@ -259,11 +261,11 @@ body {
 </style>
 
 <div class="paso-company-header">
-    <div class="company-name">UAB <span>ELGA</span></div>
+    <div class="company-name">' . htmlspecialchars($imone['pavadinimas']) . '</div>
     <div class="company-details">
-        Pramonės g. 12, LT-78150 Šiauliai, Lietuva<br>
-        Tel. +370 41 594710, Faks. +370 41 594725<br>
-        El. paštas: info@elga.lt | Internetas: www.elga.lt<br>
+        ' . htmlspecialchars($imone['adresas']) . '<br>
+        Tel. ' . htmlspecialchars($imone['telefonas']) . ', Faks. ' . htmlspecialchars($imone['faksas']) . '<br>
+        El. paštas: ' . htmlspecialchars($imone['el_pastas']) . ' | Internetas: ' . htmlspecialchars($imone['internetas']) . '<br>
         Gaminio pasas ' . htmlspecialchars($gaminio_pasas) . '
     </div>
 </div>
@@ -319,7 +321,7 @@ body {
 <div class="paso-info-section">
     <p>' . htmlspecialchars($gaminio_pavadinimas) . ' (gaminio serijos Nr. ' . htmlspecialchars($serijos_nr) . ' ) sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271-202 standartą bandymų protokolo Nr. ' . htmlspecialchars($protokolo_nr ?: '437A') . '.</p>
     <p>Komplektuojamajai skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 62271 standartą. Komplektuojamajam SI-04R skirstomajam įrenginiui sėkmingai atlikti gamykliniai bandymai pagal LST EN 61439-1 ir LST EN 61439-2 standartus. Bandymų protokolo Nr ' . htmlspecialchars($protokolo_nr ?: '437A') . '.</p>
-    <p>' . htmlspecialchars($gaminio_pavadinimas) . ' ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (UAB ELGA) įsipareigoja vykdyti transformatorinės ' . htmlspecialchars($gaminio_pavadinimas) . ' garantinį aptarnavimą 24 mėn.</p>
+    <p>' . htmlspecialchars($gaminio_pavadinimas) . ' ir visiems komplektuojamiems įrenginiams garantija teikiama pagal gaminio serijos numerį. Gamintojas (' . htmlspecialchars($imone['pavadinimas']) . ') įsipareigoja vykdyti transformatorinės ' . htmlspecialchars($gaminio_pavadinimas) . ' garantinį aptarnavimą 24 mėn.</p>
 </div>
 
 <table class="sig-table">
@@ -352,7 +354,7 @@ try {
     ]);
 
     $mpdf->SetTitle('MT Pasas - ' . $gaminio_pasas);
-    $mpdf->SetAuthor('UAB ELGA');
+    $mpdf->SetAuthor($imone['pavadinimas']);
     $mpdf->WriteHTML($html);
 
     $pdf_content = $mpdf->Output('', 'S');

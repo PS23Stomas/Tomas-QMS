@@ -27,6 +27,7 @@ class DBMigracija {
         $this->pridetiDielektriniuIssaugotiStulpeli();
         $this->sukurtiPretenzijoEmailHistoryLentele();
         $this->sinchronizuotiSekas();
+        $this->sukurtiImonesNustatymuLentele();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -291,6 +292,29 @@ class DBMigracija {
                 $this->conn->exec("ALTER TABLE {$senas} RENAME TO {$naujas}");
             } catch (PDOException $e) {
             }
+        }
+    }
+
+    private function sukurtiImonesNustatymuLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS imones_nustatymai (
+                    id SERIAL PRIMARY KEY,
+                    pavadinimas VARCHAR(255) DEFAULT 'UAB \"ELGA\"',
+                    adresas TEXT DEFAULT 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva',
+                    telefonas VARCHAR(100) DEFAULT '+370 41 594710',
+                    faksas VARCHAR(100) DEFAULT '+370 41 594725',
+                    el_pastas VARCHAR(255) DEFAULT 'info@elga.lt',
+                    internetas VARCHAR(255) DEFAULT 'www.elga.lt',
+                    logotipas BYTEA,
+                    logotipo_tipas VARCHAR(50)
+                )
+            ");
+            $cnt = (int)$this->conn->query("SELECT COUNT(*) FROM imones_nustatymai")->fetchColumn();
+            if ($cnt === 0) {
+                $this->conn->exec("INSERT INTO imones_nustatymai (pavadinimas) VALUES ('UAB \"ELGA\"')");
+            }
+        } catch (PDOException $e) {
         }
     }
 

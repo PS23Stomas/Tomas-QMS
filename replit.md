@@ -55,6 +55,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **User Management**: Admin-only user creation, editing, and role assignment (admin, user, skaitytojas).
 - **Class-based Architecture**: Utilizes PHP classes for database interaction, migrations, email handling, and specific data models (e.g., `Gaminys`, `TomoQMS`).
 - **Auto-migration**: Idempotent database migrations on page load (`DBMigracija.php`).
+- **Company Settings**: Configurable company details (name, address, phone, fax, email, website, logo) stored in `imones_nustatymai` table. Admin-only settings page at `imones_nustatymai.php`. Helper function `getImonesNustatymai()` in `config.php` provides cached access. All PDF generators and email templates use dynamic company data instead of hardcoded values.
 
 ### File Structure (Key Directories/Files)
 - `public/`: Web root.
@@ -69,7 +70,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 
 ### Database
 - **Type**: PostgreSQL.
-- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `komponentai`, `funkciniai_bandymai`, `dielektriniai_bandymai`, `funkciniu_sablonas`, `izeminimo_tikrinimas`, `saugikliu_ideklai`, `paso_teksto_korekcijos`, `pretenzijos`, `pretenzijos_email_history`, `prietaisai`, `gvx_dokumentai`.
+- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `komponentai`, `funkciniai_bandymai`, `dielektriniai_bandymai`, `funkciniu_sablonas`, `izeminimo_tikrinimas`, `saugikliu_ideklai`, `paso_teksto_korekcijos`, `pretenzijos`, `pretenzijos_email_history`, `prietaisai`, `gvx_dokumentai`, `imones_nustatymai`.
 - **Renamed Tables**: `mt_` prefix removed from 7 tables for universality (migration in `DBMigracija::pervadintiMtLenteles()`).
 
 ## External Dependencies

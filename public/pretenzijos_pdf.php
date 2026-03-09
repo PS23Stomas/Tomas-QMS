@@ -48,6 +48,8 @@ $tipas_label = $tipai[$p['tipas']] ?? $p['tipas'];
 $statusas_label = $statusai[$p['statusas']] ?? $p['statusas'];
 $esc = function($s) { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); };
 
+$imone = getImonesNustatymai();
+
 $html = '
 <style>
     body { font-family: "DejaVu Sans", sans-serif; font-size: 10px; color: #333; }
@@ -75,7 +77,7 @@ $html = '
 <table class="header-table">
     <tr>
         <td style="width:50%;">
-            <strong style="font-size:14px;">UAB "ELGA"</strong><br>
+            <strong style="font-size:14px;">' . htmlspecialchars($imone['pavadinimas']) . '</strong><br>
             Kokybės valdymo sistema
         </td>
         <td style="width:50%;text-align:right;">
@@ -193,7 +195,7 @@ $html .= '
 </div>
 
 <div class="footer">
-    Sugeneruota: ' . date('Y-m-d H:i') . ' | Kokybės valdymo sistema — UAB "ELGA"
+    Sugeneruota: ' . date('Y-m-d H:i') . ' | Kokybės valdymo sistema — ' . htmlspecialchars($imone['pavadinimas']) . '
 </div>';
 
 try {

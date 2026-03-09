@@ -138,6 +138,8 @@ if (!empty($izem)) {
     $izem_html = '<tr><td colspan="6">Duomenys nesuvesti</td></tr>';
 }
 
+$imone = getImonesNustatymai();
+
 $html = '
 <style>
 body {
@@ -188,11 +190,11 @@ table.data-table th {
 </style>
 
 <div class="company-header">
-    <div class="company-name">UAB <span>ELGA</span></div>
+    <div class="company-name">' . htmlspecialchars($imone['pavadinimas']) . '</div>
     <div class="company-details">
-        Pramonės g. 12, LT-78150 Šiauliai, Lietuva<br>
-        Tel. +370 41 594710, Faks. +370 41 594725<br>
-        El. paštas: info@elga.lt | Internetas: www.elga.lt
+        ' . htmlspecialchars($imone['adresas']) . '<br>
+        Tel. ' . htmlspecialchars($imone['telefonas']) . ', Faks. ' . htmlspecialchars($imone['faksas']) . '<br>
+        El. paštas: ' . htmlspecialchars($imone['el_pastas']) . ' | Internetas: ' . htmlspecialchars($imone['internetas']) . '
     </div>
 </div>
 
@@ -274,7 +276,7 @@ try {
     ]);
 
     $mpdf->SetTitle('MT Dielektriniai bandymai - ' . $uzsakymo_numeris);
-    $mpdf->SetAuthor('UAB ELGA');
+    $mpdf->SetAuthor($imone['pavadinimas']);
     $mpdf->WriteHTML($html);
 
     $pdf_content = $mpdf->Output('', 'S');

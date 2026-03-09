@@ -68,3 +68,39 @@ function currentUser() {
 function h($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
+
+function getImonesNustatymai(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    try {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query("SELECT * FROM imones_nustatymai LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $cache = $row;
+        } else {
+            $cache = [
+                'pavadinimas' => 'UAB "ELGA"',
+                'adresas' => 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva',
+                'telefonas' => '+370 41 594710',
+                'faksas' => '+370 41 594725',
+                'el_pastas' => 'info@elga.lt',
+                'internetas' => 'www.elga.lt',
+                'logotipas' => null,
+                'logotipo_tipas' => null,
+            ];
+        }
+    } catch (PDOException $e) {
+        $cache = [
+            'pavadinimas' => 'UAB "ELGA"',
+            'adresas' => 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva',
+            'telefonas' => '+370 41 594710',
+            'faksas' => '+370 41 594725',
+            'el_pastas' => 'info@elga.lt',
+            'internetas' => 'www.elga.lt',
+            'logotipas' => null,
+            'logotipo_tipas' => null,
+        ];
+    }
+    return $cache;
+}
