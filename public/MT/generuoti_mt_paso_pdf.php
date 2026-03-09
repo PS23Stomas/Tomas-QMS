@@ -69,19 +69,19 @@ if (preg_match_all('/(\d+)x(\d+)/', $gaminio_pavadinimas, $all_matches, PREG_SET
     }
 }
 
-$stmt = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
+$stmt = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
 $stmt->execute([$gaminio_id]);
 $mt_saugikliai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $mt_saugikliai_36 = [];
 if ($trafo_kiekis >= 2) {
-    $stmt = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.6' ORDER BY pozicijos_numeris ASC");
+    $stmt = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.6' ORDER BY pozicijos_numeris ASC");
     $stmt->execute([$gaminio_id]);
     $mt_saugikliai_36 = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 $korekcijos_data = [];
-$stmt = $conn->prepare("SELECT field_key, tekstas FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ? AND lang = ?");
+$stmt = $conn->prepare("SELECT field_key, tekstas FROM paso_teksto_korekcijos WHERE gaminio_id = ? AND lang = ?");
 $stmt->execute([$gaminio_id, $lang]);
 $kor_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($kor_rows as $kr) {

@@ -57,17 +57,17 @@ if ($saugoti_eile_id !== null) {
     $conn->beginTransaction();
     try {
         // Tikrinama ar jau egzistuoja įrašas su šiuo gaminio ID ir eilės numeriu
-        $stmt = $conn->prepare("SELECT id FROM mt_komponentai WHERE gaminio_id = ? AND eiles_numeris = ?");
+        $stmt = $conn->prepare("SELECT id FROM komponentai WHERE gaminio_id = ? AND eiles_numeris = ?");
         $stmt->execute([$gaminio_id, $eile_id]);
         $esamas = $stmt->fetchColumn();
 
         if ($esamas) {
             // Esamo įrašo atnaujinimas (UPDATE)
-            $stmt = $conn->prepare("UPDATE mt_komponentai SET gamintojo_kodas = ?, kiekis = ?, aprasymas = ?, gamintojas = ?, parinkta_projektui = 1 WHERE gaminio_id = ? AND eiles_numeris = ?");
+            $stmt = $conn->prepare("UPDATE komponentai SET gamintojo_kodas = ?, kiekis = ?, aprasymas = ?, gamintojas = ?, parinkta_projektui = 1 WHERE gaminio_id = ? AND eiles_numeris = ?");
             $stmt->execute([$kodas, $kiekis, $aprasymas, $gamintojas, $gaminio_id, $eile_id]);
         } else {
             // Naujo įrašo sukūrimas (INSERT)
-            $stmt = $conn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)");
+            $stmt = $conn->prepare("INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)");
             $stmt->execute([$gaminio_id, $eile_id, $kodas, $kiekis, $aprasymas, $gamintojas]);
         }
         $conn->commit();
@@ -86,10 +86,10 @@ if ($saugoti_eile_id !== null) {
     $conn->beginTransaction();
     try {
         // Visų esamų komponentų trynimas pagal gaminio ID
-        $conn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$gaminio_id]);
+        $conn->prepare("DELETE FROM komponentai WHERE gaminio_id = ?")->execute([$gaminio_id]);
 
         // Visų eilučių pakartotinis įrašymas su naujais duomenimis
-        $sql = "INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)";
+        $sql = "INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, 1)";
         $stmt = $conn->prepare($sql);
 
         for ($i = 0; $i < count($eile_ids); $i++) {

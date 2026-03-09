@@ -48,7 +48,7 @@ try {
     /* Užkraunami visi esami bandymų įrašai šiam gaminiui, indeksuoti pagal eilės numerį */
     $stmt = $conn->prepare("
         SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, pataisyta
-        FROM mt_funkciniai_bandymai
+        FROM funkciniai_bandymai
         WHERE gaminio_id = ?
     ");
     $stmt->execute([$gaminio_id]);
@@ -66,7 +66,7 @@ try {
 
     /* Paruošiami SQL sakiniai: atnaujinimui (UPDATE) ir įterpimui (INSERT) */
     $upd = $conn->prepare("
-        UPDATE mt_funkciniai_bandymai
+        UPDATE funkciniai_bandymai
            SET reikalavimas     = :reikalavimas,
                isvada           = :isvada,
                defektas         = :defektas,
@@ -77,7 +77,7 @@ try {
     ");
 
     $ins = $conn->prepare("
-        INSERT INTO mt_funkciniai_bandymai
+        INSERT INTO funkciniai_bandymai
             (gaminio_id, eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, pataisyta)
         VALUES
             (:gaminio_id, :eil_nr, :reikalavimas, :isvada, :defektas, :darba_atliko, :irase_vartotojas, :pataisyta)
@@ -165,7 +165,7 @@ try {
     /* Ištrinamos eilutės, kurių eilės numeriai nebuvo pateikti formoje */
     if (!empty($pateikti_eil_nriai)) {
         $placeholders = implode(',', array_fill(0, count($pateikti_eil_nriai), '?'));
-        $del = $conn->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr NOT IN ($placeholders)");
+        $del = $conn->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr NOT IN ($placeholders)");
         $del->execute(array_merge([$gaminio_id], $pateikti_eil_nriai));
     }
 
@@ -188,17 +188,17 @@ try {
             $pavadinimas = $_FILES[$file_key]['name'];
             $turinys = file_get_contents($tmp);
             if ($turinys !== false) {
-                $check = $conn->prepare("SELECT 1 FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
+                $check = $conn->prepare("SELECT 1 FROM funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
                 $check->execute([$gaminio_id, $enr]);
                 if (!$check->fetch()) {
-                    $ins = $conn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id, eil_nr, isvada, defekto_nuotrauka, defekto_nuotraukos_pavadinimas) VALUES (:gid, :enr, 'nepadaryta', :foto, :pav)");
+                    $ins = $conn->prepare("INSERT INTO funkciniai_bandymai (gaminio_id, eil_nr, isvada, defekto_nuotrauka, defekto_nuotraukos_pavadinimas) VALUES (:gid, :enr, 'nepadaryta', :foto, :pav)");
                     $ins->bindParam(':foto', $turinys, PDO::PARAM_LOB);
                     $ins->bindParam(':pav', $pavadinimas);
                     $ins->bindParam(':gid', $gaminio_id);
                     $ins->bindParam(':enr', $enr);
                     $ins->execute();
                 } else {
-                    $upd_photo = $conn->prepare("UPDATE mt_funkciniai_bandymai SET defekto_nuotrauka = :foto, defekto_nuotraukos_pavadinimas = :pav WHERE gaminio_id = :gid AND eil_nr = :enr");
+                    $upd_photo = $conn->prepare("UPDATE funkciniai_bandymai SET defekto_nuotrauka = :foto, defekto_nuotraukos_pavadinimas = :pav WHERE gaminio_id = :gid AND eil_nr = :enr");
                     $upd_photo->bindParam(':foto', $turinys, PDO::PARAM_LOB);
                     $upd_photo->bindParam(':pav', $pavadinimas);
                     $upd_photo->bindParam(':gid', $gaminio_id);

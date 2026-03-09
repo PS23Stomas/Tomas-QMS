@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
                 exit;
             }
 
-            $stmt = $pdo->prepare("DELETE FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
             $stmt->execute([$id]);
 
             $stmt = $pdo->prepare("DELETE FROM gaminiu_rusys WHERE id = ?");
@@ -88,7 +88,7 @@ if (isset($_GET['pasirinkti'])) {
 $moduliai = $pdo->query("SELECT gr.id, gr.pavadinimas, 
     (SELECT COUNT(*) FROM gaminio_tipai gt WHERE gt.grupe = gr.pavadinimas) AS tipu_kiekis,
     (SELECT COUNT(*) FROM uzsakymai u WHERE u.gaminiu_rusis_id = gr.id) AS uzsakymu_kiekis,
-    (SELECT COUNT(*) FROM mt_funkciniu_sablonas s WHERE s.gaminiu_rusis_id = gr.id) AS sablonu_kiekis
+    (SELECT COUNT(*) FROM funkciniu_sablonas s WHERE s.gaminiu_rusis_id = gr.id) AS sablonu_kiekis
     FROM gaminiu_rusys gr ORDER BY gr.id")->fetchAll(PDO::FETCH_ASSOC);
 
 $sukurta = $_GET['sukurta'] ?? '';

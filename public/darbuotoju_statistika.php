@@ -27,7 +27,7 @@ $bendra_stat = $pdo->query("
         COUNT(DISTINCT g.id) AS gaminiai,
         COUNT(*) AS bandymai,
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-    FROM mt_funkciniai_bandymai fb
+    FROM funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
@@ -44,7 +44,7 @@ $darbuotojai = $pdo->query("
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
         COUNT(DISTINCT fb.gaminio_id) AS gaminiu,
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-    FROM mt_funkciniai_bandymai fb
+    FROM funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
@@ -60,7 +60,7 @@ $klaidos_pagal_darbuotoja = $pdo->query("
         fb.reikalavimas,
         fb.defektas,
         COUNT(*) AS kiekis
-    FROM mt_funkciniai_bandymai fb
+    FROM funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id

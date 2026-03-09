@@ -47,7 +47,7 @@ $ist_where_sql = "WHERE $ist_where_uzsakymas $ist_where_laikotarpis";
 
 $stmt = $pdo->prepare("
     SELECT COUNT(DISTINCT fb.gaminio_id)
-    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+    FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
     $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
 ");
@@ -56,7 +56,7 @@ $ist_patikrinti = (int)$stmt->fetchColumn();
 
 $stmt = $pdo->prepare("
     SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
-    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+    FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
     $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
     ORDER BY u.uzsakymo_numeris
@@ -71,7 +71,7 @@ foreach ($ist_defektu_gaminiai as $r) {
 
 $stmt = $pdo->prepare("
     SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
-    FROM mt_funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
+    FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
     $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
     AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
@@ -82,7 +82,7 @@ $ist_top_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $stmt = $pdo->prepare("
     SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
-    FROM mt_funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
+    FROM funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
     $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
     AND f.defektas IS NOT NULL AND TRIM(f.defektas) <> ''

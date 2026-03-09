@@ -37,7 +37,7 @@ try {
     $conn->beginTransaction();
 
     // Esamų saugiklių trynimas pagal gaminio ID ir sekciją
-    $stmt_delete = $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = :sekcija");
+    $stmt_delete = $conn->prepare("DELETE FROM saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = :sekcija");
     $stmt_delete->execute([
         ':gaminio_id' => $gaminio_id,
         ':sekcija' => $sekcija
@@ -45,7 +45,7 @@ try {
 
     // Naujų saugiklių įrašymo paruošimas
     $stmt_insert = $conn->prepare("
-        INSERT INTO mt_saugikliu_ideklai 
+        INSERT INTO saugikliu_ideklai 
         (gaminio_id, sekcija, pozicija, gabaritas, nominalas, pozicijos_numeris)
         VALUES (:gaminio_id, :sekcija, :pozicija, :gabaritas, :nominalas, :pozicijos_numeris)
     ");

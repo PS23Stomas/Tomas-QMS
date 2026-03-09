@@ -69,7 +69,8 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 
 ### Database
 - **Type**: PostgreSQL.
-- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `mt_komponentai`, `mt_funkciniai_bandymai`, `mt_dielektriniai_bandymai`, `pretenzijos`, `pretenzijos_email_history`, `prietaisai`, `gvx_dokumentai`.
+- **Key Tables**: `vartotojai`, `uzsakymai`, `gaminiai`, `uzsakovai`, `objektai`, `komponentai`, `funkciniai_bandymai`, `dielektriniai_bandymai`, `funkciniu_sablonas`, `izeminimo_tikrinimas`, `saugikliu_ideklai`, `paso_teksto_korekcijos`, `pretenzijos`, `pretenzijos_email_history`, `prietaisai`, `gvx_dokumentai`.
+- **Renamed Tables**: `mt_` prefix removed from 7 tables for universality (migration in `DBMigracija::pervadintiMtLenteles()`).
 
 ## External Dependencies
 

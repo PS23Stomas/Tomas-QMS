@@ -22,7 +22,7 @@ if ($gaminio_id <= 0 || $eil_nr <= 0) {
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE mt_funkciniai_bandymai SET defekto_nuotrauka = NULL, defekto_nuotraukos_pavadinimas = NULL WHERE gaminio_id = :gid AND eil_nr = :enr AND defekto_nuotrauka IS NOT NULL");
+    $stmt = $pdo->prepare("UPDATE funkciniai_bandymai SET defekto_nuotrauka = NULL, defekto_nuotraukos_pavadinimas = NULL WHERE gaminio_id = :gid AND eil_nr = :enr AND defekto_nuotrauka IS NOT NULL");
     $stmt->execute(['gid' => $gaminio_id, 'enr' => $eil_nr]);
     if ($stmt->rowCount() > 0) {
         echo json_encode(['success' => true]);

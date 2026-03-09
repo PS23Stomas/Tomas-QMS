@@ -15,7 +15,7 @@ if (!isset($gaminio_pavadinimas) || empty($gaminio_pavadinimas)) {
 preg_match('/-(\d+)x\d{3,}/', $gaminio_pavadinimas, $match);
 $transformatoriu_kiekis = isset($match[1]) ? intval($match[1]) : 1;
 
-$stmt_35 = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
+$stmt_35 = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
 $stmt_35->execute([':gaminio_id' => $gaminio_id]);
 $mt_saugikliai_35 = $stmt_35->fetchAll(PDO::FETCH_ASSOC);
 

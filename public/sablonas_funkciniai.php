@@ -24,7 +24,7 @@ $grupe_id_stmt = $conn->prepare("SELECT id FROM gaminiu_rusys WHERE pavadinimas 
 $grupe_id_stmt->execute([$filtro_grupe]);
 $gaminiu_rusis_id = (int)($grupe_id_stmt->fetchColumn() ?: 2);
 
-$stmt = $conn->prepare("SELECT id, eil_nr, pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
+$stmt = $conn->prepare("SELECT id, eil_nr, pavadinimas FROM funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
 $stmt->execute([$gaminiu_rusis_id]);
 $sablonas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

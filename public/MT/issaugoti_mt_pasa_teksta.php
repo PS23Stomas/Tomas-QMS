@@ -43,7 +43,7 @@ try {
     $conn = Database::getConnection();
 
     // UPSERT užklausa: įterpimas arba atnaujinimas pagal unikalų raktą (gaminio_id, field_key, lang)
-    $sql = "INSERT INTO mt_paso_teksto_korekcijos (gaminio_id, field_key, lang, tekstas, updated_at)
+    $sql = "INSERT INTO paso_teksto_korekcijos (gaminio_id, field_key, lang, tekstas, updated_at)
             VALUES (:gaminio_id, :field_key, :lang, :tekstas, CURRENT_TIMESTAMP)
             ON CONFLICT (gaminio_id, field_key, lang) 
             DO UPDATE SET tekstas = EXCLUDED.tekstas, updated_at = CURRENT_TIMESTAMP";

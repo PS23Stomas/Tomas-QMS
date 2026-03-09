@@ -160,12 +160,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $gam_ids = $pdo->prepare('SELECT id FROM gaminiai WHERE uzsakymo_id = ?');
                     $gam_ids->execute([$id]);
                     foreach ($gam_ids->fetchAll(PDO::FETCH_COLUMN) as $gid) {
-                        $pdo->prepare('DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM mt_komponentai WHERE gaminio_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?')->execute([$gid]);
-                        $pdo->prepare('DELETE FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM funkciniai_bandymai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM komponentai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM dielektriniai_bandymai WHERE gaminys_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM saugikliu_ideklai WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM izeminimo_tikrinimas WHERE gaminys_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM paso_teksto_korekcijos WHERE gaminio_id = ?')->execute([$gid]);
                         $pret_ids = $pdo->prepare('SELECT id FROM pretenzijos WHERE gaminio_id = ?');
                         $pret_ids->execute([$gid]);
                         foreach ($pret_ids->fetchAll(PDO::FETCH_COLUMN) as $pid) {
@@ -239,24 +239,24 @@ if ($view_id) {
         }
         $funkciniu_klaidu_sk = 0;
         if ($gaminio_id_mt > 0) {
-            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM funkciniai_bandymai WHERE gaminio_id = ?");
             $st->execute([$gaminio_id_mt]);
             $uzbaigtumo_zingsniai['funkciniai'] = ((int)$st->fetchColumn()) > 0;
 
-            $st = $pdo->prepare("SELECT COUNT(*) FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND (isvada = 'neatitinka' OR isvada = 'nepadaryta')");
+            $st = $pdo->prepare("SELECT COUNT(*) FROM funkciniai_bandymai WHERE gaminio_id = ? AND (isvada = 'neatitinka' OR isvada = 'nepadaryta')");
             $st->execute([$gaminio_id_mt]);
             $funkciniu_klaidu_sk = (int)$st->fetchColumn();
 
             if ($filtro_grupe === 'MT') {
-                $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id = ?");
+                $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM komponentai WHERE gaminio_id = ?");
                 $st->execute([$gaminio_id_mt]);
                 $uzbaigtumo_zingsniai['komponentai'] = ((int)$st->fetchColumn()) > 0;
             }
 
-            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM dielektriniai_bandymai WHERE gaminys_id = ?");
             $st->execute([$gaminio_id_mt]);
             $diel_cnt = (int)$st->fetchColumn();
-            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?");
+            $st = $pdo->prepare("SELECT COUNT(*) as cnt FROM izeminimo_tikrinimas WHERE gaminys_id = ?");
             $st->execute([$gaminio_id_mt]);
             $izem_cnt = (int)$st->fetchColumn();
             $uzbaigtumo_zingsniai['dielektriniai'] = ($diel_cnt + $izem_cnt) > 0;
@@ -313,27 +313,27 @@ $all_gaminio_ids = array_unique(array_merge(
 if (!empty($all_gaminio_ids)) {
     $placeholders = implode(',', array_fill(0, count($all_gaminio_ids), '?'));
 
-    $funk_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
+    $funk_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM funkciniai_bandymai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
     $funk_st->execute(array_values($all_gaminio_ids));
     $funk_map = [];
     while ($r = $funk_st->fetch(PDO::FETCH_ASSOC)) { $funk_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
 
-    $funk_err_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_funkciniai_bandymai WHERE gaminio_id IN ($placeholders) AND (isvada = 'neatitinka' OR isvada = 'nepadaryta') GROUP BY gaminio_id");
+    $funk_err_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM funkciniai_bandymai WHERE gaminio_id IN ($placeholders) AND (isvada = 'neatitinka' OR isvada = 'nepadaryta') GROUP BY gaminio_id");
     $funk_err_st->execute(array_values($all_gaminio_ids));
     $funk_err_map = [];
     while ($r = $funk_err_st->fetch(PDO::FETCH_ASSOC)) { $funk_err_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
 
-    $komp_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM mt_komponentai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
+    $komp_st = $pdo->prepare("SELECT gaminio_id, COUNT(*) as cnt FROM komponentai WHERE gaminio_id IN ($placeholders) GROUP BY gaminio_id");
     $komp_st->execute(array_values($all_gaminio_ids));
     $komp_map = [];
     while ($r = $komp_st->fetch(PDO::FETCH_ASSOC)) { $komp_map[(int)$r['gaminio_id']] = (int)$r['cnt']; }
 
-    $diel_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM mt_dielektriniai_bandymai WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
+    $diel_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM dielektriniai_bandymai WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
     $diel_st->execute(array_values($all_gaminio_ids));
     $diel_map = [];
     while ($r = $diel_st->fetch(PDO::FETCH_ASSOC)) { $diel_map[(int)$r['gaminys_id']] = (int)$r['cnt']; }
 
-    $izem_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM mt_izeminimo_tikrinimas WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
+    $izem_st = $pdo->prepare("SELECT gaminys_id, COUNT(*) as cnt FROM izeminimo_tikrinimas WHERE gaminys_id IN ($placeholders) GROUP BY gaminys_id");
     $izem_st->execute(array_values($all_gaminio_ids));
     $izem_map = [];
     while ($r = $izem_st->fetch(PDO::FETCH_ASSOC)) { $izem_map[(int)$r['gaminys_id']] = (int)$r['cnt']; }

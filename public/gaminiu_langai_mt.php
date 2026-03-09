@@ -54,9 +54,9 @@ if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
     }
 }
 
-/* 2 bandymas: ieškome gaminio ID iš mt_funkciniai_bandymai lentelės, jei pirmasis nerado */
+/* 2 bandymas: ieškome gaminio ID iš funkciniai_bandymai lentelės, jei pirmasis nerado */
 if ($gaminio_id_mt === 0 && $uzsakymo_numeris !== '') {
-    $sql = "SELECT m.gaminio_id FROM mt_funkciniai_bandymai m JOIN gaminiai g ON g.id = m.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY m.id DESC LIMIT 1";
+    $sql = "SELECT m.gaminio_id FROM funkciniai_bandymai m JOIN gaminiai g ON g.id = m.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE TRIM(u.uzsakymo_numeris) = TRIM(:nr) ORDER BY m.id DESC LIMIT 1";
     $st = $conn->prepare($sql);
     $st->execute([':nr' => $uzsakymo_numeris]);
     if ($row = $st->fetch(PDO::FETCH_ASSOC)) {

@@ -15,7 +15,7 @@ class MTPasasKomponentai {
 
     /** Užkrauna visus gaminio komponentus iš duomenų bazės, surikiuotus pagal eilės numerį */
     private function uzkrauti() {
-        $stmt = $this->conn->prepare("SELECT * FROM mt_komponentai WHERE gaminio_id = ? ORDER BY eiles_numeris");
+        $stmt = $this->conn->prepare("SELECT * FROM komponentai WHERE gaminio_id = ? ORDER BY eiles_numeris");
         $stmt->execute([$this->gaminio_id]);
         $this->komponentai = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

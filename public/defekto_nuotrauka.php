@@ -14,7 +14,7 @@ if ($gaminio_id <= 0 || $eil_nr <= 0) {
 
 $conn = Database::getConnection();
 
-$stmt = $conn->prepare("SELECT defekto_nuotrauka, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
+$stmt = $conn->prepare("SELECT defekto_nuotrauka, defekto_nuotraukos_pavadinimas FROM funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
 $stmt->execute([$gaminio_id, $eil_nr]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 

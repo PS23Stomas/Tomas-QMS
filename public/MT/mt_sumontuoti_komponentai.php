@@ -33,7 +33,7 @@ $gaminio_pavadinimas = $stmt->fetchColumn() ?: '';
 
 // Gamintojų kodų sąrašo krovimas pagal eilės numerį (naudojama pasirinkimo laukuose)
 $kodai_per_eile = [];
-$stmt = $conn->prepare("SELECT eiles_numeris, gamintojo_kodas FROM mt_komponentai WHERE gamintojo_kodas IS NOT NULL AND gamintojo_kodas != ''");
+$stmt = $conn->prepare("SELECT eiles_numeris, gamintojo_kodas FROM komponentai WHERE gamintojo_kodas IS NOT NULL AND gamintojo_kodas != ''");
 $stmt->execute();
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $nr = (int)$row['eiles_numeris'];
@@ -44,14 +44,14 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
 // Visų unikalių gamintojų sąrašo krovimas (naudojama gamintojo pasirinkimo laukuose)
 $visi_gamintojai = [];
-$stmt2 = $conn->prepare("SELECT DISTINCT gamintojas FROM mt_komponentai WHERE gamintojas IS NOT NULL AND gamintojas != '' ORDER BY gamintojas ASC");
+$stmt2 = $conn->prepare("SELECT DISTINCT gamintojas FROM komponentai WHERE gamintojas IS NOT NULL AND gamintojas != '' ORDER BY gamintojas ASC");
 $stmt2->execute();
 while ($row = $stmt2->fetch(PDO::FETCH_ASSOC)) {
     $visi_gamintojai[] = $row['gamintojas'];
 }
 
 // Esamų komponentų duomenų gavimas pagal gaminio ID
-$stmt = $conn->prepare("SELECT * FROM mt_komponentai WHERE gaminio_id = :gaminio_id ORDER BY eiles_numeris ASC");
+$stmt = $conn->prepare("SELECT * FROM komponentai WHERE gaminio_id = :gaminio_id ORDER BY eiles_numeris ASC");
 $stmt->execute([':gaminio_id' => $gaminio_id]);
 $rez = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

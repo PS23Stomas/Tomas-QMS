@@ -146,18 +146,18 @@ $stmt = $conn->prepare("SELECT * FROM bandymai_prietaisai WHERE gaminys_id=? ORD
 $stmt->execute([$gaminys_id]);
 $prietaisai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Vidutinės įtampos bandymų duomenys iš mt_dielektriniai_bandymai lentelės (tipas = vidutines_itampos)
-$stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos' ORDER BY eiles_nr");
+// Vidutinės įtampos bandymų duomenys iš dielektriniai_bandymai lentelės (tipas = vidutines_itampos)
+$stmt = $conn->prepare("SELECT * FROM dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos' ORDER BY eiles_nr");
 $stmt->execute([$gaminys_id]);
 $vid_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Žemos įtampos (0,4 kV) dielektrinių bandymų duomenų gavimas
-$stmt = $conn->prepare("SELECT * FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL) ORDER BY eiles_nr");
+$stmt = $conn->prepare("SELECT * FROM dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL) ORDER BY eiles_nr");
 $stmt->execute([$gaminys_id]);
 $maz_itampa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Įžeminimo tikrinimo duomenų gavimas
-$stmt = $conn->prepare("SELECT * FROM mt_izeminimo_tikrinimas WHERE gaminys_id=? ORDER BY eil_nr");
+$stmt = $conn->prepare("SELECT * FROM izeminimo_tikrinimas WHERE gaminys_id=? ORDER BY eil_nr");
 $stmt->execute([$gaminys_id]);
 $izem = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

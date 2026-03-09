@@ -11,6 +11,7 @@ class DBMigracija {
 
     /** Paleidžia visas migracijas: sukuria trūkstamas lenteles, prideda stulpelius ir pataiso varchar laukus */
     public function paleisti(): void {
+        $this->pervadintiMtLenteles();
         $this->sukurtiTrukstamasLenteles();
         $this->sukurtiFunkciniuSablona();
         $this->pridetiDielektriniuVidutinesStulpelius();
@@ -46,18 +47,18 @@ class DBMigracija {
         }
     }
 
-    /** Prideda vidutinės įtampos stulpelius prie mt_dielektriniai_bandymai lentelės */
+    /** Prideda vidutinės įtampos stulpelius prie dielektriniai_bandymai lentelės */
     private function pridetiDielektriniuVidutinesStulpelius(): void {
         try {
-            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_dielektriniai_bandymai' AND column_name = 'tipas'";
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'dielektriniai_bandymai' AND column_name = 'tipas'";
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN tipas VARCHAR(20) DEFAULT 'mazos_itampos'");
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN grandines_pavadinimas TEXT");
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN grandines_itampa VARCHAR(50)");
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_schema VARCHAR(255)");
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_itampa_kv VARCHAR(50)");
-                $this->conn->exec("ALTER TABLE mt_dielektriniai_bandymai ADD COLUMN bandymo_trukme VARCHAR(50)");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN tipas VARCHAR(20) DEFAULT 'mazos_itampos'");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN grandines_pavadinimas TEXT");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN grandines_itampa VARCHAR(50)");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN bandymo_schema VARCHAR(255)");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN bandymo_itampa_kv VARCHAR(50)");
+                $this->conn->exec("ALTER TABLE dielektriniai_bandymai ADD COLUMN bandymo_trukme VARCHAR(50)");
             }
         } catch (PDOException $e) {
         }
@@ -67,13 +68,13 @@ class DBMigracija {
     private function sukurtiFunkciniuSablona(): void {
         try {
             $this->conn->exec("
-                CREATE TABLE IF NOT EXISTS mt_funkciniu_sablonas (
+                CREATE TABLE IF NOT EXISTS funkciniu_sablonas (
                     id SERIAL PRIMARY KEY,
                     eil_nr INTEGER NOT NULL,
                     pavadinimas TEXT NOT NULL
                 )
             ");
-            $stmt = $this->conn->query("SELECT COUNT(*) FROM mt_funkciniu_sablonas");
+            $stmt = $this->conn->query("SELECT COUNT(*) FROM funkciniu_sablonas");
             if ((int)$stmt->fetchColumn() === 0) {
                 $numatytieji = [
                     'MT korpuso surinkimas','MT sienų surinkimas','MT stogo surinkimas','MT stogo tvirtinimas',
@@ -85,7 +86,7 @@ class DBMigracija {
                     'Komplektacija','MT sumontavimas ant pamato','Pagalbinių grandinių (apšvietimas, ventiliacija) montavimas',
                     '0,4 kV įrenginių izoliacijos varža (atitiktis)','Lipdukai pagal projektą suklijavimas','Išvalymas'
                 ];
-                $ins = $this->conn->prepare("INSERT INTO mt_funkciniu_sablonas (eil_nr, pavadinimas) VALUES (?, ?)");
+                $ins = $this->conn->prepare("INSERT INTO funkciniu_sablonas (eil_nr, pavadinimas) VALUES (?, ?)");
                 foreach ($numatytieji as $i => $pav) {
                     $ins->execute([$i + 1, $pav]);
                 }
@@ -120,14 +121,14 @@ class DBMigracija {
         }
     }
 
-    /** Prideda defekto nuotraukų stulpelius į mt_funkciniai_bandymai lentelę */
+    /** Prideda defekto nuotraukų stulpelius į funkciniai_bandymai lentelę */
     private function pridetiDefektoNuotraukuStulpelius(): void {
         try {
-            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'defekto_nuotrauka'";
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'defekto_nuotrauka'";
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
-                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN defekto_nuotrauka BYTEA");
-                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN defekto_nuotraukos_pavadinimas VARCHAR(255)");
+                $this->conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN defekto_nuotrauka BYTEA");
+                $this->conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN defekto_nuotraukos_pavadinimas VARCHAR(255)");
             }
         } catch (PDOException $e) {
         }
@@ -146,13 +147,13 @@ class DBMigracija {
         }
     }
 
-    /** Prideda pataisyta stulpelį į mt_funkciniai_bandymai lentelę */
+    /** Prideda pataisyta stulpelį į funkciniai_bandymai lentelę */
     private function pridetiPataisytaStulpeli(): void {
         try {
-            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'pataisyta'";
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'pataisyta'";
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
-                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN pataisyta TEXT DEFAULT ''");
+                $this->conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN pataisyta TEXT DEFAULT ''");
             }
         } catch (PDOException $e) {
         }
@@ -160,10 +161,10 @@ class DBMigracija {
 
     private function pridetiIssiustaKamStulpeli(): void {
         try {
-            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniai_bandymai' AND column_name = 'issiusta_kam'";
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'issiusta_kam'";
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
-                $this->conn->exec("ALTER TABLE mt_funkciniai_bandymai ADD COLUMN issiusta_kam TEXT DEFAULT ''");
+                $this->conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN issiusta_kam TEXT DEFAULT ''");
             }
         } catch (PDOException $e) {
         }
@@ -171,11 +172,11 @@ class DBMigracija {
 
     private function pridetiSablonoGrupesStulpeli(): void {
         try {
-            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'mt_funkciniu_sablonas' AND column_name = 'gaminiu_rusis_id'";
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniu_sablonas' AND column_name = 'gaminiu_rusis_id'";
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
-                $this->conn->exec("ALTER TABLE mt_funkciniu_sablonas ADD COLUMN gaminiu_rusis_id INTEGER DEFAULT 2");
-                $this->conn->exec("UPDATE mt_funkciniu_sablonas SET gaminiu_rusis_id = 2 WHERE gaminiu_rusis_id IS NULL");
+                $this->conn->exec("ALTER TABLE funkciniu_sablonas ADD COLUMN gaminiu_rusis_id INTEGER DEFAULT 2");
+                $this->conn->exec("UPDATE funkciniu_sablonas SET gaminiu_rusis_id = 2 WHERE gaminiu_rusis_id IS NULL");
             }
         } catch (PDOException $e) {
         }
@@ -187,7 +188,7 @@ class DBMigracija {
             ['lentele' => 'gaminio_kirtikliai', 'laukas' => 'linijos_10kv_nr'],
             ['lentele' => 'gaminio_kirtikliai', 'laukas' => 'sekcijinis_04kv_nr'],
             ['lentele' => 'gaminio_kirtikliai', 'laukas' => 'ivadinis_04kv_nr'],
-            ['lentele' => 'mt_paso_teksto_korekcijos', 'laukas' => 'tekstas'],
+            ['lentele' => 'paso_teksto_korekcijos', 'laukas' => 'tekstas'],
         ];
 
         foreach ($laukai as $info) {
@@ -224,7 +225,7 @@ class DBMigracija {
     }
 
     private function sinchronizuotiSekas(): void {
-        $lenteles = ['uzsakymai', 'gaminiai', 'gaminiu_rusys', 'uzsakovai', 'objektai', 'vartotojai', 'pretenzijos', 'prietaisai', 'gaminio_tipai', 'mt_funkciniu_sablonas'];
+        $lenteles = ['uzsakymai', 'gaminiai', 'gaminiu_rusys', 'uzsakovai', 'objektai', 'vartotojai', 'pretenzijos', 'prietaisai', 'gaminio_tipai', 'funkciniu_sablonas'];
         foreach ($lenteles as $lentele) {
             try {
                 $col_check = $this->conn->prepare("SELECT column_default FROM information_schema.columns WHERE table_name = :t AND column_name = 'id'");
@@ -259,6 +260,37 @@ class DBMigracija {
                 )
             ");
         } catch (PDOException $e) {
+        }
+    }
+
+    private function pervadintiMtLenteles(): void {
+        $pervadinimas = [
+            'mt_dielektriniai_bandymai' => 'dielektriniai_bandymai',
+            'mt_funkciniai_bandymai' => 'funkciniai_bandymai',
+            'mt_funkciniu_sablonas' => 'funkciniu_sablonas',
+            'mt_izeminimo_tikrinimas' => 'izeminimo_tikrinimas',
+            'mt_komponentai' => 'komponentai',
+            'mt_paso_teksto_korekcijos' => 'paso_teksto_korekcijos',
+            'mt_saugikliu_ideklai' => 'saugikliu_ideklai',
+        ];
+        foreach ($pervadinimas as $senas => $naujas) {
+            try {
+                $stmt = $this->conn->prepare("SELECT to_regclass(:senas)");
+                $stmt->execute([':senas' => $senas]);
+                $senasEgzistuoja = $stmt->fetchColumn();
+                if (!$senasEgzistuoja) continue;
+
+                $stmt2 = $this->conn->prepare("SELECT to_regclass(:naujas)");
+                $stmt2->execute([':naujas' => $naujas]);
+                $naujasEgzistuoja = $stmt2->fetchColumn();
+                if ($naujasEgzistuoja) {
+                    $cnt = (int)$this->conn->query("SELECT COUNT(*) FROM {$naujas}")->fetchColumn();
+                    if ($cnt > 0) continue;
+                    $this->conn->exec("DROP TABLE {$naujas} CASCADE");
+                }
+                $this->conn->exec("ALTER TABLE {$senas} RENAME TO {$naujas}");
+            } catch (PDOException $e) {
+            }
         }
     }
 

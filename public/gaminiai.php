@@ -17,7 +17,7 @@
  *    - gaminiai         → pagrindinė gaminių lentelė
  *    - gaminio_tipai    → gaminių tipų klasifikatorius
  *    - uzsakymai        → užsakymai, prie kurių priskirti gaminiai
- *    - mt_komponentai   → gaminio komponentai (trinami kartu su gaminiu)
+ *    - komponentai   → gaminio komponentai (trinami kartu su gaminiu)
  *
  *  Naudojamos klasės ir funkcijos:
  *    - config.php       → DB prisijungimas ($pdo), sesija, h() funkcija
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($id) {
             // Pirmiausia ištriname susijusius komponentus (nes jie susieti per gaminio_id)
             // Jei to nepadarytume - DB mestų klaidą dėl foreign key apribojimo
-            $pdo->prepare('DELETE FROM mt_komponentai WHERE gaminio_id = :id')->execute(['id' => $id]);
+            $pdo->prepare('DELETE FROM komponentai WHERE gaminio_id = :id')->execute(['id' => $id]);
 
             // Tada ištriname patį gaminį
             $pdo->prepare('DELETE FROM gaminiai WHERE id = :id')->execute(['id' => $id]);

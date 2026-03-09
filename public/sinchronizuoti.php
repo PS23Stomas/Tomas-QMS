@@ -265,7 +265,7 @@ function sinchronizuotiGamini($conn, $gaminio_id, $uzs_nr, &$rezultatai, &$klaid
         }
     }
 
-    $stmt = $conn->prepare("SELECT field_key, lang, tekstas FROM mt_paso_teksto_korekcijos WHERE gaminio_id = ?");
+    $stmt = $conn->prepare("SELECT field_key, lang, tekstas FROM paso_teksto_korekcijos WHERE gaminio_id = ?");
     $stmt->execute([$gaminio_id]);
     $korekcijos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($korekcijos as $kor) {

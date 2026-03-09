@@ -11,7 +11,7 @@ $where_sql_30d = "WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND DATE(u
 
 $patikrinti = (int)$pdo->query("
   SELECT COUNT(DISTINCT fb.gaminio_id)
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -20,7 +20,7 @@ $patikrinti = (int)$pdo->query("
 
 $viso_defektu = (int)$pdo->query("
   SELECT COUNT(*)
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -29,7 +29,7 @@ $viso_defektu = (int)$pdo->query("
 
 $viso_punktu = (int)$pdo->query("
   SELECT COUNT(*)
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -41,7 +41,7 @@ $vid_proc = ($viso_punktu > 0) ? round($viso_defektu / $viso_punktu * 100, 1) : 
 $aktyvus_defektai = $pdo->query("
   SELECT u.uzsakymo_numeris AS uzsakymo_nr, g.gaminio_numeris, gt.gaminio_tipas AS gaminio_tipas,
     fb.eil_nr AS punkto_nr, fb.reikalavimas, fb.defektas AS defekto_aprasymas
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -52,7 +52,7 @@ $aktyvus_count = count($aktyvus_defektai);
 
 $top_klaidos = $pdo->query("
   SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
@@ -64,7 +64,7 @@ $weeks = $pdo->query("
   SELECT TO_CHAR(u.sukurtas::timestamp, 'IYYYIW') AS yw,
     COUNT(DISTINCT fb.gaminio_id) AS patikrinta,
     SUM(CASE WHEN $DEFECT_COND THEN 1 ELSE 0 END) AS klaidu
-  FROM mt_funkciniai_bandymai fb
+  FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id

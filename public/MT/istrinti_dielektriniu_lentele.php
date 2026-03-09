@@ -21,19 +21,19 @@ if ($gaminys_id <= 0 || empty($lentele)) {
 
 try {
     if ($lentele === 'saugikliai') {
-        $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
     } elseif ($lentele === 'vidutines_itampos') {
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos'")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id=? AND tipas='vidutines_itampos'")->execute([$gaminys_id]);
     } elseif ($lentele === 'mazos_itampos') {
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL)")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id=? AND (tipas='mazos_itampos' OR tipas IS NULL)")->execute([$gaminys_id]);
     } elseif ($lentele === 'izeminimas') {
-        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
     } elseif ($lentele === 'prietaisai') {
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
     } elseif ($lentele === 'visi') {
         $conn->beginTransaction();
-        $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id=?")->execute([$gaminys_id]);
-        $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id=?")->execute([$gaminys_id]);
+        $conn->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->commit();
     } else {

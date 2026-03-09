@@ -81,7 +81,7 @@ if ($rodyti_duomenis) {
     /* Patikrintų gaminių skaičiaus gavimas (unikalūs gaminio ID su funkciniais bandymais) */
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT fb.gaminio_id)
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g       ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
         JOIN uzsakymai u      ON g.uzsakymo_id = u.id
@@ -94,7 +94,7 @@ if ($rodyti_duomenis) {
     /* Užsakymų su defektais ir be defektų sąrašo gavimas (UNION ALL) */
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g       ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
         JOIN uzsakymai u      ON g.uzsakymo_id = u.id
@@ -112,7 +112,7 @@ if ($rodyti_duomenis) {
         FROM uzsakymai u
         JOIN gaminiai g       ON g.uzsakymo_id = u.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
-        LEFT JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+        LEFT JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id
         $where_sql
           AND gt.grupe = 'MT'
         GROUP BY u.uzsakymo_numeris
@@ -135,7 +135,7 @@ if ($rodyti_duomenis) {
             MIN(fb.eil_nr) as eil_nr,
             fb.reikalavimas, 
             COUNT(*) AS kiekis
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g       ON fb.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
         JOIN uzsakymai u      ON g.uzsakymo_id = u.id
@@ -155,7 +155,7 @@ if ($rodyti_duomenis) {
     /* Aktyvių nepataisytų defektų sąrašo gavimas (isvada = neatitinka/nepadaryta) */
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
-        FROM mt_funkciniai_bandymai f
+        FROM funkciniai_bandymai f
         JOIN gaminiai g       ON f.gaminio_id = g.id
         JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
         JOIN uzsakymai u      ON g.uzsakymo_id = u.id

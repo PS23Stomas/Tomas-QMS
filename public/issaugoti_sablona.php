@@ -33,10 +33,10 @@ $conn = Database::getConnection();
 try {
     $conn->beginTransaction();
 
-    $del = $conn->prepare("DELETE FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
+    $del = $conn->prepare("DELETE FROM funkciniu_sablonas WHERE gaminiu_rusis_id = ?");
     $del->execute([$gaminiu_rusis_id]);
 
-    $stmt = $conn->prepare("INSERT INTO mt_funkciniu_sablonas (eil_nr, pavadinimas, gaminiu_rusis_id) VALUES (:eil_nr, :pavadinimas, :gaminiu_rusis_id)");
+    $stmt = $conn->prepare("INSERT INTO funkciniu_sablonas (eil_nr, pavadinimas, gaminiu_rusis_id) VALUES (:eil_nr, :pavadinimas, :gaminiu_rusis_id)");
 
     foreach ($filtruoti as $i => $pav) {
         $stmt->execute([

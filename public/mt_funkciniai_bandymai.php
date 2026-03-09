@@ -40,11 +40,11 @@ if ($gaminio_id > 0) {
     $rusis_id_sab = (int)($stmt_gr->fetchColumn() ?: 2);
 }
 
-$stmt_sab = $conn->prepare("SELECT pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
+$stmt_sab = $conn->prepare("SELECT pavadinimas FROM funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
 $stmt_sab->execute([$rusis_id_sab]);
 $reikalavimai = $stmt_sab->fetchAll(PDO::FETCH_COLUMN);
 if (empty($reikalavimai)) {
-    $stmt_sab_all = $conn->query("SELECT pavadinimas FROM mt_funkciniu_sablonas WHERE gaminiu_rusis_id = 2 ORDER BY eil_nr ASC");
+    $stmt_sab_all = $conn->query("SELECT pavadinimas FROM funkciniu_sablonas WHERE gaminiu_rusis_id = 2 ORDER BY eil_nr ASC");
     $reikalavimai = $stmt_sab_all->fetchAll(PDO::FETCH_COLUMN);
 }
 if (empty($reikalavimai)) {
@@ -60,7 +60,7 @@ $pdf_klaida = $_GET['pdf_klaida'] ?? '';
 
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
-$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
+$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam FROM funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
 $duomenys_map = [];

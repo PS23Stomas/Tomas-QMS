@@ -31,7 +31,7 @@ $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
 $data = date("Y-m-d");
 
-$stmt = $conn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas FROM mt_funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr");
+$stmt = $conn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas FROM funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr");
 $stmt->execute([$gaminio_id]);
 $bandymai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

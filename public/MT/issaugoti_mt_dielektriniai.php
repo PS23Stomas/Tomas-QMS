@@ -31,11 +31,11 @@ try {
     $conn->beginTransaction();
 
     // Esamų visų dielektrinių bandymų trynimas prieš pakartotinį įrašymą
-    $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
+    $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
     // Vidutinės įtampos bandymų duomenų įrašymas (tipas = vidutines_itampos)
     if (!empty($_POST['vid_itampa']['aprasymas'])) {
-        $stmt_vid = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai 
+        $stmt_vid = $conn->prepare("INSERT INTO dielektriniai_bandymai 
             (gaminys_id, eiles_nr, aprasymas, itampa, isvada, tipas, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme) 
             VALUES (?, ?, ?, ?, ?, 'vidutines_itampos', ?, ?, ?, ?, ?)");
 
@@ -57,7 +57,7 @@ try {
 
     // Žemos įtampos bandymų duomenų įrašymas (tipas = mazos_itampos)
     if (!empty($_POST['maz_itampa']['aprasymas'])) {
-        $stmt2 = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai 
+        $stmt2 = $conn->prepare("INSERT INTO dielektriniai_bandymai 
             (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada, tipas) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'mazos_itampos')");
 
@@ -79,11 +79,11 @@ try {
     }
 
     // Esamų įžeminimo tikrinimo duomenų trynimas prieš pakartotinį įrašymą
-    $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?")->execute([$gaminys_id]);
+    $conn->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id = ?")->execute([$gaminys_id]);
 
     // Įžeminimo tikrinimo duomenų pakartotinis įrašymas
     if (!empty($_POST['izeminimo']['taskas'])) {
-        $stmt3 = $conn->prepare("INSERT INTO mt_izeminimo_tikrinimas 
+        $stmt3 = $conn->prepare("INSERT INTO izeminimo_tikrinimas 
             (gaminys_id, eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle) 
             VALUES (?, ?, ?, ?, ?, ?, ?)");
 

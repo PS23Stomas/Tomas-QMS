@@ -1,6 +1,6 @@
 <?php
 $sekcija_36 = '3.6';
-$stmt_36 = $conn->prepare("SELECT * FROM mt_saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = :sekcija ORDER BY pozicijos_numeris ASC");
+$stmt_36 = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = :sekcija ORDER BY pozicijos_numeris ASC");
 $stmt_36->execute([':gaminio_id' => $gaminio_id, ':sekcija' => $sekcija_36]);
 $mt_saugikliai_36 = $stmt_36->fetchAll(PDO::FETCH_ASSOC);
 

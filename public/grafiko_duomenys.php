@@ -57,7 +57,7 @@ $stmt = $pdo->prepare("
         EXTRACT(WEEK FROM u.sukurtas::timestamp) AS savaite,
         COUNT(DISTINCT fb.gaminio_id) AS patikrinta_gaminiu,
         COUNT(CASE WHEN fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' THEN 1 END) AS klaidu
-    FROM mt_funkciniai_bandymai fb
+    FROM funkciniai_bandymai fb
     JOIN gaminiai g       ON fb.gaminio_id = g.id
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u      ON g.uzsakymo_id = u.id

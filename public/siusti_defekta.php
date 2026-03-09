@@ -50,7 +50,7 @@ $data = date('Y-m-d H:i');
 
 $placeholders = implode(',', array_fill(0, count($eil_nr_arr), '?'));
 $params = array_merge([$gaminio_id], $eil_nr_arr);
-$stmt = $conn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr IN ($placeholders)");
+$stmt = $conn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko FROM funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr IN ($placeholders)");
 $stmt->execute($params);
 $bandymai_map = [];
 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $b) {
@@ -139,13 +139,13 @@ try {
                 continue;
             }
 
-            $stmt = $conn->prepare("SELECT issiusta_kam FROM mt_funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
+            $stmt = $conn->prepare("SELECT issiusta_kam FROM funkciniai_bandymai WHERE gaminio_id = ? AND eil_nr = ?");
             $stmt->execute([$gaminio_id, $nr]);
             $esama = $stmt->fetchColumn();
 
             $naujas = !empty($esama) ? $esama . "\n" . $issiusta_info_new : $issiusta_info_new;
 
-            $upd = $conn->prepare("UPDATE mt_funkciniai_bandymai SET issiusta_kam = ? WHERE gaminio_id = ? AND eil_nr = ?");
+            $upd = $conn->prepare("UPDATE funkciniai_bandymai SET issiusta_kam = ? WHERE gaminio_id = ? AND eil_nr = ?");
             $upd->execute([$naujas, $gaminio_id, $nr]);
 
             $rezultatai[] = ['eil_nr' => $nr, 'ok' => true, 'issiusta_kam' => $naujas];

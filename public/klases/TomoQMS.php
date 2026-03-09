@@ -279,13 +279,13 @@ class TomoQMS {
         $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gaminio_id);
         if (!$tomo_gid) return;
         try {
-            $stmt = $localConn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotrauka, defekto_nuotraukos_pavadinimas FROM mt_funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr");
+            $stmt = $localConn->prepare("SELECT eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotrauka, defekto_nuotraukos_pavadinimas FROM funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr");
             $stmt->execute([$local_gaminio_id]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $conn->beginTransaction();
-            $conn->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gid]);
-            $ins = $conn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id, eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotrauka, defekto_nuotraukos_pavadinimas) VALUES (:gid, :enr, :reik, :isv, :def, :da, :iv, :foto, :fpav)");
+            $conn->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gid]);
+            $ins = $conn->prepare("INSERT INTO funkciniai_bandymai (gaminio_id, eil_nr, reikalavimas, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotrauka, defekto_nuotraukos_pavadinimas) VALUES (:gid, :enr, :reik, :isv, :def, :da, :iv, :foto, :fpav)");
             foreach ($rows as $r) {
                 $ins->bindValue(':gid', $tomo_gid);
                 $ins->bindValue(':enr', $r['eil_nr']);
@@ -303,10 +303,10 @@ class TomoQMS {
                 $ins->execute();
             }
             $conn->commit();
-            self::irasytLog('Funkciniai bandymai', 'mt_funkciniai_bandymai', $uzs_nr, count($rows));
+            self::irasytLog('Funkciniai bandymai', 'funkciniai_bandymai', $uzs_nr, count($rows));
         } catch (Exception $e) {
             if ($conn->inTransaction()) $conn->rollBack();
-            self::irasytLog('Funkcinių band. klaida', 'mt_funkciniai_bandymai', $uzs_nr, 0, 'klaida', $e->getMessage());
+            self::irasytLog('Funkcinių band. klaida', 'funkciniai_bandymai', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log('TomoQMS sinchFunkciniai klaida: ' . $e->getMessage());
         }
     }
@@ -318,21 +318,21 @@ class TomoQMS {
         $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gaminio_id);
         if (!$tomo_gid) return;
         try {
-            $stmt = $localConn->prepare("SELECT eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui FROM mt_komponentai WHERE gaminio_id = ?");
+            $stmt = $localConn->prepare("SELECT eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui FROM komponentai WHERE gaminio_id = ?");
             $stmt->execute([$local_gaminio_id]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $conn->beginTransaction();
-            $conn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$tomo_gid]);
-            $ins = $conn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $conn->prepare("DELETE FROM komponentai WHERE gaminio_id = ?")->execute([$tomo_gid]);
+            $ins = $conn->prepare("INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?, ?, ?, ?, ?, ?, ?)");
             foreach ($rows as $r) {
                 $ins->execute([$tomo_gid, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
             }
             $conn->commit();
-            self::irasytLog('Komponentai', 'mt_komponentai', $uzs_nr, count($rows));
+            self::irasytLog('Komponentai', 'komponentai', $uzs_nr, count($rows));
         } catch (Exception $e) {
             if ($conn->inTransaction()) $conn->rollBack();
-            self::irasytLog('Komponentų klaida', 'mt_komponentai', $uzs_nr, 0, 'klaida', $e->getMessage());
+            self::irasytLog('Komponentų klaida', 'komponentai', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log('TomoQMS sinchKomponentai klaida: ' . $e->getMessage());
         }
     }
@@ -346,15 +346,15 @@ class TomoQMS {
         try {
             $conn->beginTransaction();
 
-            $stmt = $localConn->prepare("SELECT eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada, tipas, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?");
+            $stmt = $localConn->prepare("SELECT eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada, tipas, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme FROM dielektriniai_bandymai WHERE gaminys_id = ?");
             $stmt->execute([$local_gaminys_id]);
             $all_diel_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $conn->prepare("DELETE FROM antriniu_grandiniu_bandymai WHERE gaminys_id = ?")->execute([$tomo_gid]);
             $ins1 = $conn->prepare("INSERT INTO antriniu_grandiniu_bandymai (gaminys_id, eiles_nr, grandines_pavadinimas, grandines_itampa, bandymo_schema, bandymo_itampa_kv, bandymo_trukme, isvada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
-            $conn->prepare("DELETE FROM mt_dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$tomo_gid]);
-            $ins2 = $conn->prepare("INSERT INTO mt_dielektriniai_bandymai (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id = ?")->execute([$tomo_gid]);
+            $ins2 = $conn->prepare("INSERT INTO dielektriniai_bandymai (gaminys_id, eiles_nr, aprasymas, itampa, schema1, schema2, schema3, schema4, schema5, schema6, isvada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             foreach ($all_diel_rows as $r) {
                 if (($r['tipas'] ?? '') === 'vidutines_itampos') {
@@ -364,21 +364,21 @@ class TomoQMS {
                 }
             }
 
-            $stmt = $localConn->prepare("SELECT eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?");
+            $stmt = $localConn->prepare("SELECT eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle FROM izeminimo_tikrinimas WHERE gaminys_id = ?");
             $stmt->execute([$local_gaminys_id]);
             $iz_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $conn->prepare("DELETE FROM mt_izeminimo_tikrinimas WHERE gaminys_id = ?")->execute([$tomo_gid]);
-            $ins3 = $conn->prepare("INSERT INTO mt_izeminimo_tikrinimas (gaminys_id, eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $conn->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id = ?")->execute([$tomo_gid]);
+            $ins3 = $conn->prepare("INSERT INTO izeminimo_tikrinimas (gaminys_id, eil_nr, tasko_pavadinimas, matavimo_tasku_skaicius, varza_ohm, budas, bukle) VALUES (?, ?, ?, ?, ?, ?, ?)");
             foreach ($iz_rows as $r) {
                 $ins3->execute([$tomo_gid, $r['eil_nr'], $r['tasko_pavadinimas'], $r['matavimo_tasku_skaicius'], $r['varza_ohm'], $r['budas'], $r['bukle']]);
             }
 
             $conn->commit();
             $total = count($vid_rows) + count($maz_rows) + count($iz_rows);
-            self::irasytLog('Dielektriniai bandymai', 'mt_dielektriniai_bandymai', $uzs_nr, $total);
+            self::irasytLog('Dielektriniai bandymai', 'dielektriniai_bandymai', $uzs_nr, $total);
         } catch (Exception $e) {
             if ($conn->inTransaction()) $conn->rollBack();
-            self::irasytLog('Dielektrinių klaida', 'mt_dielektriniai_bandymai', $uzs_nr, 0, 'klaida', $e->getMessage());
+            self::irasytLog('Dielektrinių klaida', 'dielektriniai_bandymai', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log('TomoQMS sinchDielektriniai klaida: ' . $e->getMessage());
         }
     }
@@ -390,21 +390,21 @@ class TomoQMS {
         $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gaminio_id);
         if (!$tomo_gid) return;
         try {
-            $stmt = $localConn->prepare("SELECT sekcija, pozicija, gabaritas, nominalas, pozicijos_numeris FROM mt_saugikliu_ideklai WHERE gaminio_id = ?");
+            $stmt = $localConn->prepare("SELECT sekcija, pozicija, gabaritas, nominalas, pozicijos_numeris FROM saugikliu_ideklai WHERE gaminio_id = ?");
             $stmt->execute([$local_gaminio_id]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $conn->beginTransaction();
-            $conn->prepare("DELETE FROM mt_saugikliu_ideklai WHERE gaminio_id = ?")->execute([$tomo_gid]);
-            $ins = $conn->prepare("INSERT INTO mt_saugikliu_ideklai (gaminio_id, sekcija, pozicija, gabaritas, nominalas, pozicijos_numeris) VALUES (?, ?, ?, ?, ?, ?)");
+            $conn->prepare("DELETE FROM saugikliu_ideklai WHERE gaminio_id = ?")->execute([$tomo_gid]);
+            $ins = $conn->prepare("INSERT INTO saugikliu_ideklai (gaminio_id, sekcija, pozicija, gabaritas, nominalas, pozicijos_numeris) VALUES (?, ?, ?, ?, ?, ?)");
             foreach ($rows as $r) {
                 $ins->execute([$tomo_gid, $r['sekcija'], $r['pozicija'], $r['gabaritas'], $r['nominalas'], $r['pozicijos_numeris']]);
             }
             $conn->commit();
-            self::irasytLog('Saugikliai', 'mt_saugikliu_ideklai', $uzs_nr, count($rows));
+            self::irasytLog('Saugikliai', 'saugikliu_ideklai', $uzs_nr, count($rows));
         } catch (Exception $e) {
             if ($conn->inTransaction()) $conn->rollBack();
-            self::irasytLog('Saugiklių klaida', 'mt_saugikliu_ideklai', $uzs_nr, 0, 'klaida', $e->getMessage());
+            self::irasytLog('Saugiklių klaida', 'saugikliu_ideklai', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log('TomoQMS sinchSaugiklius klaida: ' . $e->getMessage());
         }
     }
@@ -457,14 +457,14 @@ class TomoQMS {
         $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gaminio_id);
         if (!$tomo_gid) return;
         try {
-            $sql = "INSERT INTO mt_paso_teksto_korekcijos (gaminio_id, field_key, lang, tekstas, updated_at)
+            $sql = "INSERT INTO paso_teksto_korekcijos (gaminio_id, field_key, lang, tekstas, updated_at)
                     VALUES (:gid, :fk, :lang, :txt, CURRENT_TIMESTAMP)
                     ON CONFLICT (gaminio_id, field_key, lang) 
                     DO UPDATE SET tekstas = EXCLUDED.tekstas, updated_at = CURRENT_TIMESTAMP";
             $conn->prepare($sql)->execute([':gid' => $tomo_gid, ':fk' => $field_key, ':lang' => $lang, ':txt' => $tekstas]);
-            self::irasytLog('Paso tekstas', 'mt_paso_teksto_korekcijos', $uzs_nr, 1);
+            self::irasytLog('Paso tekstas', 'paso_teksto_korekcijos', $uzs_nr, 1);
         } catch (Exception $e) {
-            self::irasytLog('Paso teksto klaida', 'mt_paso_teksto_korekcijos', $uzs_nr, 0, 'klaida', $e->getMessage());
+            self::irasytLog('Paso teksto klaida', 'paso_teksto_korekcijos', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log('TomoQMS sinchPasoTeksta klaida: ' . $e->getMessage());
         }
     }
@@ -614,9 +614,9 @@ class TomoQMS {
             $st = $localConn->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
             foreach ($st as $r) $existing_local[trim($r['uzsakymo_numeris'])] = (int)$r['id'];
 
-            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
             $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
-            $qt_mk_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_komponentai'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_mk_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='komponentai'")->fetchAll(PDO::FETCH_COLUMN);
             $has_parinkta = in_array('parinkta_projektui', $qt_mk_cols);
 
             $qt_uzs_ids = array_column($mt_uzsakymai, 'qt_id');
@@ -656,7 +656,7 @@ class TomoQMS {
             if (!empty($all_qt_gam_ids)) {
                 try {
                     $placeholders = implode(',', array_fill(0, count($all_qt_gam_ids), '?'));
-                    $fb_batch = $qt->prepare("SELECT $fb_sel_cols FROM mt_funkciniai_bandymai WHERE gaminio_id IN ($placeholders) ORDER BY gaminio_id, eil_nr");
+                    $fb_batch = $qt->prepare("SELECT $fb_sel_cols FROM funkciniai_bandymai WHERE gaminio_id IN ($placeholders) ORDER BY gaminio_id, eil_nr");
                     $fb_batch->execute($all_qt_gam_ids);
                     foreach ($fb_batch->fetchAll(PDO::FETCH_ASSOC) as $row) {
                         $gid = (int)$row['gaminio_id'];
@@ -675,7 +675,7 @@ class TomoQMS {
             if (!empty($all_qt_gam_ids)) {
                 try {
                     $placeholders = implode(',', array_fill(0, count($all_qt_gam_ids), '?'));
-                    $mk_batch = $qt->prepare("SELECT $mk_sel FROM mt_komponentai WHERE gaminio_id IN ($placeholders) ORDER BY gaminio_id, eiles_numeris");
+                    $mk_batch = $qt->prepare("SELECT $mk_sel FROM komponentai WHERE gaminio_id IN ($placeholders) ORDER BY gaminio_id, eiles_numeris");
                     $mk_batch->execute($all_qt_gam_ids);
                     foreach ($mk_batch->fetchAll(PDO::FETCH_ASSOC) as $row) {
                         $gid = (int)$row['gaminio_id'];
@@ -692,15 +692,15 @@ class TomoQMS {
             $chk_gam_by_nr = $localConn->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris=?");
             $chk_gam_null = $localConn->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id=? AND gaminio_numeris IS NULL LIMIT 1");
             $ins_gam = $localConn->prepare("INSERT INTO gaminiai (uzsakymo_id,gaminio_numeris,gaminio_tipas_id,protokolo_nr) VALUES (?,?,?,?) RETURNING id");
-            $del_fb = $localConn->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?");
-            $del_mk = $localConn->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?");
+            $del_fb = $localConn->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id = ?");
+            $del_mk = $localConn->prepare("DELETE FROM komponentai WHERE gaminio_id = ?");
 
             if ($has_photo) {
-                $ins_fb = $localConn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
+                $ins_fb = $localConn->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
             } else {
-                $ins_fb = $localConn->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
+                $ins_fb = $localConn->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
             }
-            $ins_mk = $localConn->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
+            $ins_mk = $localConn->prepare("INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
 
             foreach ($mt_uzsakymai as $idx2 => $uzs) {
                 $nr = trim($uzs['uzsakymo_numeris'] ?? '');
@@ -947,7 +947,7 @@ class TomoQMS {
             }
 
             // === 6. FUNKCINIAI BANDYMAI ===
-            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
             $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
 
             $select_cols = "fb.gaminio_id, fb.eil_nr, fb.reikalavimas, fb.isvada, fb.defektas, fb.darba_atliko, fb.irase_vartotojas";
@@ -955,7 +955,7 @@ class TomoQMS {
 
             $tests = $qt->query("
                 SELECT $select_cols
-                FROM mt_funkciniai_bandymai fb
+                FROM funkciniai_bandymai fb
                 JOIN gaminiai g ON g.id = fb.gaminio_id
                 JOIN uzsakymai u ON u.id = g.uzsakymo_id
                 WHERE u.gaminiu_rusis_id = 2
@@ -970,12 +970,12 @@ class TomoQMS {
                 if (!$tomo_gam_id) continue;
                 try {
                     $tomo->beginTransaction();
-                    $tomo->prepare("DELETE FROM mt_funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
+                    $tomo->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
 
                     if ($has_photo) {
-                        $ins = $tomo->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
+                        $ins = $tomo->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
                     } else {
-                        $ins = $tomo->prepare("INSERT INTO mt_funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
+                        $ins = $tomo->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
                     }
                     foreach ($rows as $r) {
                         $params = [$tomo_gam_id, $r['eil_nr'], $r['reikalavimas'], $r['isvada'], $r['defektas'], $r['darba_atliko'], $r['irase_vartotojas']];
@@ -997,7 +997,7 @@ class TomoQMS {
             $rezultatas['komponentai'] = 0;
             $komp_data = $qt->query("
                 SELECT mk.gaminio_id as qt_gam_id, mk.eiles_numeris, mk.gamintojo_kodas, mk.kiekis, mk.aprasymas, mk.gamintojas, mk.parinkta_projektui
-                FROM mt_komponentai mk
+                FROM komponentai mk
                 JOIN gaminiai g ON g.id = mk.gaminio_id
                 JOIN uzsakymai u ON u.id = g.uzsakymo_id
                 WHERE u.gaminiu_rusis_id = 2
@@ -1012,8 +1012,8 @@ class TomoQMS {
                 if (!$tomo_gam_id) continue;
                 try {
                     $tomo->beginTransaction();
-                    $tomo->prepare("DELETE FROM mt_komponentai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
-                    $ins = $tomo->prepare("INSERT INTO mt_komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
+                    $tomo->prepare("DELETE FROM komponentai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
+                    $ins = $tomo->prepare("INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
                     foreach ($rows as $r) {
                         $ins->execute([$tomo_gam_id, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
                     }

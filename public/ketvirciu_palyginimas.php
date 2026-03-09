@@ -12,7 +12,7 @@ $ketvirciu_sarasas = $pdo->query("
         EXTRACT(QUARTER FROM u.sukurtas::timestamp)::int AS ketvirtis
     FROM uzsakymai u
     JOIN gaminiai g ON g.uzsakymo_id = u.id
-    JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+    JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id
     WHERE u.sukurtas IS NOT NULL
     ORDER BY metai DESC, ketvirtis DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -41,7 +41,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         SELECT COUNT(DISTINCT u.id)
         FROM uzsakymai u
         JOIN gaminiai g ON g.uzsakymo_id = u.id
-        JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+        JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id
         $where
     ")->fetchColumn();
 
@@ -49,13 +49,13 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
         SELECT COUNT(DISTINCT g.id)
         FROM gaminiai g
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
-        JOIN mt_funkciniai_bandymai fb ON fb.gaminio_id = g.id
+        JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id
         $where
     ")->fetchColumn();
 
     $r['bandymai'] = (int)$pdo->query("
         SELECT COUNT(*)
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g ON g.id = fb.gaminio_id
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where
@@ -63,7 +63,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
 
     $r['defektai'] = (int)$pdo->query("
         SELECT COUNT(*)
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g ON g.id = fb.gaminio_id
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where
@@ -78,7 +78,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
             COUNT(*) AS bandymu,
             COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g ON g.id = fb.gaminio_id
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where
@@ -93,7 +93,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
             COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g ON g.id = fb.gaminio_id
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where
@@ -109,7 +109,7 @@ function gautiKetvircioStatistika($pdo, $metai, $ketvirtis, $DEFECT_COND) {
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai,
             COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM mt_funkciniai_bandymai fb
+        FROM funkciniai_bandymai fb
         JOIN gaminiai g ON g.id = fb.gaminio_id
         JOIN uzsakymai u ON u.id = g.uzsakymo_id
         $where
