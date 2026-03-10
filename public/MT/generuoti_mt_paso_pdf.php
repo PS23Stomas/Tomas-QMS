@@ -18,6 +18,13 @@ $uzsakymo_numeris = $_POST['uzsakymo_numeris'] ?? $_GET['uzsakymo_numeris'] ?? '
 $uzsakovas = $_POST['uzsakovas'] ?? $_GET['uzsakovas'] ?? '';
 $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? $_GET['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id = $_POST['uzsakymo_id'] ?? $_GET['uzsakymo_id'] ?? '';
+
+$grupes_pavadinimas = 'MT';
+try {
+    $stmtGr = $conn->prepare("SELECT gr.pavadinimas FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
+    $stmtGr->execute([':gid' => $gaminio_id]);
+    $grupes_pavadinimas = $stmtGr->fetchColumn() ?: 'MT';
+} catch (PDOException $e) {}
 $lang = $_POST['lang'] ?? $_GET['lang'] ?? 'lt';
 
 if (!$gaminio_id) {
@@ -353,13 +360,13 @@ try {
         'tempDir' => '/tmp/mpdf',
     ]);
 
-    $mpdf->SetTitle('MT Pasas - ' . $gaminio_pasas);
+    $mpdf->SetTitle($grupes_pavadinimas . ' Pasas - ' . $gaminio_pasas);
     $mpdf->SetAuthor($imone['pavadinimas']);
     $mpdf->WriteHTML($html);
 
     $pdf_content = $mpdf->Output('', 'S');
 
-    $failo_pavadinimas = 'MT_Pasas_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
+    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $grupes_pavadinimas) . '_Pasas_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
 
     $stmt = $conn->prepare("UPDATE gaminiai SET mt_paso_pdf = :pdf, mt_paso_failas = :failas WHERE id = :id");
     $stmt->bindParam('pdf', $pdf_content, PDO::PARAM_LOB);

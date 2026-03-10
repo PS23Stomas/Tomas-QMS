@@ -19,6 +19,13 @@ if (!$gaminio_id) {
     exit;
 }
 
+$grupes_pavadinimas = 'MT';
+try {
+    $stmtGr = $conn->prepare("SELECT gr.pavadinimas FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
+    $stmtGr->execute([':gid' => $gaminio_id]);
+    $grupes_pavadinimas = $stmtGr->fetchColumn() ?: 'MT';
+} catch (PDOException $e) {}
+
 $stmt = $conn->prepare("SELECT id, protokolo_nr, dielektriniai_issaugoti, gaminio_numeris, pavadinimas FROM gaminiai WHERE id=?");
 $stmt->execute([$gaminio_id]);
 $gaminys = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -198,7 +205,7 @@ table.data-table th {
     </div>
 </div>
 
-<h2>MT ATLIKTŲ BANDYMŲ PROTOKOLAS NR. ' . htmlspecialchars($protokolo_nr) . '</h2>
+<h2>' . htmlspecialchars(mb_strtoupper($grupes_pavadinimas)) . ' ATLIKTŲ BANDYMŲ PROTOKOLAS NR. ' . htmlspecialchars($protokolo_nr) . '</h2>
 
 <div class="meta-line"><strong>Užsakymo Nr.:</strong> ' . htmlspecialchars($uzsakymo_numeris) . '</div>
 <div class="meta-line"><strong>Užsakovas:</strong> ' . htmlspecialchars($uzsakovas) . '</div>
@@ -275,13 +282,13 @@ try {
         'tempDir' => '/tmp/mpdf',
     ]);
 
-    $mpdf->SetTitle('MT Dielektriniai bandymai - ' . $uzsakymo_numeris);
+    $mpdf->SetTitle($grupes_pavadinimas . ' Dielektriniai bandymai - ' . $uzsakymo_numeris);
     $mpdf->SetAuthor($imone['pavadinimas']);
     $mpdf->WriteHTML($html);
 
     $pdf_content = $mpdf->Output('', 'S');
 
-    $failo_pavadinimas = 'MT_Dielektriniai_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
+    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $grupes_pavadinimas) . '_Dielektriniai_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
 
     $stmt = $conn->prepare("UPDATE gaminiai SET mt_dielektriniu_pdf = :pdf, mt_dielektriniu_failas = :failas WHERE id = :id");
     $stmt->bindParam('pdf', $pdf_content, PDO::PARAM_LOB);
