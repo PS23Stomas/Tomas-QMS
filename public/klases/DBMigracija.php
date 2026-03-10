@@ -297,6 +297,15 @@ class DBMigracija {
 
     private function sukurtiImonesNustatymuLentele(): void {
         try {
+            $stmt = $this->conn->query("
+                SELECT data_type FROM information_schema.columns 
+                WHERE table_name = 'imones_nustatymai' AND column_name = 'pavadinimas'
+            ");
+            $tipas = $stmt->fetchColumn();
+            if ($tipas !== false && $tipas !== 'character varying') {
+                $this->conn->exec("DROP TABLE imones_nustatymai");
+            }
+
             $this->conn->exec("
                 CREATE TABLE IF NOT EXISTS imones_nustatymai (
                     id SERIAL PRIMARY KEY,
