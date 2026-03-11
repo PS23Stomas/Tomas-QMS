@@ -61,8 +61,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $params['slaptazodis'] = password_hash($_POST['slaptazodis'], PASSWORD_BCRYPT);
         }
 
+        $parasas_data = null;
+        if (!empty($_POST['pasalinti_parasa'])) {
+            $fields .= ", parasas = NULL, parasas_tipas = NULL";
+        } elseif (!empty($_FILES['parasas']['tmp_name']) && $_FILES['parasas']['error'] === UPLOAD_ERR_OK) {
+            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $_FILES['parasas']['tmp_name']);
+            finfo_close($finfo);
+            if (in_array($mime, $allowed) && $_FILES['parasas']['size'] <= 2 * 1024 * 1024) {
+                $fields .= ", parasas = :parasas, parasas_tipas = :parasas_tipas";
+                $parasas_data = file_get_contents($_FILES['parasas']['tmp_name']);
+                $params['parasas_tipas'] = $mime;
+            } else {
+                $error = 'Netinkamas failo formatas arba per didelis failas (maks. 2MB).';
+            }
+        }
+
         $stmt = $pdo->prepare("UPDATE vartotojai SET $fields WHERE id = :id");
-        $stmt->execute($params);
+        if ($parasas_data !== null) {
+            $stmt->bindParam(':parasas', $parasas_data, PDO::PARAM_LOB);
+        }
+        foreach ($params as $key => $val) {
+            $stmt->bindValue(':' . ltrim($key, ':'), $val);
+        }
+        $stmt->execute();
         $message = 'Vartotojas atnaujintas.';
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
@@ -92,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Vartotojų sąrašo gavimas su patvirtintojo informacija
-$users = $pdo->query("SELECT v.*, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
+$users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazodis, v.role, v.patvirtintas, v.patvirtino_id, v.patvirtinimo_data, CASE WHEN v.parasas IS NOT NULL THEN true ELSE false END AS turi_parasa, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
 
 // Vartotojų skaičius pagal roles statistikai
 $role_counts = $pdo->query("SELECT role, COUNT(*) as cnt FROM vartotojai GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -262,7 +285,7 @@ require_once __DIR__ . '/includes/header.php';
             <h3>Redaguoti vartotoją</h3>
             <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
         </div>
-        <form method="POST" id="editUserForm">
+        <form method="POST" id="editUserForm" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" id="edit_user_id">
             <div class="modal-body">
@@ -292,6 +315,20 @@ require_once __DIR__ . '/includes/header.php';
                         <option value="skaitytojas">Skaitytojas</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Parašas</label>
+                    <div id="edit_parasas_preview" style="display:none; margin-bottom: 8px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e2e8f0; text-align: center;">
+                        <img id="edit_parasas_img" src="" alt="Parašas" style="max-height: 60px; max-width: 200px;">
+                        <div style="margin-top: 6px;">
+                            <label style="display:inline-flex; align-items:center; gap:4px; font-size:13px; color:#dc2626; cursor:pointer;">
+                                <input type="checkbox" name="pasalinti_parasa" value="1" data-testid="checkbox-remove-signature" onchange="toggleParasasUpload(this)">
+                                Pašalinti parašą
+                            </label>
+                        </div>
+                    </div>
+                    <input type="file" class="form-control" name="parasas" id="edit_parasas_file" accept="image/jpeg,image/png,image/gif,image/webp" data-testid="input-user-signature" onchange="previewNewParasas(this)">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">JPG, PNG, GIF arba WebP, maks. 2MB</div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal')">Atšaukti</button>
@@ -308,7 +345,41 @@ function editUser(u) {
     document.getElementById('edit_user_pavarde').value = u.pavarde || '';
     document.getElementById('edit_user_el_pastas').value = u.el_pastas || '';
     document.getElementById('edit_user_role').value = u.role || 'user';
+
+    var preview = document.getElementById('edit_parasas_preview');
+    var img = document.getElementById('edit_parasas_img');
+    var fileInput = document.getElementById('edit_parasas_file');
+    var checkbox = document.querySelector('[name="pasalinti_parasa"]');
+    fileInput.value = '';
+    if (checkbox) checkbox.checked = false;
+    fileInput.style.display = '';
+
+    if (u.turi_parasa) {
+        img.src = '/api/vartotojo_parasas.php?id=' + u.id + '&t=' + Date.now();
+        preview.style.display = '';
+    } else {
+        preview.style.display = 'none';
+    }
     openModal('editUserModal');
+}
+
+function toggleParasasUpload(cb) {
+    var fileInput = document.getElementById('edit_parasas_file');
+    fileInput.style.display = cb.checked ? 'none' : '';
+}
+
+function previewNewParasas(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById('edit_parasas_img');
+            img.src = e.target.result;
+            document.getElementById('edit_parasas_preview').style.display = '';
+            var cb = document.querySelector('[name="pasalinti_parasa"]');
+            if (cb) { cb.checked = false; cb.parentElement.parentElement.style.display = 'none'; }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 </script>
 

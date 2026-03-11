@@ -28,6 +28,7 @@ class DBMigracija {
         $this->sukurtiPretenzijoEmailHistoryLentele();
         $this->sinchronizuotiSekas();
         $this->sukurtiImonesNustatymuLentele();
+        $this->pridetiVartotojoParasoStulpelius();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -322,6 +323,17 @@ class DBMigracija {
             $cnt = (int)$this->conn->query("SELECT COUNT(*) FROM imones_nustatymai")->fetchColumn();
             if ($cnt === 0) {
                 $this->conn->exec("INSERT INTO imones_nustatymai (pavadinimas) VALUES ('UAB \"ELGA\"')");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiVartotojoParasoStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'vartotojai' AND column_name = 'parasas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE vartotojai ADD COLUMN parasas BYTEA, ADD COLUMN parasas_tipas VARCHAR(50)");
             }
         } catch (PDOException $e) {
         }
