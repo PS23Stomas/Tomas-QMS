@@ -26,14 +26,14 @@ $DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '')";
 $ACTIVE_DEFECT_COND = "(fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' AND LOWER(COALESCE(fb.isvada,'')) = 'neatitinka')";
 
 // ==================== TAB 1: 30 dienų duomenys ====================
-$where_sql_30d = "WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
+$where_sql_30d = "WHERE gr.pavadinimas = " . $pdo->quote($filtro_grupe) . " AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'";
 
 $patikrinti = (int)$pdo->query("
   SELECT COUNT(DISTINCT fb.gaminio_id)
   FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
-  JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
   $where_sql_30d
 ")->fetchColumn();
 
@@ -41,8 +41,8 @@ $viso_defektu = (int)$pdo->query("
   SELECT COUNT(*)
   FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
-  JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
   $where_sql_30d AND $DEFECT_COND
 ")->fetchColumn();
 
@@ -50,8 +50,8 @@ $viso_punktu = (int)$pdo->query("
   SELECT COUNT(*)
   FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
-  JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
   $where_sql_30d
 ")->fetchColumn();
 
@@ -64,7 +64,8 @@ $sql_aktyvus = "
   JOIN gaminiai g ON fb.gaminio_id = g.id
   JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
-  WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . " AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+  WHERE gr.pavadinimas = " . $pdo->quote($filtro_grupe) . " AND $ACTIVE_DEFECT_COND AND DATE(u.sukurtas) >= CURRENT_DATE - INTERVAL '30 days'
   ORDER BY u.uzsakymo_numeris DESC, g.gaminio_numeris, fb.eil_nr LIMIT 50
 ";
 $aktyvus_defektai = $pdo->query($sql_aktyvus)->fetchAll(PDO::FETCH_ASSOC);
@@ -74,8 +75,8 @@ $top_klaidos = $pdo->query("
   SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
   FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
-  JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
   $where_sql_30d AND $DEFECT_COND AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
   GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -87,8 +88,8 @@ $weeks = $pdo->query("
     SUM(CASE WHEN $DEFECT_COND THEN 1 ELSE 0 END) AS klaidu
   FROM funkciniai_bandymai fb
   JOIN gaminiai g ON fb.gaminio_id = g.id
-  JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
   JOIN uzsakymai u ON g.uzsakymo_id = u.id
+  JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
   $where_sql_30d
   GROUP BY TO_CHAR(u.sukurtas::timestamp, 'IYYYIW')
   ORDER BY TO_CHAR(u.sukurtas::timestamp, 'IYYYIW')
@@ -107,9 +108,9 @@ $ketvirciu_sarasas = $pdo->query("
         EXTRACT(QUARTER FROM u.sukurtas::timestamp)::int AS ketvirtis
     FROM uzsakymai u
     JOIN gaminiai g ON g.uzsakymo_id = u.id
-    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+    JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
     JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id
-    WHERE u.sukurtas IS NOT NULL AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
+    WHERE u.sukurtas IS NOT NULL AND gr.pavadinimas = " . $pdo->quote($filtro_grupe) . "
     ORDER BY metai DESC, ketvirtis DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -122,21 +123,21 @@ function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND, $g
     $iki = "$metai-" . str_pad($iki_men, 2, '0', STR_PAD_LEFT) . "-" . cal_days_in_month(CAL_GREGORIAN, $iki_men, $metai);
     $grupe_q = $pdo->quote($grupe);
     $where = "WHERE u.sukurtas::date BETWEEN '$nuo' AND '$iki'";
-    $grupe_join = "JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id";
-    $grupe_filter = "AND gt.grupe = $grupe_q";
+    $grupe_join = "JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id";
+    $grupe_filter = "AND gr.pavadinimas = $grupe_q";
     $r = [];
     $r['periodas'] = "$metai Q$ketvirtis";
     $r['uzsakymai'] = (int)$pdo->query("SELECT COUNT(DISTINCT u.id) FROM uzsakymai u JOIN gaminiai g ON g.uzsakymo_id = u.id $grupe_join JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $grupe_filter")->fetchColumn();
     $r['gaminiai'] = (int)$pdo->query("SELECT COUNT(DISTINCT g.id) FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join JOIN funkciniai_bandymai fb ON fb.gaminio_id = g.id $where $grupe_filter")->fetchColumn();
-    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $grupe_filter")->fetchColumn();
-    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id $where $grupe_filter AND $DEFECT_COND")->fetchColumn();
+    $r['bandymai'] = (int)$pdo->query("SELECT COUNT(*) FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join $where $grupe_filter")->fetchColumn();
+    $r['defektai'] = (int)$pdo->query("SELECT COUNT(*) FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join $where $grupe_filter AND $DEFECT_COND")->fetchColumn();
     $r['defektu_proc'] = ($r['bandymai'] > 0) ? round($r['defektai'] / $r['bandymai'] * 100, 2) : 0;
     $r['defektu_per_gamini'] = ($r['gaminiai'] > 0) ? round($r['defektai'] / $r['gaminiai'], 2) : 0;
     $r['top_darbuotojai'] = $pdo->query("
         SELECT fb.darba_atliko AS vardas, COUNT(*) AS bandymu,
             COUNT(CASE WHEN NOT $DEFECT_COND THEN 1 END) AS be_defektu,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
-        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join
         $where $grupe_filter AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko ORDER BY be_defektu DESC LIMIT 11
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -144,7 +145,7 @@ function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND, $g
         SELECT fb.darba_atliko AS vardas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join
         $where $grupe_filter AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
         GROUP BY fb.darba_atliko HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC, defektu_proc DESC LIMIT 11
@@ -153,7 +154,7 @@ function gautiKetvircioStatistika_idx($pdo, $metai, $ketvirtis, $DEFECT_COND, $g
         SELECT fb.reikalavimas,
             COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai, COUNT(*) AS bandymu,
             ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
-        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id $grupe_join JOIN uzsakymai u ON u.id = g.uzsakymo_id
+        FROM funkciniai_bandymai fb JOIN gaminiai g ON g.id = fb.gaminio_id JOIN uzsakymai u ON u.id = g.uzsakymo_id $grupe_join
         $where $grupe_filter AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
         ORDER BY defektai DESC LIMIT 11
@@ -216,9 +217,9 @@ $men_top_darbuotojai = $pdo->query("
         COUNT(CASE WHEN $DEFECT_COND THEN 1 END) AS defektai
     FROM funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
-    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+    $men_where AND gr.pavadinimas = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko
     ORDER BY be_defektu DESC
     LIMIT 11
@@ -232,9 +233,9 @@ $men_top_klydusieji = $pdo->query("
         ROUND(COUNT(CASE WHEN $DEFECT_COND THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1) AS defektu_proc
     FROM funkciniai_bandymai fb
     JOIN gaminiai g ON g.id = fb.gaminio_id
-    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u ON u.id = g.uzsakymo_id
-    $men_where AND gt.grupe = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
+    JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+    $men_where AND gr.pavadinimas = $men_grupe_q AND fb.darba_atliko IS NOT NULL AND TRIM(fb.darba_atliko) <> ''
     GROUP BY fb.darba_atliko
     HAVING COUNT(CASE WHEN $DEFECT_COND THEN 1 END) > 0
     ORDER BY defektai DESC, defektu_proc DESC
@@ -261,8 +262,8 @@ $ist_uzsakymai = $pdo->query("
     SELECT DISTINCT u.uzsakymo_numeris
     FROM uzsakymai u
     JOIN gaminiai g ON g.uzsakymo_id = u.id
-    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
-    WHERE gt.grupe = " . $pdo->quote($filtro_grupe) . "
+    JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+    WHERE gr.pavadinimas = " . $pdo->quote($filtro_grupe) . "
     ORDER BY u.uzsakymo_numeris DESC
 ")->fetchAll(PDO::FETCH_COLUMN);
 
@@ -296,8 +297,9 @@ if ($ist_rodyti) {
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT fb.gaminio_id)
         FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
-        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
+        JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+        $ist_where_sql AND gr.pavadinimas = " . $pdo->quote($filtro_grupe) . "
     ");
     $stmt->execute($ist_params);
     $ist_patikrinti = (int)$stmt->fetchColumn();
@@ -305,8 +307,9 @@ if ($ist_rodyti) {
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, fb.reikalavimas, fb.defektas, fb.isvada
         FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
-        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+        $ist_where_sql AND gr.pavadinimas = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
         ORDER BY u.uzsakymo_numeris
     ");
     $stmt->execute($ist_params);
@@ -319,8 +322,9 @@ if ($ist_rodyti) {
     $stmt = $pdo->prepare("
         SELECT MIN(fb.eil_nr) as eil_nr, fb.reikalavimas, COUNT(*) AS kiekis
         FROM funkciniai_bandymai fb JOIN gaminiai g ON fb.gaminio_id = g.id
-        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
+        JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+        $ist_where_sql AND gr.pavadinimas = " . $pdo->quote($filtro_grupe) . " AND fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> ''
         AND fb.reikalavimas IS NOT NULL AND TRIM(fb.reikalavimas) <> ''
         GROUP BY fb.reikalavimas ORDER BY kiekis DESC, eil_nr ASC LIMIT 5
     ");
@@ -330,8 +334,9 @@ if ($ist_rodyti) {
     $stmt = $pdo->prepare("
         SELECT u.uzsakymo_numeris, f.reikalavimas, f.defektas
         FROM funkciniai_bandymai f JOIN gaminiai g ON f.gaminio_id = g.id
-        JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id JOIN uzsakymai u ON g.uzsakymo_id = u.id
-        $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . " AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
+        JOIN uzsakymai u ON g.uzsakymo_id = u.id
+        JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id
+        $ist_where_sql AND gr.pavadinimas = " . $pdo->quote($filtro_grupe) . " AND LOWER(f.isvada) IN ('neatitinka','nepadaryta')
         AND f.defektas IS NOT NULL AND TRIM(f.defektas) <> ''
         ORDER BY u.uzsakymo_numeris
     ");
