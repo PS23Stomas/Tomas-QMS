@@ -34,20 +34,37 @@ $conn = Database::getConnection();
 
 /* --- Gamybos reikalavimų sąrašas iš šablono lentelės (pagal užsakymo modulį) --- */
 $rusis_id_sab = 2;
+$modulio_grupe_pav = 'MT';
+$nera_sablono = false;
 if ($gaminio_id > 0) {
-    $stmt_gr = $conn->prepare("SELECT u.gaminiu_rusis_id FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id WHERE g.id = ?");
+    $stmt_gr = $conn->prepare("SELECT u.gaminiu_rusis_id, gr.pavadinimas FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id LEFT JOIN gaminiu_rusys gr ON gr.id = u.gaminiu_rusis_id WHERE g.id = ?");
     $stmt_gr->execute([$gaminio_id]);
-    $rusis_id_sab = (int)($stmt_gr->fetchColumn() ?: 2);
+    $gr_row = $stmt_gr->fetch(PDO::FETCH_ASSOC);
+    if ($gr_row) {
+        $rusis_id_sab = (int)($gr_row['gaminiu_rusis_id'] ?: 2);
+        $modulio_grupe_pav = $gr_row['pavadinimas'] ?: 'MT';
+    }
 }
 
 $stmt_sab = $conn->prepare("SELECT pavadinimas FROM funkciniu_sablonas WHERE gaminiu_rusis_id = ? ORDER BY eil_nr ASC");
 $stmt_sab->execute([$rusis_id_sab]);
 $reikalavimai = $stmt_sab->fetchAll(PDO::FETCH_COLUMN);
-if (empty($reikalavimai)) {
-    $stmt_sab_all = $conn->query("SELECT pavadinimas FROM funkciniu_sablonas WHERE gaminiu_rusis_id = 2 ORDER BY eil_nr ASC");
-    $reikalavimai = $stmt_sab_all->fetchAll(PDO::FETCH_COLUMN);
+
+$esami_bandymai_cnt = 0;
+if (empty($reikalavimai) && $gaminio_id > 0) {
+    $stmt_cnt = $conn->prepare("SELECT COUNT(*) FROM funkciniai_bandymai WHERE gaminio_id = ?");
+    $stmt_cnt->execute([$gaminio_id]);
+    $esami_bandymai_cnt = (int)$stmt_cnt->fetchColumn();
+
+    if ($esami_bandymai_cnt > 0) {
+        $stmt_esami = $conn->prepare("SELECT reikalavimas FROM funkciniai_bandymai WHERE gaminio_id = ? ORDER BY eil_nr ASC");
+        $stmt_esami->execute([$gaminio_id]);
+        $reikalavimai = $stmt_esami->fetchAll(PDO::FETCH_COLUMN);
+    } else {
+        $nera_sablono = true;
+    }
 }
-if (empty($reikalavimai)) {
+if (empty($reikalavimai) && !$nera_sablono) {
     $reikalavimai = ["Korpuso surinkimas"];
 }
 $gaminys = new Gaminys($conn);
@@ -157,6 +174,17 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         $modulio_pav = $_SESSION['aktyvus_modulis_pav'] ?? 'MT';
     ?>
     <h2 class="text-center mb-4"><?= htmlspecialchars($modulio_pav) ?> gaminio atliktų darbų pildymo forma</h2>
+
+    <?php if ($nera_sablono): ?>
+        <div class="alert alert-warning text-center" data-testid="alert-nera-sablono">
+            <h5 class="mb-2"><strong>Šiam moduliui dar nesukurtas tikrinimo šablonas</strong></h5>
+            <p class="mb-3">Modulis „<strong><?= htmlspecialchars($modulio_grupe_pav) ?></strong>" neturi sukurto funkcinių bandymų klausimyno. Prieš pildant formą, administratorius turi sukurti šabloną.</p>
+            <a href="/sablonas_funkciniai.php?grupe=<?= urlencode($modulio_grupe_pav) ?>" class="btn btn-warning me-2" data-testid="link-sukurti-sablona">
+                Sukurti tikrinimo šabloną
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary" data-testid="link-grizti">Grįžti</a>
+        </div>
+    <?php else: ?>
 
     <form action="/issaugoti_mt_bandyma.php" method="post" enctype="multipart/form-data">
         <div class="d-flex justify-content-end mb-2">
@@ -493,5 +521,6 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+<?php endif; ?>
 </body>
 </html>
