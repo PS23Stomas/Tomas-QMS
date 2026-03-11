@@ -970,7 +970,8 @@ function initStatChart() {
       periodas: <?= json_encode($ist_periodas) ?>,
       menuo: <?= json_encode($ist_menuo) ?>,
       nuo: <?= json_encode($ist_nuo) ?>,
-      iki: <?= json_encode($ist_iki) ?>
+      iki: <?= json_encode($ist_iki) ?>,
+      grupe: <?= json_encode($filtro_grupe) ?>
     });
     try {
       var res = await fetch('/grafiko_duomenys.php?' + params.toString());

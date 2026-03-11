@@ -18,6 +18,7 @@ $periodas         = $_GET['periodas'] ?? 'visi';
 $menuo            = $_GET['menuo'] ?? '';
 $nuo              = $_GET['nuo'] ?? '';
 $iki              = $_GET['iki'] ?? '';
+$grupe            = $_GET['grupe'] ?? 'MT';
 
 /* --- WHERE sąlygos sudarymas (analogiškai kaip mt_statistika.php) --- */
 $where_uzsakymas = '';
@@ -62,10 +63,11 @@ $stmt = $pdo->prepare("
     JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
     JOIN uzsakymai u      ON g.uzsakymo_id = u.id
     $where_sql
-      AND gt.grupe = 'MT'
+      AND gt.grupe = ?
     GROUP BY EXTRACT(WEEK FROM u.sukurtas::timestamp)
     ORDER BY savaite
 ");
+$params[] = $grupe;
 $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
