@@ -39,6 +39,21 @@ $page_title = $filtro_grupe . ' Užsakymai';
 $clients = $pdo->query('SELECT id, uzsakovas FROM uzsakovai ORDER BY uzsakovas')->fetchAll();
 $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinimas')->fetchAll();
 
+$user = currentUser();
+$is_admin = (($user['role'] ?? '') === 'admin');
+$imones_nust = null;
+$imones_logo_src = '';
+$imones_has_logo = false;
+if ($is_admin) {
+    $imones_nust = getImonesNustatymai();
+    if (!empty($imones_nust['logotipas']) && !empty($imones_nust['logotipo_tipas'])) {
+        $imones_has_logo = true;
+        $logo_d = $imones_nust['logotipas'];
+        if (is_resource($logo_d)) $logo_d = stream_get_contents($logo_d);
+        $imones_logo_src = 'data:' . $imones_nust['logotipo_tipas'] . ';base64,' . base64_encode($logo_d);
+    }
+}
+
 $message = $_GET['msg'] ?? '';
 $error = '';
 
@@ -514,7 +529,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Redaguoti</div>
-                    <div class="mt-tile-desc">Gaminio ir užsakymo duomenys</div>
+                    <div class="mt-tile-desc"><?= $is_admin ? 'Užsakymo, gaminio ir įmonės duomenys' : 'Gaminio ir užsakymo duomenys' ?></div>
                 </div>
             </div>
             <?php else: ?>
@@ -562,31 +577,27 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="mt-tile-text">
                     <div class="mt-tile-title">Redaguoti</div>
-                    <div class="mt-tile-desc">Užsakymo duomenys</div>
+                    <div class="mt-tile-desc"><?= $is_admin ? 'Užsakymo ir įmonės duomenys' : 'Užsakymo duomenys' ?></div>
                 </div>
             </div>
-            <?php endif; ?>
-            <?php if (($user['role'] ?? '') === 'admin'): ?>
-            <a href="/imones_nustatymai.php" class="mt-tile" data-testid="tile-imones-nustatymai" style="text-decoration:none;color:inherit;">
-                <div class="mt-tile-icon mt-tile-icon-slate">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                </div>
-                <div class="mt-tile-text">
-                    <div class="mt-tile-title">Įmonės nustatymai</div>
-                    <div class="mt-tile-desc">PDF antraštės duomenys</div>
-                </div>
-            </a>
             <?php endif; ?>
         </div>
     </div>
 </div>
 
 <div class="modal-overlay" id="editOrderModal">
-    <div class="modal">
+    <div class="modal" style="<?= $is_admin ? 'max-width:640px;' : '' ?>">
         <div class="modal-header">
             <h3>Redaguoti</h3>
             <button class="modal-close" onclick="closeModal('editOrderModal')" aria-label="Uždaryti">&times;</button>
         </div>
+        <?php if ($is_admin): ?>
+        <div class="edit-modal-tabs" style="display:flex;border-bottom:1px solid var(--border,#e5e7eb);padding:0 16px;" data-testid="edit-modal-tabs">
+            <button type="button" class="edit-tab active" onclick="switchEditTab('uzsakymas')" data-testid="tab-uzsakymas" style="padding:10px 16px;border:none;background:none;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary,#3b82f6);color:var(--primary,#3b82f6);">Užsakymo duomenys</button>
+            <button type="button" class="edit-tab" onclick="switchEditTab('imone')" data-testid="tab-imone" style="padding:10px 16px;border:none;background:none;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-secondary,#6b7280);">Įmonės nustatymai</button>
+        </div>
+        <?php endif; ?>
+        <div id="editTabUzsakymas">
         <form method="POST" action="/uzsakymai.php?id=<?= $order['id'] ?>&grupe=<?= urlencode($filtro_grupe) ?><?= $gaminio_id_mt > 0 ? '&gaminys=' . $gaminio_id_mt : '' ?>">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" value="<?= $order['id'] ?>">
@@ -657,6 +668,61 @@ require_once __DIR__ . '/includes/header.php';
                 <button type="submit" class="btn btn-primary" data-testid="button-save-order">Išsaugoti</button>
             </div>
         </form>
+        </div>
+        <?php if ($is_admin): ?>
+        <div id="editTabImone" style="display:none;">
+            <form id="imones-form" enctype="multipart/form-data" data-testid="form-company-settings-modal">
+                <input type="hidden" name="action" value="update">
+                <div class="modal-body">
+                    <p style="color:var(--text-secondary,#6b7280);font-size:13px;margin-bottom:12px;">Šie duomenys rodomi PDF dokumentų antraštėse</p>
+                    <div id="imones-msg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:6px;font-size:14px;" data-testid="text-imones-msg"></div>
+                    <div class="form-group">
+                        <label class="form-label">Pavadinimas <span style="color:var(--danger,#dc3545);">*</span></label>
+                        <input type="text" class="form-control" name="pavadinimas" value="<?= h($imones_nust['pavadinimas'] ?? '') ?>" required data-testid="input-company-name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Adresas</label>
+                        <textarea class="form-control" name="adresas" rows="2" data-testid="input-company-address"><?= h($imones_nust['adresas'] ?? '') ?></textarea>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Telefonas</label>
+                            <input type="text" class="form-control" name="telefonas" value="<?= h($imones_nust['telefonas'] ?? '') ?>" data-testid="input-company-phone">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Faksas</label>
+                            <input type="text" class="form-control" name="faksas" value="<?= h($imones_nust['faksas'] ?? '') ?>" data-testid="input-company-fax">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">El. paštas</label>
+                            <input type="email" class="form-control" name="el_pastas" value="<?= h($imones_nust['el_pastas'] ?? '') ?>" data-testid="input-company-email">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Interneto svetainė</label>
+                            <input type="text" class="form-control" name="internetas" value="<?= h($imones_nust['internetas'] ?? '') ?>" data-testid="input-company-website">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Logotipas</label>
+                        <div id="imones-logo-preview" style="<?= $imones_has_logo ? '' : 'display:none;' ?>margin-bottom:10px;padding:12px;background:var(--bg-secondary,#f8f9fa);border-radius:8px;display:<?= $imones_has_logo ? 'flex' : 'none' ?>;align-items:center;gap:12px;">
+                            <img id="imones-logo-img" src="<?= $imones_logo_src ?>" alt="Logotipas" style="max-height:60px;max-width:160px;border-radius:4px;" data-testid="img-company-logo">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--danger,#dc3545);font-size:13px;">
+                                <input type="checkbox" name="remove_logo" value="1" data-testid="input-remove-logo"> Pašalinti
+                            </label>
+                        </div>
+                        <input type="file" name="logotipas" accept="image/jpeg,image/png,image/gif,image/svg+xml,image/webp" class="form-control" data-testid="input-company-logo" style="font-size:13px;">
+                        <small style="color:var(--text-secondary,#6b7280);margin-top:4px;display:block;">JPEG, PNG, GIF, SVG, WebP. Maks. 5 MB.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editOrderModal')">Atšaukti</button>
+                    <button type="button" class="btn btn-primary" onclick="issaugotiImonesNustatymus()" data-testid="button-save-company">Išsaugoti</button>
+                </div>
+            </form>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -1221,5 +1287,72 @@ document.addEventListener('keydown', function(e) {
         if (btn) btn.click();
     }
 });
+
+function switchEditTab(tab) {
+    var uzsakymasTab = document.getElementById('editTabUzsakymas');
+    var imoneTab = document.getElementById('editTabImone');
+    var tabs = document.querySelectorAll('.edit-modal-tabs .edit-tab');
+    if (!uzsakymasTab || !imoneTab) return;
+
+    if (tab === 'imone') {
+        uzsakymasTab.style.display = 'none';
+        imoneTab.style.display = '';
+        tabs[0].style.borderBottomColor = 'transparent';
+        tabs[0].style.color = 'var(--text-secondary,#6b7280)';
+        tabs[0].style.fontWeight = '500';
+        tabs[1].style.borderBottomColor = 'var(--primary,#3b82f6)';
+        tabs[1].style.color = 'var(--primary,#3b82f6)';
+        tabs[1].style.fontWeight = '600';
+    } else {
+        uzsakymasTab.style.display = '';
+        imoneTab.style.display = 'none';
+        tabs[0].style.borderBottomColor = 'var(--primary,#3b82f6)';
+        tabs[0].style.color = 'var(--primary,#3b82f6)';
+        tabs[0].style.fontWeight = '600';
+        tabs[1].style.borderBottomColor = 'transparent';
+        tabs[1].style.color = 'var(--text-secondary,#6b7280)';
+        tabs[1].style.fontWeight = '500';
+    }
+}
+
+async function issaugotiImonesNustatymus() {
+    var form = document.getElementById('imones-form');
+    if (!form) return;
+    var msgDiv = document.getElementById('imones-msg');
+    var btn = form.querySelector('[data-testid="button-save-company"]');
+    btn.disabled = true;
+    btn.textContent = 'Saugoma...';
+    msgDiv.style.display = 'none';
+
+    try {
+        var fd = new FormData(form);
+        var resp = await fetch('/imones_nustatymai.php', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd
+        });
+        if (!resp.ok) throw new Error('Server error');
+        var data = await resp.json();
+        msgDiv.style.display = 'block';
+        if (data.ok) {
+            msgDiv.style.background = '#d1fae5';
+            msgDiv.style.color = '#065f46';
+            msgDiv.textContent = (data.message || 'Išsaugota') + ' Puslapio atnaujinimas...';
+            setTimeout(function(){ location.reload(); }, 800);
+            return;
+        } else {
+            msgDiv.style.background = '#fee2e2';
+            msgDiv.style.color = '#991b1b';
+            msgDiv.textContent = data.message || 'Klaida';
+        }
+    } catch (e) {
+        msgDiv.style.display = 'block';
+        msgDiv.style.background = '#fee2e2';
+        msgDiv.style.color = '#991b1b';
+        msgDiv.textContent = 'Tinklo klaida';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Išsaugoti';
+}
 </script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

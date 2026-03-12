@@ -25,8 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $el_pastas = trim($_POST['el_pastas'] ?? '');
         $internetas = trim($_POST['internetas'] ?? '');
 
+        $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
         if (empty($pavadinimas)) {
             $error = 'Įmonės pavadinimas yra privalomas.';
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => $error]);
+                exit;
+            }
         } else {
             try {
                 $logo_sql = '';
@@ -82,8 +89,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute();
                     $message = 'Įmonės nustatymai sėkmingai atnaujinti.';
                 }
+
+                if ($is_ajax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['ok' => empty($error), 'message' => $message ?: $error]);
+                    exit;
+                }
             } catch (PDOException $e) {
                 $error = 'Klaida saugant nustatymus: ' . $e->getMessage();
+                if ($is_ajax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['ok' => false, 'message' => $error]);
+                    exit;
+                }
             }
         }
     }
