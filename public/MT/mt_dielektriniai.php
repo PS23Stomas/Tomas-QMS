@@ -18,7 +18,16 @@ Sesija::tikrintiPrisijungima();
 // Prisijungusio vartotojo duomenys
 $vardas = $_SESSION['vardas'] ?? '';
 $pavarde = $_SESSION['pavarde'] ?? '';
-$pareigos = "Kokybės inžinierius";
+$pareigos = '';
+$vartotojo_id = $_SESSION['vartotojas_id'] ?? 0;
+if ($vartotojo_id) {
+    $conn_tmp = Database::getConnection();
+    $stmt_par = $conn_tmp->prepare("SELECT pareigos FROM vartotojai WHERE id = ?");
+    $stmt_par->execute([$vartotojo_id]);
+    $par_row = $stmt_par->fetch(PDO::FETCH_ASSOC);
+    if ($par_row) $pareigos = $par_row['pareigos'] ?? '';
+}
+if (empty($pareigos)) $pareigos = 'Kokybės inžinierius';
 $data = date("Y-m-d");
 
 $conn = Database::getConnection();
@@ -647,7 +656,7 @@ function removeIzemRow(btn) {
 <div class="mt-3 p-2 border rounded d-flex align-items-center justify-content-between mb-4" style="background:#f9f9f9;">
     <div style="flex:1; font-size:14px; line-height:1.4;">
         <strong>Data:</strong> <?=$data?> | 
-        <strong>Pareigos:</strong> <?=$pareigos?> 
+        <strong>Pareigos:</strong> <?=htmlspecialchars($pareigos)?> 
     </div>
     <div style="display:inline-flex; align-items:center; gap:10px;">
         <span style="font-size:14px;">

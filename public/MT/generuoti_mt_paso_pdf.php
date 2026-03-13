@@ -162,18 +162,23 @@ if (!empty($galingumas_kva)) {
 }
 
 $parasas_base64 = '';
+$pareigos = '';
 $vartotojo_id = $_SESSION['vartotojas_id'] ?? 0;
 if ($vartotojo_id) {
-    $stmt_par = $conn->prepare("SELECT parasas, parasas_tipas FROM vartotojai WHERE id = ? AND parasas IS NOT NULL");
+    $stmt_par = $conn->prepare("SELECT parasas, parasas_tipas, pareigos FROM vartotojai WHERE id = ?");
     $stmt_par->execute([$vartotojo_id]);
     $par_row = $stmt_par->fetch(PDO::FETCH_ASSOC);
-    if ($par_row && !empty($par_row['parasas'])) {
-        $par_mime = $par_row['parasas_tipas'] ?: 'image/jpeg';
-        $par_data = $par_row['parasas'];
-        if (is_resource($par_data)) $par_data = stream_get_contents($par_data);
-        $parasas_base64 = 'data:' . $par_mime . ';base64,' . base64_encode($par_data);
+    if ($par_row) {
+        $pareigos = $par_row['pareigos'] ?? '';
+        if (!empty($par_row['parasas'])) {
+            $par_mime = $par_row['parasas_tipas'] ?: 'image/jpeg';
+            $par_data = $par_row['parasas'];
+            if (is_resource($par_data)) $par_data = stream_get_contents($par_data);
+            $parasas_base64 = 'data:' . $par_mime . ';base64,' . base64_encode($par_data);
+        }
     }
 }
+if (empty($pareigos)) $pareigos = 'Kokybės inžinierius';
 if (empty($parasas_base64)) {
     $parasas_path = __DIR__ . '/../img/parasas_elga.jpg';
     if (file_exists($parasas_path)) {
@@ -348,7 +353,7 @@ body {
 <table class="sig-table">
     <tr>
         <td style="width:33%;text-align:left;">
-            <div class="sig-title">Kokybės inžinierius</div>
+            <div class="sig-title">' . htmlspecialchars($pareigos) . '</div>
             <div class="sig-name">' . htmlspecialchars($inzinierius) . '</div>
             <div class="sig-subtitle">Pareigos, Vardas, Pavardė</div>
         </td>

@@ -141,6 +141,15 @@ $serijos_nr = $uzsakymo_numeris;
 $data = date("Y-m-d");
 $gaminio_pasas = "MT/" . $uzsakymo_numeris;
 $inzinierius = ($_SESSION['vardas'] ?? '') . ' ' . ($_SESSION['pavarde'] ?? '');
+$pareigos = '';
+$vartotojo_id = $_SESSION['vartotojas_id'] ?? 0;
+if ($vartotojo_id) {
+    $stmt_par = $conn->prepare("SELECT pareigos FROM vartotojai WHERE id = ?");
+    $stmt_par->execute([$vartotojo_id]);
+    $par_row = $stmt_par->fetch(PDO::FETCH_ASSOC);
+    if ($par_row) $pareigos = $par_row['pareigos'] ?? '';
+}
+if (empty($pareigos)) $pareigos = 'Kokybės inžinierius';
 
 $nuoroda_atgal = "/uzsakymai.php?view=" . urlencode($uzsakymo_id);
 
@@ -904,7 +913,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div class="paso-signature-zone">
         <div class="paso-sig-left">
-            <div class="sig-title">Kokybės inžinierius</div>
+            <div class="sig-title"><?= htmlspecialchars($pareigos) ?></div>
             <div class="sig-name"><?= htmlspecialchars($inzinierius) ?></div>
             <div class="sig-subtitle">Pareigos, Vardas, Pavardė</div>
         </div>

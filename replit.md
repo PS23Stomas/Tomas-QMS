@@ -52,7 +52,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **Data Synchronization**: Manual trigger for comprehensive data sync (orders, products, tests, components, PDFs) to an external Tomo QMS database. Includes a sync log viewer.
     - **Import optimization**: The `importuotiILocalDB()` method uses batch queries — 3 large SELECT queries to quality_tomas (gaminiai, bandymai, komponentai) instead of per-order queries. Prepared statements are reused across iterations. Import includes `ignore_user_abort(true)` and `set_time_limit(300)` for production reliability.
     - **Import diagnostics**: Result includes `faze2_apdoroti`, `faze2_be_gaminiu`, `faze2_praleisti` counters for Phase 2 visibility.
-- **User Management**: Admin-only user creation, editing, and role assignment (admin, user, skaitytojas).
+- **User Management**: Admin-only user creation, editing, and role assignment (admin, user, skaitytojas). Each user has a `pareigos` (job title) field that is displayed in PDF signature blocks (functional tests, dielectric tests, MT passport). Defaults to "Kokybės inžinierius" when empty.
 - **Class-based Architecture**: Utilizes PHP classes for database interaction, migrations, email handling, and specific data models (e.g., `Gaminys`, `TomoQMS`).
 - **Auto-migration**: Idempotent database migrations on page load (`DBMigracija.php`).
 - **Company Settings**: Configurable company details (name, address, phone, fax, email, website, logo) stored in `imones_nustatymai` table. Admin-only settings page at `imones_nustatymai.php`. Helper function `getImonesNustatymai()` in `config.php` provides cached access. All PDF generators and email templates use dynamic company data instead of hardcoded values.

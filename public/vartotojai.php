@@ -47,12 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     // Vartotojo duomenų atnaujinimas (su galimybe pakeisti slaptažodį)
     } elseif ($action === 'update') {
-        $fields = "vardas = :vardas, pavarde = :pavarde, el_pastas = :el_pastas, role = :role";
+        $fields = "vardas = :vardas, pavarde = :pavarde, el_pastas = :el_pastas, role = :role, pareigos = :pareigos";
         $params = [
             'vardas' => $_POST['vardas'] ?? '',
             'pavarde' => $_POST['pavarde'] ?? '',
             'el_pastas' => $_POST['el_pastas'] ?? '',
             'role' => $_POST['role'] ?? 'user',
+            'pareigos' => trim($_POST['pareigos'] ?? ''),
             'id' => $_POST['id'],
         ];
 
@@ -115,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Vartotojų sąrašo gavimas su patvirtintojo informacija
-$users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazodis, v.role, v.patvirtintas, v.patvirtino_id, v.patvirtinimo_data, CASE WHEN v.parasas IS NOT NULL THEN true ELSE false END AS turi_parasa, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
+$users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazodis, v.role, v.pareigos, v.patvirtintas, v.patvirtino_id, v.patvirtinimo_data, CASE WHEN v.parasas IS NOT NULL THEN true ELSE false END AS turi_parasa, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
 
 // Vartotojų skaičius pagal roles statistikai
 $role_counts = $pdo->query("SELECT role, COUNT(*) as cnt FROM vartotojai GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -316,6 +317,11 @@ require_once __DIR__ . '/includes/header.php';
                     </select>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">Pareigos</label>
+                    <input type="text" class="form-control" name="pareigos" id="edit_user_pareigos" placeholder="pvz. Kokybės inžinierius" data-testid="input-user-pareigos-edit">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Rodoma PDF aktų ir protokolų formose</div>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Parašas</label>
                     <div id="edit_parasas_preview" style="display:none; margin-bottom: 8px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e2e8f0; text-align: center;">
                         <img id="edit_parasas_img" src="" alt="Parašas" style="max-height: 60px; max-width: 200px;">
@@ -345,6 +351,7 @@ function editUser(u) {
     document.getElementById('edit_user_pavarde').value = u.pavarde || '';
     document.getElementById('edit_user_el_pastas').value = u.el_pastas || '';
     document.getElementById('edit_user_role').value = u.role || 'user';
+    document.getElementById('edit_user_pareigos').value = u.pareigos || '';
 
     var preview = document.getElementById('edit_parasas_preview');
     var img = document.getElementById('edit_parasas_img');

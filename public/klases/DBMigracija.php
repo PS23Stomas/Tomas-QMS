@@ -29,6 +29,7 @@ class DBMigracija {
         $this->sinchronizuotiSekas();
         $this->sukurtiImonesNustatymuLentele();
         $this->pridetiVartotojoParasoStulpelius();
+        $this->pridetiVartotojoPareiguStulpeli();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -334,6 +335,17 @@ class DBMigracija {
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE vartotojai ADD COLUMN parasas BYTEA, ADD COLUMN parasas_tipas VARCHAR(50)");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiVartotojoPareiguStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'vartotojai' AND column_name = 'pareigos'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE vartotojai ADD COLUMN pareigos VARCHAR(100) DEFAULT ''");
             }
         } catch (PDOException $e) {
         }
