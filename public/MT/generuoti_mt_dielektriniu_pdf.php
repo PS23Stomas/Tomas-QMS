@@ -73,12 +73,6 @@ if ($vartotojo_id) {
     }
 }
 if (empty($pareigos)) $pareigos = 'Kokybės inžinierius';
-if (empty($parasas_base64)) {
-    $parasas_path = __DIR__ . '/../img/parasas_elga.jpg';
-    if (file_exists($parasas_path)) {
-        $parasas_base64 = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($parasas_path));
-    }
-}
 
 $prietaisai_html = '';
 if (!empty($prietaisai)) {
