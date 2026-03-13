@@ -1,4 +1,4 @@
-he<?php
+<?php
 /**
  * Bendras puslapio antraštės šablonas su šonine navigacija
  *
