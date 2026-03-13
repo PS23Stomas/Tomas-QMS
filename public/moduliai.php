@@ -85,6 +85,8 @@ if (isset($_GET['pasirinkti'])) {
     }
 }
 
+unset($_SESSION['aktyvus_modulis'], $_SESSION['aktyvus_modulis_pav'], $_SESSION['aktyvus_grupe']);
+
 $moduliai = $pdo->query("SELECT gr.id, gr.pavadinimas, 
     (SELECT COUNT(*) FROM gaminio_tipai gt WHERE gt.grupe = gr.pavadinimas) AS tipu_kiekis,
     (SELECT COUNT(*) FROM uzsakymai u WHERE u.gaminiu_rusis_id = gr.id) AS uzsakymu_kiekis,
