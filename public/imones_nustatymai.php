@@ -55,6 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':internetas' => $internetas,
                         ':id' => $uzsakymo_id,
                     ]);
+                    if ($stmt->rowCount() === 0) {
+                        $error = 'Užsakymas nerastas.';
+                        if ($is_ajax) {
+                            header('Content-Type: application/json');
+                            echo json_encode(['ok' => false, 'message' => $error]);
+                            exit;
+                        }
+                    }
 
                     $logo_sql = '';
                     $logo_params = [];
