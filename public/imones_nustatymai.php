@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $faksas = trim($_POST['faksas'] ?? '');
         $el_pastas = trim($_POST['el_pastas'] ?? '');
         $internetas = trim($_POST['internetas'] ?? '');
+        $uzsakymo_id = (int)($_POST['uzsakymo_id'] ?? 0);
 
         $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
@@ -36,58 +37,117 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             try {
-                $logo_sql = '';
-                $params = [
-                    ':pavadinimas' => $pavadinimas,
-                    ':adresas' => $adresas,
-                    ':telefonas' => $telefonas,
-                    ':faksas' => $faksas,
-                    ':el_pastas' => $el_pastas,
-                    ':internetas' => $internetas,
-                ];
+                if ($uzsakymo_id > 0) {
+                    $stmt = $pdo->prepare("UPDATE uzsakymai SET 
+                        imone_pavadinimas = :pavadinimas,
+                        imone_adresas = :adresas,
+                        imone_telefonas = :telefonas,
+                        imone_faksas = :faksas,
+                        imone_el_pastas = :el_pastas,
+                        imone_internetas = :internetas
+                        WHERE id = :id");
+                    $stmt->execute([
+                        ':pavadinimas' => $pavadinimas,
+                        ':adresas' => $adresas,
+                        ':telefonas' => $telefonas,
+                        ':faksas' => $faksas,
+                        ':el_pastas' => $el_pastas,
+                        ':internetas' => $internetas,
+                        ':id' => $uzsakymo_id,
+                    ]);
 
-                if (!empty($_POST['remove_logo'])) {
-                    $logo_sql = ', logotipas = NULL, logotipo_tipas = NULL';
-                } elseif (!empty($_FILES['logotipas']['tmp_name']) && $_FILES['logotipas']['error'] === UPLOAD_ERR_OK) {
-                    $tmp = $_FILES['logotipas']['tmp_name'];
-                    $dydis = $_FILES['logotipas']['size'];
-                    if ($dydis > 5 * 1024 * 1024) {
-                        $error = 'Logotipo failas per didelis. Maksimalus dydis: 5 MB.';
-                    } else {
-                        $finfo = new finfo(FILEINFO_MIME_TYPE);
-                        $mime = $finfo->file($tmp);
-                        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
-                        if (!in_array($mime, $allowed)) {
-                            $error = 'Netinkamas failo formatas. Leidžiami: JPEG, PNG, GIF, SVG, WebP.';
+                    $logo_sql = '';
+                    $logo_params = [];
+                    if (!empty($_POST['remove_logo'])) {
+                        $logo_sql = ', logotipas = NULL, logotipo_tipas = NULL';
+                    } elseif (!empty($_FILES['logotipas']['tmp_name']) && $_FILES['logotipas']['error'] === UPLOAD_ERR_OK) {
+                        $tmp = $_FILES['logotipas']['tmp_name'];
+                        $dydis = $_FILES['logotipas']['size'];
+                        if ($dydis > 5 * 1024 * 1024) {
+                            $error = 'Logotipo failas per didelis. Maksimalus dydis: 5 MB.';
                         } else {
-                            $logo_data = file_get_contents($tmp);
-                            $logo_sql = ', logotipas = :logotipas, logotipo_tipas = :logotipo_tipas';
-                            $params[':logotipas'] = $logo_data;
-                            $params[':logotipo_tipas'] = $mime;
+                            $finfo = new finfo(FILEINFO_MIME_TYPE);
+                            $mime = $finfo->file($tmp);
+                            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
+                            if (!in_array($mime, $allowed)) {
+                                $error = 'Netinkamas failo formatas. Leidžiami: JPEG, PNG, GIF, SVG, WebP.';
+                            } else {
+                                $logo_data = file_get_contents($tmp);
+                                $logo_sql = ', logotipas = :logotipas, logotipo_tipas = :logotipo_tipas';
+                                $logo_params[':logotipas'] = $logo_data;
+                                $logo_params[':logotipo_tipas'] = $mime;
+                            }
                         }
                     }
-                }
+                    if (empty($error) && $logo_sql !== '') {
+                        $sql2 = "UPDATE imones_nustatymai SET pavadinimas = pavadinimas $logo_sql WHERE id = (SELECT id FROM imones_nustatymai LIMIT 1)";
+                        $stmt2 = $pdo->prepare($sql2);
+                        if (isset($logo_params[':logotipas'])) {
+                            $stmt2->bindParam(':logotipas', $logo_params[':logotipas'], PDO::PARAM_LOB);
+                            if (isset($logo_params[':logotipo_tipas'])) {
+                                $stmt2->bindValue(':logotipo_tipas', $logo_params[':logotipo_tipas']);
+                            }
+                        }
+                        $stmt2->execute();
+                    }
 
-                if (empty($error)) {
-                    $sql = "UPDATE imones_nustatymai SET 
-                        pavadinimas = :pavadinimas, 
-                        adresas = :adresas, 
-                        telefonas = :telefonas, 
-                        faksas = :faksas, 
-                        el_pastas = :el_pastas, 
-                        internetas = :internetas
-                        $logo_sql
-                        WHERE id = (SELECT id FROM imones_nustatymai LIMIT 1)";
-                    $stmt = $pdo->prepare($sql);
-                    if (isset($params[':logotipas'])) {
-                        $stmt->bindParam(':logotipas', $params[':logotipas'], PDO::PARAM_LOB);
-                        unset($params[':logotipas']);
+                    if (empty($error)) {
+                        $message = 'Užsakymo įmonės nustatymai sėkmingai atnaujinti.';
                     }
-                    foreach ($params as $key => $val) {
-                        $stmt->bindValue($key, $val);
+                } else {
+                    $logo_sql = '';
+                    $params = [
+                        ':pavadinimas' => $pavadinimas,
+                        ':adresas' => $adresas,
+                        ':telefonas' => $telefonas,
+                        ':faksas' => $faksas,
+                        ':el_pastas' => $el_pastas,
+                        ':internetas' => $internetas,
+                    ];
+
+                    if (!empty($_POST['remove_logo'])) {
+                        $logo_sql = ', logotipas = NULL, logotipo_tipas = NULL';
+                    } elseif (!empty($_FILES['logotipas']['tmp_name']) && $_FILES['logotipas']['error'] === UPLOAD_ERR_OK) {
+                        $tmp = $_FILES['logotipas']['tmp_name'];
+                        $dydis = $_FILES['logotipas']['size'];
+                        if ($dydis > 5 * 1024 * 1024) {
+                            $error = 'Logotipo failas per didelis. Maksimalus dydis: 5 MB.';
+                        } else {
+                            $finfo = new finfo(FILEINFO_MIME_TYPE);
+                            $mime = $finfo->file($tmp);
+                            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
+                            if (!in_array($mime, $allowed)) {
+                                $error = 'Netinkamas failo formatas. Leidžiami: JPEG, PNG, GIF, SVG, WebP.';
+                            } else {
+                                $logo_data = file_get_contents($tmp);
+                                $logo_sql = ', logotipas = :logotipas, logotipo_tipas = :logotipo_tipas';
+                                $params[':logotipas'] = $logo_data;
+                                $params[':logotipo_tipas'] = $mime;
+                            }
+                        }
                     }
-                    $stmt->execute();
-                    $message = 'Įmonės nustatymai sėkmingai atnaujinti.';
+
+                    if (empty($error)) {
+                        $sql = "UPDATE imones_nustatymai SET 
+                            pavadinimas = :pavadinimas, 
+                            adresas = :adresas, 
+                            telefonas = :telefonas, 
+                            faksas = :faksas, 
+                            el_pastas = :el_pastas, 
+                            internetas = :internetas
+                            $logo_sql
+                            WHERE id = (SELECT id FROM imones_nustatymai LIMIT 1)";
+                        $stmt = $pdo->prepare($sql);
+                        if (isset($params[':logotipas'])) {
+                            $stmt->bindParam(':logotipas', $params[':logotipas'], PDO::PARAM_LOB);
+                            unset($params[':logotipas']);
+                        }
+                        foreach ($params as $key => $val) {
+                            $stmt->bindValue($key, $val);
+                        }
+                        $stmt->execute();
+                        $message = 'Įmonės nustatymai sėkmingai atnaujinti.';
+                    }
                 }
 
                 if ($is_ajax) {

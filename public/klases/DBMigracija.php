@@ -30,6 +30,7 @@ class DBMigracija {
         $this->sukurtiImonesNustatymuLentele();
         $this->pridetiVartotojoParasoStulpelius();
         $this->pridetiVartotojoPareiguStulpeli();
+        $this->pridetiUzsakymoImonesStulpelius();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -346,6 +347,24 @@ class DBMigracija {
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE vartotojai ADD COLUMN pareigos VARCHAR(100) DEFAULT ''");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiUzsakymoImonesStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'uzsakymai' AND column_name = 'imone_pavadinimas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE uzsakymai 
+                    ADD COLUMN imone_pavadinimas VARCHAR(255),
+                    ADD COLUMN imone_adresas TEXT,
+                    ADD COLUMN imone_telefonas VARCHAR(100),
+                    ADD COLUMN imone_faksas VARCHAR(100),
+                    ADD COLUMN imone_el_pastas VARCHAR(255),
+                    ADD COLUMN imone_internetas VARCHAR(255)
+                ");
             }
         } catch (PDOException $e) {
         }

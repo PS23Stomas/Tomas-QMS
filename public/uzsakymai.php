@@ -694,38 +694,47 @@ require_once __DIR__ . '/includes/header.php';
         </form>
         </div>
         <?php if ($is_admin): ?>
+        <?php
+            $uzs_imone_pav = $order['imone_pavadinimas'] ?? $imones_nust['pavadinimas'] ?? '';
+            $uzs_imone_adr = $order['imone_adresas'] ?? $imones_nust['adresas'] ?? '';
+            $uzs_imone_tel = $order['imone_telefonas'] ?? $imones_nust['telefonas'] ?? '';
+            $uzs_imone_fax = $order['imone_faksas'] ?? $imones_nust['faksas'] ?? '';
+            $uzs_imone_el = $order['imone_el_pastas'] ?? $imones_nust['el_pastas'] ?? '';
+            $uzs_imone_web = $order['imone_internetas'] ?? $imones_nust['internetas'] ?? '';
+        ?>
         <div id="editTabImone" style="display:none;">
             <form id="imones-form" enctype="multipart/form-data" data-testid="form-company-settings-modal">
                 <input type="hidden" name="action" value="update">
+                <input type="hidden" name="uzsakymo_id" value="<?= $order['id'] ?>">
                 <div class="modal-body">
-                    <p style="color:var(--text-secondary,#6b7280);font-size:13px;margin-bottom:12px;">Šie duomenys rodomi PDF dokumentų antraštėse</p>
+                    <p style="color:var(--text-secondary,#6b7280);font-size:13px;margin-bottom:12px;">Šie duomenys rodomi šio užsakymo PDF dokumentų antraštėse</p>
                     <div id="imones-msg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:6px;font-size:14px;" data-testid="text-imones-msg"></div>
                     <div class="form-group">
                         <label class="form-label">Pavadinimas <span style="color:var(--danger,#dc3545);">*</span></label>
-                        <input type="text" class="form-control" name="pavadinimas" value="<?= h($imones_nust['pavadinimas'] ?? '') ?>" required data-testid="input-company-name">
+                        <input type="text" class="form-control" name="pavadinimas" value="<?= h($uzs_imone_pav) ?>" required data-testid="input-company-name">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Adresas</label>
-                        <textarea class="form-control" name="adresas" rows="2" data-testid="input-company-address"><?= h($imones_nust['adresas'] ?? '') ?></textarea>
+                        <textarea class="form-control" name="adresas" rows="2" data-testid="input-company-address"><?= h($uzs_imone_adr) ?></textarea>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">Telefonas</label>
-                            <input type="text" class="form-control" name="telefonas" value="<?= h($imones_nust['telefonas'] ?? '') ?>" data-testid="input-company-phone">
+                            <input type="text" class="form-control" name="telefonas" value="<?= h($uzs_imone_tel) ?>" data-testid="input-company-phone">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Faksas</label>
-                            <input type="text" class="form-control" name="faksas" value="<?= h($imones_nust['faksas'] ?? '') ?>" data-testid="input-company-fax">
+                            <input type="text" class="form-control" name="faksas" value="<?= h($uzs_imone_fax) ?>" data-testid="input-company-fax">
                         </div>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">El. paštas</label>
-                            <input type="email" class="form-control" name="el_pastas" value="<?= h($imones_nust['el_pastas'] ?? '') ?>" data-testid="input-company-email">
+                            <input type="email" class="form-control" name="el_pastas" value="<?= h($uzs_imone_el) ?>" data-testid="input-company-email">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Interneto svetainė</label>
-                            <input type="text" class="form-control" name="internetas" value="<?= h($imones_nust['internetas'] ?? '') ?>" data-testid="input-company-website">
+                            <input type="text" class="form-control" name="internetas" value="<?= h($uzs_imone_web) ?>" data-testid="input-company-website">
                         </div>
                     </div>
                     <div class="form-group">

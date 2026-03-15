@@ -104,3 +104,31 @@ function getImonesNustatymai(): array {
     }
     return $cache;
 }
+
+function getUzsakymoImone(int $uzsakymo_id): array {
+    $global = getImonesNustatymai();
+    if ($uzsakymo_id <= 0) return $global;
+    try {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT imone_pavadinimas, imone_adresas, imone_telefonas, imone_faksas, imone_el_pastas, imone_internetas FROM uzsakymai WHERE id = ?");
+        $stmt->execute([$uzsakymo_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $map = [
+                'imone_pavadinimas' => 'pavadinimas',
+                'imone_adresas' => 'adresas',
+                'imone_telefonas' => 'telefonas',
+                'imone_faksas' => 'faksas',
+                'imone_el_pastas' => 'el_pastas',
+                'imone_internetas' => 'internetas',
+            ];
+            foreach ($map as $col => $key) {
+                if ($row[$col] !== null) {
+                    $global[$key] = $row[$col];
+                }
+            }
+        }
+    } catch (PDOException $e) {
+    }
+    return $global;
+}

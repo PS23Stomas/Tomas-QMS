@@ -20,10 +20,15 @@ $gaminio_pavadinimas = $_POST['gaminio_pavadinimas'] ?? $_GET['gaminio_pavadinim
 $uzsakymo_id = $_POST['uzsakymo_id'] ?? $_GET['uzsakymo_id'] ?? '';
 
 $grupes_pavadinimas = 'MT';
+$uzsakymo_id_db = 0;
 try {
-    $stmtGr = $conn->prepare("SELECT gr.pavadinimas FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
+    $stmtGr = $conn->prepare("SELECT gr.pavadinimas, u.id as uzs_id FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
     $stmtGr->execute([':gid' => $gaminio_id]);
-    $grupes_pavadinimas = $stmtGr->fetchColumn() ?: 'MT';
+    $grRow = $stmtGr->fetch(PDO::FETCH_ASSOC);
+    if ($grRow) {
+        $grupes_pavadinimas = $grRow['pavadinimas'] ?: 'MT';
+        $uzsakymo_id_db = (int)($grRow['uzs_id'] ?? 0);
+    }
 } catch (PDOException $e) {}
 $lang = $_POST['lang'] ?? $_GET['lang'] ?? 'lt';
 
@@ -214,7 +219,7 @@ if ($trafo_kiekis >= 2) {
     $saugikliu_36_html = generuotiSaugikliuHtml($mt_saugikliai_36, $poz_36);
 }
 
-$imone = getImonesNustatymai();
+$imone = getUzsakymoImone($uzsakymo_id_db);
 
 $html = '
 <style>

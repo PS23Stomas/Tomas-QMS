@@ -20,10 +20,15 @@ if (!$gaminio_id) {
 }
 
 $grupes_pavadinimas = 'MT';
+$uzsakymo_id_db = 0;
 try {
-    $stmtGr = $conn->prepare("SELECT gr.pavadinimas FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
+    $stmtGr = $conn->prepare("SELECT gr.pavadinimas, u.id as uzs_id FROM gaminiai g JOIN uzsakymai u ON g.uzsakymo_id = u.id JOIN gaminiu_rusys gr ON u.gaminiu_rusis_id = gr.id WHERE g.id = :gid");
     $stmtGr->execute([':gid' => $gaminio_id]);
-    $grupes_pavadinimas = $stmtGr->fetchColumn() ?: 'MT';
+    $grRow = $stmtGr->fetch(PDO::FETCH_ASSOC);
+    if ($grRow) {
+        $grupes_pavadinimas = $grRow['pavadinimas'] ?: 'MT';
+        $uzsakymo_id_db = (int)($grRow['uzs_id'] ?? 0);
+    }
 } catch (PDOException $e) {}
 
 $stmt = $conn->prepare("SELECT id, protokolo_nr, dielektriniai_issaugoti, gaminio_numeris, pavadinimas FROM gaminiai WHERE id=?");
@@ -157,7 +162,7 @@ if (!empty($izem)) {
     $izem_html = '<tr><td colspan="6">Duomenys nesuvesti</td></tr>';
 }
 
-$imone = getImonesNustatymai();
+$imone = getUzsakymoImone($uzsakymo_id_db);
 
 $html = '
 <style>
