@@ -222,6 +222,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $redirect = '/uzsakymai.php?grupe=' . urlencode($filtro_grupe);
+        $redir_id = $_GET['id'] ?? '';
+        if ($redir_id !== '') $redirect .= '&id=' . urlencode($redir_id);
         if (!empty($message)) $redirect .= '&msg=' . urlencode($message);
         if (!empty($error)) $redirect .= '&klaida=' . urlencode($error);
         header('Location: ' . $redirect);
