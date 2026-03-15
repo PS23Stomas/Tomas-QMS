@@ -61,6 +61,61 @@ $stmt = $conn->prepare("SELECT * FROM izeminimo_tikrinimas WHERE gaminys_id=? OR
 $stmt->execute([$gaminio_id]);
 $izem = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$trafo_kiekis = 1;
+if (preg_match_all('/(\d+)x(\d+)/', $gaminio_pavadinimas_db ?: $gaminio_pavadinimas, $all_matches, PREG_SET_ORDER)) {
+    foreach ($all_matches as $m) {
+        if (intval($m[2]) >= 100) {
+            $trafo_kiekis = intval($m[1]);
+            break;
+        }
+    }
+}
+
+$stmt = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.5' ORDER BY pozicijos_numeris ASC");
+$stmt->execute([$gaminio_id]);
+$mt_saugikliai = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$mt_saugikliai_36 = [];
+if ($trafo_kiekis >= 2) {
+    $stmt = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = ? AND sekcija = '3.6' ORDER BY pozicijos_numeris ASC");
+    $stmt->execute([$gaminio_id]);
+    $mt_saugikliai_36 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function generuotiSaugikliuHtmlDiel($duomenys, $pozicijos) {
+    $saug_map = [];
+    foreach ($duomenys as $s) {
+        $saug_map[(int)$s['pozicijos_numeris']] = $s;
+    }
+    $html = '<table class="saugikliu-sub"><tr class="sub-header">';
+    foreach ($pozicijos as $p) { $html .= '<td>' . $p . '</td>'; }
+    $html .= '</tr><tr>';
+    foreach ($pozicijos as $p) {
+        $html .= '<td>' . htmlspecialchars($saug_map[$p]['gabaritas'] ?? '') . '</td>';
+    }
+    $html .= '</tr><tr>';
+    foreach ($pozicijos as $p) {
+        $html .= '<td>' . htmlspecialchars($saug_map[$p]['nominalas'] ?? '') . '</td>';
+    }
+    $html .= '</tr></table>';
+    return $html;
+}
+
+if ($trafo_kiekis == 1) {
+    $poz_35 = range(1, 15);
+    $label_35 = 'ŠĮ-0,4 sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
+} else {
+    $poz_35 = array_merge(range(101, 106), range(301, 304));
+    $label_35 = 'Š1-0,4 (ir Š3-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
+}
+$saugikliu_html = generuotiSaugikliuHtmlDiel($mt_saugikliai, $poz_35);
+
+$saugikliu_36_html = '';
+if ($trafo_kiekis >= 2) {
+    $poz_36 = array_merge(range(201, 206), range(401, 404));
+    $saugikliu_36_html = generuotiSaugikliuHtmlDiel($mt_saugikliai_36, $poz_36);
+}
+
 $parasas_base64 = '';
 $vartotojo_id = $_SESSION['vartotojas_id'] ?? 0;
 if ($vartotojo_id) {
@@ -211,6 +266,23 @@ table.data-table th {
 .sig-subtitle { font-size: 9px; color: #666; }
 .sig-date-label { font-size: 9px; color: #666; }
 .sig-label { font-size: 9px; color: #666; }
+.saugikliu-sub {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    margin: 0;
+}
+.saugikliu-sub td {
+    border: 1px solid #000;
+    padding: 2px 3px;
+    text-align: center;
+    vertical-align: middle;
+}
+.saugikliu-sub .sub-header td {
+    background: #e9ecef;
+    font-weight: 700;
+    font-size: 9px;
+}
 </style>
 
 <div class="company-header">
@@ -234,6 +306,17 @@ table.data-table th {
 <tr><th>Nr.</th><th>Tipas</th><th>Nr.</th><th>Patikra</th><th>Galioja iki</th><th>Sertifikatas</th></tr>
 </thead>
 <tbody>' . $prietaisai_html . '</tbody>
+</table>
+
+<h3>SAUGIKLIŲ ĮDĖKLAI</h3>
+<table class="data-table">
+<thead>
+<tr><th>Nr.</th><th>Aprašymas</th><th>Gabaritas / Nominalas</th></tr>
+</thead>
+<tbody>
+<tr><td>3.5</td><td class="text-left">' . htmlspecialchars($label_35) . '</td><td style="padding:0;">' . ($saugikliu_html ?: 'Duomenys nesuvesti') . '</td></tr>
+' . ($trafo_kiekis >= 2 ? '<tr><td>3.6</td><td class="text-left">Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:</td><td style="padding:0;">' . ($saugikliu_36_html ?: 'Duomenys nesuvesti') . '</td></tr>' : '') . '
+</tbody>
 </table>
 
 ' . (!empty($vid_itampa) || !$jau_issaugota ? '

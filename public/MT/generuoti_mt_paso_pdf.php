@@ -208,14 +208,14 @@ if ($trafo_kiekis == 1) {
     $poz_35 = range(1, 15);
     $label_35 = 'ŠĮ-0,4 sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
 } else {
-    $poz_35 = array_merge(range(301, 304), range(102, 107));
+    $poz_35 = array_merge(range(101, 106), range(301, 304));
     $label_35 = 'Š1-0,4 (ir Š3-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
 }
 $saugikliu_html = generuotiSaugikliuHtml($mt_saugikliai, $poz_35);
 
 $saugikliu_36_html = '';
 if ($trafo_kiekis >= 2) {
-    $poz_36 = array_merge(range(202, 206), range(401, 404));
+    $poz_36 = array_merge(range(201, 206), range(401, 404));
     $saugikliu_36_html = generuotiSaugikliuHtml($mt_saugikliai_36, $poz_36);
 }
 
