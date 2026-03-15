@@ -70,6 +70,19 @@ if (empty($reikalavimai) && !$nera_sablono) {
 $gaminys = new Gaminys($conn);
 $gaminio_pavadinimas = $gaminys->gautiPilnaPavadinima($uzsakymo_numeris);
 
+$individualus_pavadinimas = '';
+if ($gaminio_id > 0) {
+    $stmt_pav = $conn->prepare("SELECT g.pavadinimas, gt.gaminio_tipas FROM gaminiai g LEFT JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id WHERE g.id = ?");
+    $stmt_pav->execute([$gaminio_id]);
+    $pav_row = $stmt_pav->fetch(PDO::FETCH_ASSOC);
+    if ($pav_row) {
+        $individualus_pavadinimas = $pav_row['pavadinimas'] ?? '';
+        if (!empty($pav_row['gaminio_tipas'])) {
+            $gaminio_pavadinimas = $pav_row['gaminio_tipas'];
+        }
+    }
+}
+
 $gaminio_info = $gaminys->gautiPagalId($gaminio_id);
 $turi_funkciniu_pdf = !empty($gaminio_info['mt_funkciniu_failas']);
 $pdf_sukurtas = $_GET['pdf_sukurtas'] ?? '';
@@ -157,7 +170,7 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
     <div class="mb-4">
         <h5><strong>Užsakymo numeris:</strong> <?= htmlspecialchars($uzsakymo_numeris) ?></h5>
         <h5><strong>Užsakovas:</strong> <?= htmlspecialchars($uzsakovas) ?></h5>
-        <h5><strong>Gaminio pavadinimas:</strong> <?= htmlspecialchars($gaminio_pavadinimas) ?></h5>
+        <h5><strong>Gaminio pavadinimas:</strong> <?= htmlspecialchars($individualus_pavadinimas ?: $gaminio_pavadinimas) ?></h5>
     </div>
 
     <?php if (isset($_GET['issaugota']) && $_GET['issaugota'] === 'taip'): ?>
