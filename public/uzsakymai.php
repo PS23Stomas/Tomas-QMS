@@ -55,7 +55,7 @@ if ($is_admin) {
 }
 
 $message = $_GET['msg'] ?? '';
-$error = '';
+$error = $_GET['klaida'] ?? '';
 
 // POST veiksmų apdorojimas: kūrimas, atnaujinimas arba trynimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -204,6 +204,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } elseif ($action === 'delete_pdf') {
+        $user = currentUser();
+        if (($user['role'] ?? '') !== 'admin') {
+            $error = 'Tik administratorius gali trinti PDF failus.';
+        } else {
+            $gam_id = (int)($_POST['gaminio_id'] ?? 0);
+            $pdf_type = $_POST['pdf_type'] ?? '';
+            $allowed = ['paso' => 'mt_paso_failas', 'dielektriniu' => 'mt_dielektriniu_failas', 'funkciniu' => 'mt_funkciniu_failas'];
+            if ($gam_id > 0 && isset($allowed[$pdf_type])) {
+                $col = $allowed[$pdf_type];
+                $stmt = $pdo->prepare("UPDATE gaminiai SET $col = NULL WHERE id = ?");
+                $stmt->execute([$gam_id]);
+                $message = 'PDF failas ištrintas.';
+            } else {
+                $error = 'Neteisingi parametrai.';
+            }
+        }
+        $redirect = '/uzsakymai.php?grupe=' . urlencode($filtro_grupe);
+        if (!empty($message)) $redirect .= '&msg=' . urlencode($message);
+        if (!empty($error)) $redirect .= '&klaida=' . urlencode($error);
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 
@@ -813,7 +835,12 @@ require_once __DIR__ . '/includes/header.php';
                                     $pdf_g = $pdf_gaminys->fetch();
                                     ?>
                                     <?php if ($pdf_g): ?>
-                                    <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= $pdf_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-paso-pdf-<?= $o['id'] ?>">PDF</a>
+                                    <span class="pdf-cell-wrap">
+                                        <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= $pdf_g['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-testid="button-paso-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <?php if ($is_admin): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="deletePdf(<?= $pdf_g['id'] ?>, 'paso')" title="Ištrinti PDF" data-testid="button-delete-paso-pdf-<?= $o['id'] ?>">&times;</button>
+                                        <?php endif; ?>
+                                    </span>
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
@@ -826,13 +853,23 @@ require_once __DIR__ . '/includes/header.php';
                                     $diel_gaminiai->execute([$o['id']]);
                                     $diel_all = $diel_gaminiai->fetchAll(PDO::FETCH_ASSOC);
                                     if (count($diel_all) === 1): ?>
-                                    <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $diel_all[0]['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" data-testid="button-dielektriniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                    <span class="pdf-cell-wrap">
+                                        <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $diel_all[0]['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" data-testid="button-dielektriniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <?php if ($is_admin): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="deletePdf(<?= $diel_all[0]['id'] ?>, 'dielektriniu')" title="Ištrinti PDF" data-testid="button-delete-dielektriniu-pdf-<?= $o['id'] ?>">&times;</button>
+                                        <?php endif; ?>
+                                    </span>
                                     <?php else: ?>
                                     <div class="pdf-dropdown" data-testid="dropdown-dielektriniu-pdf-<?= $o['id'] ?>">
                                         <button type="button" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" onclick="togglePdfDropdown(this)">PDF ▾</button>
                                         <div class="pdf-dropdown-list">
                                         <?php foreach ($diel_all as $dg): ?>
-                                            <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $dg['id'] ?>" target="_blank"><?= htmlspecialchars($dg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($dg['pavadinimas'] ?: '—') ?></a>
+                                            <span class="pdf-dropdown-item-wrap">
+                                                <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?= $dg['id'] ?>" target="_blank"><?= htmlspecialchars($dg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($dg['pavadinimas'] ?: '—') ?></a>
+                                                <?php if ($is_admin): ?>
+                                                <button type="button" class="pdf-del-btn-sm" onclick="event.stopPropagation(); deletePdf(<?= $dg['id'] ?>, 'dielektriniu')" title="Ištrinti">&times;</button>
+                                                <?php endif; ?>
+                                            </span>
                                         <?php endforeach; ?>
                                         </div>
                                     </div>
@@ -848,8 +885,11 @@ require_once __DIR__ . '/includes/header.php';
                                     $funk_gaminiai->execute([$o['id']]);
                                     $funk_all = $funk_gaminiai->fetchAll(PDO::FETCH_ASSOC);
                                     if (count($funk_all) === 1): ?>
-                                    <span style="display:inline-flex;align-items:center;gap:3px;">
+                                    <span class="pdf-cell-wrap">
                                         <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $funk_all[0]['id'] ?>" target="_blank" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" data-testid="button-funkciniu-pdf-<?= $o['id'] ?>">PDF</a>
+                                        <?php if ($is_admin): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="deletePdf(<?= $funk_all[0]['id'] ?>, 'funkciniu')" title="Ištrinti PDF" data-testid="button-delete-funkciniu-pdf-<?= $o['id'] ?>">&times;</button>
+                                        <?php endif; ?>
                                         <?php if ($uzb_funk_err > 0): ?>
                                         <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -862,7 +902,12 @@ require_once __DIR__ . '/includes/header.php';
                                             <button type="button" class="btn btn-outline-primary btn-sm pdf-dropdown-btn" onclick="togglePdfDropdown(this)">PDF ▾</button>
                                             <div class="pdf-dropdown-list">
                                             <?php foreach ($funk_all as $fg): ?>
-                                                <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $fg['id'] ?>" target="_blank"><?= htmlspecialchars($fg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($fg['pavadinimas'] ?: '—') ?></a>
+                                                <span class="pdf-dropdown-item-wrap">
+                                                    <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $fg['id'] ?>" target="_blank"><?= htmlspecialchars($fg['gaminio_numeris'] ?: '—') ?> — <?= htmlspecialchars($fg['pavadinimas'] ?: '—') ?></a>
+                                                    <?php if ($is_admin): ?>
+                                                    <button type="button" class="pdf-del-btn-sm" onclick="event.stopPropagation(); deletePdf(<?= $fg['id'] ?>, 'funkciniu')" title="Ištrinti">&times;</button>
+                                                    <?php endif; ?>
+                                                </span>
                                             <?php endforeach; ?>
                                             </div>
                                         </div>
@@ -1354,5 +1399,19 @@ async function issaugotiImonesNustatymus() {
     btn.disabled = false;
     btn.textContent = 'Išsaugoti';
 }
+
+function deletePdf(gaminioId, pdfType) {
+    var labels = {paso: 'MT paso', dielektriniu: 'Dielektrinių bandymų', funkciniu: 'Funkcinių bandymų'};
+    if (!confirm('Ar tikrai norite ištrinti ' + (labels[pdfType] || '') + ' PDF failą?')) return;
+    var f = document.getElementById('delete-pdf-form');
+    f.querySelector('[name="gaminio_id"]').value = gaminioId;
+    f.querySelector('[name="pdf_type"]').value = pdfType;
+    f.submit();
+}
 </script>
+<form id="delete-pdf-form" method="POST" action="/uzsakymai.php?grupe=<?= urlencode($filtro_grupe) ?>" style="display:none;">
+    <input type="hidden" name="action" value="delete_pdf">
+    <input type="hidden" name="gaminio_id" value="">
+    <input type="hidden" name="pdf_type" value="">
+</form>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

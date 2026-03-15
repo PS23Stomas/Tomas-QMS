@@ -2160,6 +2160,50 @@ textarea.form-control {
     content: '📄';
     font-size: 14px;
 }
+.pdf-cell-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.pdf-del-btn {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.pdf-del-btn:hover {
+    opacity: 1;
+}
+.pdf-dropdown-item-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pdf-dropdown-item-wrap a {
+    flex: 1;
+}
+.pdf-del-btn-sm {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+}
+.pdf-del-btn-sm:hover {
+    opacity: 1;
+}
 
 /* ==========================================================================
    41. BREADCRUMB NAVIGACIJA
