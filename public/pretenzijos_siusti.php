@@ -50,8 +50,7 @@ $tipas_label = $tipai[$p['tipas']] ?? $p['tipas'];
 $uzsakymo_nr = $p['uzsakymo_numeris'] ?? $p['uzsakymo_numeris_ranka'] ?? '-';
 $subject = "Pretenzija #{$pretenzija_id} — {$tipas_label}";
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost:5000';
+$baseUrl = getBaseUrl();
 
 $stmtInsert = $pdo->prepare("
     INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by)
@@ -67,7 +66,7 @@ $stmtInsert->execute([
 ]);
 $history_id = $stmtInsert->fetchColumn();
 
-$feedback_url = "{$protocol}://{$host}/pretenzijos_atsakymas.php?id={$history_id}";
+$feedback_url = "{$baseUrl}/pretenzijos_atsakymas.php?id={$history_id}";
 
 $esc = function($s) { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); };
 

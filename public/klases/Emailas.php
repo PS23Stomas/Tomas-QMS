@@ -4,7 +4,7 @@
  */
 class Emailas {
     private static $apiKey = null;
-    private static $fromEmail = 'MT Modulis <onboarding@resend.dev>';
+    private static $fromEmail = 'Tomo-QMS <noreply@nkokybe.elga.tech>';
 
     /** Nustato Resend API raktą */
     public static function setApiKey(string $key): void {
@@ -79,9 +79,8 @@ class Emailas {
 
     /** Išsiunčia slaptažodžio atstatymo el. laišką su unikalia nuoroda vartotojui */
     public static function siustiAtstatymoNuoroda(string $kam, string $vardas, string $token): bool {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5000';
-        $url = "{$protocol}://{$host}/slaptazodis_keitimas.php?token=" . urlencode($token);
+        $baseUrl = function_exists('getBaseUrl') ? getBaseUrl() : 'https://nkokybe.elga.tech';
+        $url = "{$baseUrl}/slaptazodis_keitimas.php?token=" . urlencode($token);
 
         $html = '
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">

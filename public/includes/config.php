@@ -69,6 +69,12 @@ function h($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function getBaseUrl(): string {
+    $env = getenv('APP_BASE_URL');
+    if ($env) return rtrim($env, '/');
+    return 'https://nkokybe.elga.tech';
+}
+
 function getImonesNustatymai(): array {
     static $cache = null;
     if ($cache !== null) return $cache;
