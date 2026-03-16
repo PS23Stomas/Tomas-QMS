@@ -79,7 +79,7 @@ class Emailas {
 
     /** Išsiunčia slaptažodžio atstatymo el. laišką su unikalia nuoroda vartotojui */
     public static function siustiAtstatymoNuoroda(string $kam, string $vardas, string $token): bool {
-        $baseUrl = function_exists('getBaseUrl') ? getBaseUrl() : 'https://nkokybe.elga.tech';
+        $baseUrl = getBaseUrl();
         $url = "{$baseUrl}/slaptazodis_keitimas.php?token=" . urlencode($token);
 
         $html = '
