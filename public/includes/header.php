@@ -49,13 +49,13 @@ $aktyvus_grupe = $_SESSION['aktyvus_grupe'] ?? '';
 
                 <?php if ($aktyvus_modulis): ?>
                 <div class="nav-section-label"><?= h($aktyvus_grupe) ?></div>
-                <a href="/index.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    <span>Kokybiniai rodikliai</span>
-                </a>
                 <a href="/uzsakymai.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'uzsakymai' ? 'active' : '' ?>" data-testid="link-orders">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     <span>Užsakymai</span>
+                </a>
+                <a href="/index.php?grupe=<?= urlencode($aktyvus_grupe) ?>" class="nav-item <?= $current_page === 'index' ? 'active' : '' ?>" data-testid="link-dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span>Kokybiniai rodikliai</span>
                 </a>
                 <?php $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
                 <?php if ($isAdmin): ?>
