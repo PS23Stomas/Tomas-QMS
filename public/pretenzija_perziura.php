@@ -84,14 +84,10 @@ $nl    = fn($s) => nl2br($esc($s));
 <div class="card-main">
   <div class="card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-      <div style="font-size:0.8rem;opacity:.8;">Pretenzijų sistema &mdash; <?= $imone_pav ?></div>
-      <h5 class="mb-0 mt-1"><i class="bi bi-file-earmark-text me-2"></i>Pretenzija #<?= $id ?></h5>
+      <div style="font-size:1.1rem;font-weight:700;letter-spacing:0.03em;">Tomo-QMS</div>
+      <div style="font-size:0.78rem;opacity:.8;margin-top:2px;"><?= $imone_pav ?></div>
     </div>
-    <div class="d-flex gap-2 no-print">
-      <a href="pretenzijos_pdf.php?id=<?= $id ?>" target="_blank" class="btn btn-sm btn-light text-danger fw-semibold" data-testid="button-pdf-perziura">
-        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-      </a>
-    </div>
+    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Pretenzija #<?= $id ?></h5>
   </div>
 
   <div class="card-body-inner" data-testid="pretenzija-perziura-container">
@@ -205,6 +201,12 @@ $nl    = fn($s) => nl2br($esc($s));
       </div>
     <?php endforeach; ?>
     <?php endif; ?>
+
+    <div class="text-center mt-4 mb-2 no-print">
+      <a href="pretenzijos_pdf.php?id=<?= $id ?>" target="_blank" class="btn btn-danger btn-lg fw-semibold" data-testid="button-pdf-perziura">
+        <i class="bi bi-file-earmark-pdf me-2"></i>Atsisiųsti PDF
+      </a>
+    </div>
 
   </div>
 </div>
