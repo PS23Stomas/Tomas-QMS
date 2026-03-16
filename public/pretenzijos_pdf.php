@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-requireLogin();
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
