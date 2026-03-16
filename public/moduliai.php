@@ -80,7 +80,7 @@ if (isset($_GET['pasirinkti'])) {
         $_SESSION['aktyvus_modulis'] = (int)$modulis['id'];
         $_SESSION['aktyvus_modulis_pav'] = $modulis['pavadinimas'];
         $_SESSION['aktyvus_grupe'] = $modulis['pavadinimas'];
-        header('Location: /index.php?grupe=' . urlencode($modulis['pavadinimas']));
+        header('Location: /uzsakymai.php?grupe=' . urlencode($modulis['pavadinimas']));
         exit;
     }
 }
