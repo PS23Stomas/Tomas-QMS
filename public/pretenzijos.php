@@ -43,6 +43,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'email_history') {
     exit;
 }
 
+if (isset($_GET['view']) && ctype_digit($_GET['view'])) {
+    header('Location: /pretenzija_perziura.php?id=' . (int)$_GET['view']);
+    exit;
+}
+
 $klaida = '';
 $sekminga = '';
 
@@ -966,7 +971,7 @@ let currentViewId = null;
 
 function copyPretLink() {
   if (!currentViewId) return;
-  const url = window.location.origin + '/pretenzijos.php?view=' + currentViewId;
+  const url = window.location.origin + '/pretenzija_perziura.php?id=' + currentViewId;
   const btn = document.getElementById('btnCopyLink');
   const txt = document.getElementById('copyLinkText');
   
@@ -1468,13 +1473,6 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').fo
   });
 });
 
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const viewId = params.get('view');
-  if (viewId && /^\d+$/.test(viewId)) {
-    viewPretenzija(parseInt(viewId, 10));
-  }
-})();
 </script>
 
 <?php if (currentUser()['role'] === 'admin'): ?>
