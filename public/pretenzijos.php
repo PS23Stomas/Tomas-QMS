@@ -959,6 +959,9 @@ function applyFilter(name, value) {
   window.location = url;
 }
 
+function escH(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function escNl(s) { return s ? escH(s).replace(/\n/g, '<br>') : '-'; }
+
 let currentViewId = null;
 
 function copyPretLink() {
@@ -1009,50 +1012,50 @@ function viewPretenzija(id) {
         <td style="width:30%;padding:0.5rem;border:1px solid #dee2e6;font-weight:600;">Užsakymo Nr.</td>
       </tr>
       <tr>
-        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.aptikimo_vieta || '-'}</td>
-        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.gaminys_info || '-'}</td>
-        <td style="padding:0.5rem;border:1px solid #dee2e6;">${p.uzsakymo_numeris || p.uzsakymo_numeris_ranka || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${escH(p.aptikimo_vieta) || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${escH(p.gaminys_info) || '-'}</td>
+        <td style="padding:0.5rem;border:1px solid #dee2e6;">${escH(p.uzsakymo_numeris || p.uzsakymo_numeris_ranka) || '-'}</td>
       </tr>
     </table>
     
     <div style="margin-bottom:1rem;">
       <strong style="text-transform:uppercase;font-size:0.88rem;">Problemos aprašymas</strong>
-      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.aprasymas ? p.aprasymas.replace(/\\n/g, '<br>') : '-'}</div>
+      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escNl(p.aprasymas)}</div>
     </div>
     
     <div style="margin-bottom:1rem;">
       <strong style="text-transform:uppercase;font-size:0.88rem;">Padalinys atsakingas už sprendimą</strong>
-      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.atsakingas_padalinys || '-'}</div>
+      <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escH(p.atsakingas_padalinys) || '-'}</div>
     </div>
     
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div>
         <strong style="text-transform:uppercase;font-size:0.88rem;">Siūlomas sprendimo būdas</strong>
-        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.siulomas_sprendimas ? p.siulomas_sprendimas.replace(/\\n/g, '<br>') : '-'}</div>
+        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escNl(p.siulomas_sprendimas)}</div>
       </div>
       <div>
         <strong style="text-transform:uppercase;font-size:0.88rem;">Terminas</strong>
-        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.terminas || '-'}</div>
+        <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escH(p.terminas) || '-'}</div>
       </div>
     </div>
     
     <div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;border:1px solid #dee2e6;margin-bottom:1rem;">
       <strong style="text-transform:uppercase;display:block;margin-bottom:0.5rem;font-size:0.88rem;">Problemą užfiksavo</strong>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;font-size:0.85rem;color:#6c757d;">
-        <div><strong>Padalinys:</strong> ${p.uzfiksavo_padalinys || '-'}</div>
-        <div><strong>Asmuo:</strong> ${p.uzfiksavo_asmuo || '-'}</div>
-        <div><strong>Data:</strong> ${p.gavimo_data || '-'}</div>
+        <div><strong>Padalinys:</strong> ${escH(p.uzfiksavo_padalinys) || '-'}</div>
+        <div><strong>Asmuo:</strong> ${escH(p.uzfiksavo_asmuo) || '-'}</div>
+        <div><strong>Data:</strong> ${escH(p.gavimo_data) || '-'}</div>
       </div>
     </div>
     
-    ${p.priezastis ? `<div style="margin-bottom:1rem;"><strong>Nustatyta priežastis</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.priezastis.replace(/\\n/g, '<br>')}</div></div>` : ''}
-    ${p.veiksmai ? `<div style="margin-bottom:1rem;"><strong>Korekciniai veiksmai</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${p.veiksmai.replace(/\\n/g, '<br>')}</div></div>` : ''}
+    ${p.priezastis ? `<div style="margin-bottom:1rem;"><strong>Nustatyta priežastis</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escNl(p.priezastis)}</div></div>` : ''}
+    ${p.veiksmai ? `<div style="margin-bottom:1rem;"><strong>Korekciniai veiksmai</strong><div style="background:#f8f9fa;padding:0.75rem;border-radius:6px;margin-top:0.3rem;">${escNl(p.veiksmai)}</div></div>` : ''}
     
     ${p.nuotraukos && p.nuotraukos.length > 0 ? `
       <div style="margin-bottom:1rem;">
         <strong style="text-transform:uppercase;"><i class="bi bi-images me-1"></i>Nuotraukos (${p.nuotraukos.length})</strong>
         <div class="photo-gallery" style="margin-top:0.5rem;">
-          ${p.nuotraukos.map(n => `<img src="pretenzijos_nuotrauka.php?id=${n.id}" alt="${n.pavadinimas || 'Nuotrauka'}" onclick="window.open(this.src, '_blank')">`).join('')}
+          ${p.nuotraukos.map(n => `<img src="pretenzijos_nuotrauka.php?id=${parseInt(n.id)}" alt="${escH(n.pavadinimas) || 'Nuotrauka'}" onclick="window.open(this.src, '_blank')">`).join('')}
         </div>
       </div>
     ` : ''}
@@ -1085,7 +1088,6 @@ function viewPretenzija(id) {
         section.innerHTML = '';
         return;
       }
-      function escH(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
       let hhtml = '';
       history.forEach(h => {
         const hasF = !!h.feedback_text;
