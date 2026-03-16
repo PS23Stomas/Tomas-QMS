@@ -1471,7 +1471,7 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').fo
 (function() {
   const params = new URLSearchParams(window.location.search);
   const viewId = params.get('view');
-  if (viewId) {
+  if (viewId && /^\d+$/.test(viewId)) {
     viewPretenzija(parseInt(viewId, 10));
   }
 })();
