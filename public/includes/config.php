@@ -70,12 +70,8 @@ function h($str) {
 }
 
 function getBaseUrl(): string {
-    $env = getenv('APP_BASE_URL');
+    $env = getenv('BASE_URL');
     if ($env) return rtrim($env, '/');
-    if (!empty($_SERVER['HTTP_HOST'])) {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        return "{$protocol}://{$_SERVER['HTTP_HOST']}";
-    }
     return 'https://nkokybe.elga.tech';
 }
 
