@@ -883,7 +883,15 @@ include __DIR__ . '/includes/header.php';
       <button type="button" onclick="document.getElementById('modalView').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
     </div>
     <div id="viewContent" style="padding:1.5rem;"></div>
-    <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;text-align:right;">
+    <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;gap:0.5rem;">
+        <button type="button" id="btnCopyLink" onclick="copyPretLink()" style="padding:0.4rem 1rem;border:1px solid #2980b9;border-radius:6px;background:#ebf5fb;color:#2980b9;cursor:pointer;font-size:0.88rem;font-weight:500;display:flex;align-items:center;gap:0.3rem;transition:all 0.3s;" data-testid="button-copy-link">
+          <i class="bi bi-link-45deg"></i><span id="copyLinkText">Kopijuoti nuorodą</span>
+        </button>
+        <a id="btnViewPdf" href="#" target="_blank" style="padding:0.4rem 1rem;border:1px solid #c0392b;border-radius:6px;background:#fdedec;color:#c0392b;cursor:pointer;font-size:0.88rem;font-weight:500;display:flex;align-items:center;gap:0.3rem;text-decoration:none;" data-testid="button-modal-pdf">
+          <i class="bi bi-file-earmark-pdf"></i>Atsisiųsti PDF
+        </a>
+      </div>
       <button type="button" onclick="document.getElementById('modalView').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Uždaryti</button>
     </div>
   </div>
@@ -951,9 +959,40 @@ function applyFilter(name, value) {
   window.location = url;
 }
 
+let currentViewId = null;
+
+function copyPretLink() {
+  if (!currentViewId) return;
+  const url = window.location.origin + '/pretenzijos.php?view=' + currentViewId;
+  const btn = document.getElementById('btnCopyLink');
+  const txt = document.getElementById('copyLinkText');
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() {
+      btn.style.background = '#d4edda';
+      btn.style.borderColor = '#27ae60';
+      btn.style.color = '#27ae60';
+      txt.textContent = 'Nukopijuota ✓';
+      setTimeout(function() {
+        btn.style.background = '#ebf5fb';
+        btn.style.borderColor = '#2980b9';
+        btn.style.color = '#2980b9';
+        txt.textContent = 'Kopijuoti nuorodą';
+      }, 2000);
+    }).catch(function() {
+      prompt('Nukopijuokite šią nuorodą:', url);
+    });
+  } else {
+    prompt('Nukopijuokite šią nuorodą:', url);
+  }
+}
+
 function viewPretenzija(id) {
   const p = pretenzijosData.find(x => x.id == id);
   if (!p) return;
+  
+  currentViewId = id;
+  document.getElementById('btnViewPdf').href = 'pretenzijos_pdf.php?id=' + id;
   
   const st = statusai[p.statusas] || statusai['nauja'];
   
@@ -1426,6 +1465,14 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').fo
     if (e.target === this) this.style.display = 'none';
   });
 });
+
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const viewId = params.get('view');
+  if (viewId) {
+    viewPretenzija(parseInt(viewId, 10));
+  }
+})();
 </script>
 
 <?php if (currentUser()['role'] === 'admin'): ?>
