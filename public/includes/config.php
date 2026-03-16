@@ -72,6 +72,11 @@ function h($str) {
 function getBaseUrl(): string {
     $env = getenv('BASE_URL');
     if ($env) return rtrim($env, '/');
+    if (PHP_SAPI === 'cli' || (isset($_SERVER['HTTP_HOST']) && str_contains($_SERVER['HTTP_HOST'], 'localhost'))) {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5000';
+        return "{$protocol}://{$host}";
+    }
     return 'https://nkokybe.elga.tech';
 }
 
