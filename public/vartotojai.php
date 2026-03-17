@@ -182,7 +182,6 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<?php if (!empty($aktyvus_vartotojai)): ?>
 <div class="card" style="margin-bottom: 20px;" data-testid="panel-active-users">
     <div class="card-header">
         <span class="card-title">
@@ -190,6 +189,7 @@ require_once __DIR__ . '/includes/header.php';
             Šiuo metu prisijungę (<?= $aktyvus_count ?>)
         </span>
     </div>
+    <?php if (!empty($aktyvus_vartotojai)): ?>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
             <table data-testid="table-active-users">
@@ -216,8 +216,12 @@ require_once __DIR__ . '/includes/header.php';
             </table>
         </div>
     </div>
+    <?php else: ?>
+    <div class="card-body" data-testid="text-no-active-users">
+        <p style="color: var(--text-secondary); text-align: center; padding: 16px 0;">Šiuo metu nėra aktyvių vartotojų.</p>
+    </div>
+    <?php endif; ?>
 </div>
-<?php endif; ?>
 
 <div class="card">
     <div class="card-header">
