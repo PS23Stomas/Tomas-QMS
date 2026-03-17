@@ -121,6 +121,9 @@ $users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazod
 // Vartotojų skaičius pagal roles statistikai
 $role_counts = $pdo->query("SELECT role, COUNT(*) as cnt FROM vartotojai GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
 
+$aktyvus_vartotojai = Sesija::gautiAktyvius();
+$aktyvus_count = count($aktyvus_vartotojai);
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -168,7 +171,53 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="stat-value" data-testid="text-users-readers"><?= $role_counts['skaitytojas'] ?? 0 ?></div>
     </div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Prisijungę dabar</span>
+            <div class="stat-icon green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+            </div>
+        </div>
+        <div class="stat-value" data-testid="text-users-online"><?= $aktyvus_count ?></div>
+    </div>
 </div>
+
+<?php if (!empty($aktyvus_vartotojai)): ?>
+<div class="card" style="margin-bottom: 20px;" data-testid="panel-active-users">
+    <div class="card-header">
+        <span class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+            Šiuo metu prisijungę (<?= $aktyvus_count ?>)
+        </span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper">
+            <table data-testid="table-active-users">
+                <thead>
+                    <tr>
+                        <th>Būsena</th>
+                        <th>Vardas</th>
+                        <th>Pavardė</th>
+                        <th>Prisijungimo laikas</th>
+                        <th>Paskutinė veikla</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($aktyvus_vartotojai as $av): ?>
+                    <tr data-testid="row-active-user-<?= h($av['vardas'] . '-' . $av['pavarde']) ?>">
+                        <td><span class="badge badge-success" style="display: inline-flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:#16a34a;border-radius:50%;display:inline-block;animation:pulse-dot 2s infinite;"></span> Aktyvus</span></td>
+                        <td style="font-weight: 500;"><?= h($av['vardas'] ?? '-') ?></td>
+                        <td><?= h($av['pavarde'] ?? '-') ?></td>
+                        <td style="color: var(--text-secondary);"><?= h($av['prisijungimo_laikas'] ? date('Y-m-d H:i', strtotime($av['prisijungimo_laikas'])) : '-') ?></td>
+                        <td style="color: var(--text-secondary);"><?= h($av['paskutine_veikla'] ? date('Y-m-d H:i', strtotime($av['paskutine_veikla'])) : '-') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header">
