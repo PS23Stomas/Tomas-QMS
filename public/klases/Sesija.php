@@ -112,10 +112,13 @@ class Sesija {
     public static function gautiAktyvius(): array {
         try {
             $pdo = Database::getConnection();
-            $stmt = $pdo->query("SELECT vardas, pavarde, prisijungimo_laikas, paskutine_veikla 
+            $stmt = $pdo->query("SELECT vardas, pavarde, 
+                                    MAX(prisijungimo_laikas) AS prisijungimo_laikas, 
+                                    MAX(paskutine_veikla) AS paskutine_veikla 
                                 FROM aktyvus_vartotojai 
                                 WHERE paskutine_veikla > NOW() - INTERVAL '15 minutes'
-                                ORDER BY paskutine_veikla DESC");
+                                GROUP BY vartotojas_id, vardas, pavarde
+                                ORDER BY MAX(paskutine_veikla) DESC");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             return [];
