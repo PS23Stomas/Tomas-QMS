@@ -31,6 +31,7 @@ class DBMigracija {
         $this->pridetiVartotojoParasoStulpelius();
         $this->pridetiVartotojoPareiguStulpeli();
         $this->pridetiUzsakymoImonesStulpelius();
+        $this->sukurtiRememberTokensLentele();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -366,6 +367,20 @@ class DBMigracija {
                     ADD COLUMN imone_internetas VARCHAR(255)
                 ");
             }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function sukurtiRememberTokensLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS remember_tokens (
+                    id SERIAL PRIMARY KEY,
+                    vartotojas_id INTEGER NOT NULL,
+                    token VARCHAR(255) NOT NULL,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            ");
         } catch (PDOException $e) {
         }
     }
