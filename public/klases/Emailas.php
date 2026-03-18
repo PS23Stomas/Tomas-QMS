@@ -4,7 +4,7 @@
  */
 class Emailas {
     private static $apiKey = null;
-    private static $fromEmail = 'Tomo-QMS <noreply@nkokybe.elga.tech>';
+    private static $fromEmail = 'Tomo-QMS <noreply@updates.elga.tech>';
 
     /** Nustato Resend API raktą */
     public static function setApiKey(string $key): void {
