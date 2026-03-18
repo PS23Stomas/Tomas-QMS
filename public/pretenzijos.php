@@ -139,6 +139,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                if (!empty($_FILES['defekto_pdf']['tmp_name']) && is_uploaded_file($_FILES['defekto_pdf']['tmp_name'])) {
+                    $pdfTmp = $_FILES['defekto_pdf']['tmp_name'];
+                    $pdfName = $_FILES['defekto_pdf']['name'];
+                    $pdfMime = mime_content_type($pdfTmp);
+                    $pdfExt = strtolower(pathinfo($pdfName, PATHINFO_EXTENSION));
+                    if ($pdfMime === 'application/pdf' && $pdfExt === 'pdf') {
+                        $pdfContent = file_get_contents($pdfTmp);
+                        $stmtPdf = $pdo->prepare("UPDATE pretenzijos SET defekto_pdf_pavadinimas = :pav, defekto_pdf_turinys = :tur WHERE id = :id");
+                        $stmtPdf->bindValue(':pav', $pdfName, PDO::PARAM_STR);
+                        $stmtPdf->bindValue(':tur', $pdfContent, PDO::PARAM_LOB);
+                        $stmtPdf->bindValue(':id', $pretenzijaId, PDO::PARAM_INT);
+                        $stmtPdf->execute();
+                    }
+                }
+
                 pretenzijosRedirect('sukurta');
             } catch (PDOException $e) {
                 $klaida = 'Klaida kuriant pretenziją: ' . $e->getMessage();
@@ -212,6 +227,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':atsakingas_asmuo'       => $atsakingas ?: null,
                 ':id'                     => $id
             ]);
+
+            if (!empty($_FILES['defekto_pdf']['tmp_name']) && is_uploaded_file($_FILES['defekto_pdf']['tmp_name'])) {
+                $pdfTmp = $_FILES['defekto_pdf']['tmp_name'];
+                $pdfName = $_FILES['defekto_pdf']['name'];
+                $pdfMime = mime_content_type($pdfTmp);
+                $pdfExt = strtolower(pathinfo($pdfName, PATHINFO_EXTENSION));
+                if ($pdfMime === 'application/pdf' && $pdfExt === 'pdf') {
+                    $pdfContent = file_get_contents($pdfTmp);
+                    $stmtPdf = $pdo->prepare("UPDATE pretenzijos SET defekto_pdf_pavadinimas = :pav, defekto_pdf_turinys = :tur WHERE id = :id");
+                    $stmtPdf->bindValue(':pav', $pdfName, PDO::PARAM_STR);
+                    $stmtPdf->bindValue(':tur', $pdfContent, PDO::PARAM_LOB);
+                    $stmtPdf->bindValue(':id', $id, PDO::PARAM_INT);
+                    $stmtPdf->execute();
+                }
+            }
+
             pretenzijosRedirect('atnaujinta');
         }
     }
@@ -254,7 +285,14 @@ $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
 // Pretenzijų sąrašo užklausa su rikiavimo pagal statusą ir sukūrimo datą
 $sql = "
-    SELECT p.*, u.uzsakymo_numeris
+    SELECT p.id, p.uzsakymo_id, p.gaminio_id, p.pretenzijos_nr, p.data, p.tipas, p.aprasymas,
+           p.statusas, p.prioritetas, p.atsakingas_asmuo, p.sprendimas, p.uzdaryta_data,
+           p.sukure_id, p.sukurta, p.atnaujinta, p.aptikimo_vieta, p.gaminys_info,
+           p.atsakingas_padalinys, p.siulomas_sprendimas, p.uzfiksavo_padalinys,
+           p.uzfiksavo_asmuo, p.priezastis, p.veiksmai, p.terminas, p.gavimo_data,
+           p.uzbaigimo_data, p.sukure_vardas, p.uzsakymo_numeris_ranka,
+           p.defekto_pdf_pavadinimas,
+           u.uzsakymo_numeris
     FROM pretenzijos p
     LEFT JOIN uzsakymai u ON u.id = p.uzsakymo_id
     $where_sql
@@ -824,6 +862,11 @@ include __DIR__ . '/includes/header.php';
               <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
           </div>
+          <div style="margin-top:0.75rem;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF (neprivaloma)</label>
+            <input type="file" name="defekto_pdf" accept="application/pdf,.pdf" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;background:white;" data-testid="input-defekto-pdf">
+            <small style="color:#6c757d;">Tik PDF failai priimami</small>
+          </div>
         </div>
         
         <div style="margin-bottom:1.5rem;">
@@ -937,7 +980,7 @@ include __DIR__ . '/includes/header.php';
       <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-pencil me-2"></i>Redaguoti pretenziją</h5>
       <button type="button" onclick="document.getElementById('modalEdit').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
     </div>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       <div id="editContent" style="padding:1.5rem;"></div>
       <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
         <button type="button" onclick="document.getElementById('modalEdit').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
@@ -1061,6 +1104,17 @@ function viewPretenzija(id) {
         <strong style="text-transform:uppercase;"><i class="bi bi-images me-1"></i>Nuotraukos (${p.nuotraukos.length})</strong>
         <div class="photo-gallery" style="margin-top:0.5rem;">
           ${p.nuotraukos.map(n => `<img src="pretenzijos_nuotrauka.php?id=${parseInt(n.id)}" alt="${escH(n.pavadinimas) || 'Nuotrauka'}" onclick="window.open(this.src, '_blank')">`).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${p.defekto_pdf_pavadinimas ? `
+      <div style="margin-bottom:1rem;background:#fdedec;padding:0.75rem;border-radius:6px;border:1px solid #f5c6cb;">
+        <strong style="text-transform:uppercase;font-size:0.88rem;"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF</strong>
+        <div style="margin-top:0.3rem;">
+          <a href="pretenzija_defekto_pdf.php?id=${id}" target="_blank" style="color:#c0392b;font-weight:500;text-decoration:none;" data-testid="link-view-defekto-pdf">
+            <i class="bi bi-download me-1"></i>${escH(p.defekto_pdf_pavadinimas)}
+          </a>
         </div>
       </div>
     ` : ''}
@@ -1227,6 +1281,16 @@ function editPretenzija(id) {
       <div>
         <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Atsakingas asmuo</label>
         <input type="text" name="atsakingas_asmuo" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;" value="${esc(p.atsakingas_asmuo)}" placeholder="Vardas Pavardė..." data-testid="input-edit-atsakingas">
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #e74c3c;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#e74c3c;margin-bottom:0.75rem;"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF</div>
+      ${p.defekto_pdf_pavadinimas ? `<div style="margin-bottom:0.5rem;"><a href="pretenzija_defekto_pdf.php?id=${id}" target="_blank" style="color:#e74c3c;font-weight:500;text-decoration:none;" data-testid="link-edit-pdf-download"><i class="bi bi-file-earmark-pdf me-1"></i>${esc(p.defekto_pdf_pavadinimas)}</a></div>` : ''}
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">${p.defekto_pdf_pavadinimas ? 'Pakeisti PDF failą' : 'Įkelti PDF failą'}</label>
+        <input type="file" name="defekto_pdf" accept="application/pdf,.pdf" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;background:white;" data-testid="input-edit-defekto-pdf">
+        <small style="color:#6c757d;font-size:0.78rem;">Tik PDF failai priimami</small>
       </div>
     </div>
   `;

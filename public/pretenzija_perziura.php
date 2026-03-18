@@ -170,6 +170,17 @@ $nl    = fn($s) => nl2br($esc($s));
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($p['defekto_pdf_pavadinimas'])): ?>
+    <div class="mb-3" style="background:#fdedec;padding:0.75rem;border-radius:6px;border:1px solid #f5c6cb;">
+      <div class="section-label"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF</div>
+      <div style="margin-top:0.3rem;">
+        <a href="pretenzija_defekto_pdf.php?id=<?= (int)$p['id'] ?>" target="_blank" style="color:#c0392b;font-weight:500;text-decoration:none;" data-testid="link-perziura-defekto-pdf">
+          <i class="bi bi-download me-1"></i><?= $esc($p['defekto_pdf_pavadinimas']) ?>
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <?php if (!empty($history)): ?>
     <hr>
     <div class="section-label mb-2"><i class="bi bi-envelope-check me-1"></i>Siuntimo istorija</div>

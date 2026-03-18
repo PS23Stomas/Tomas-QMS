@@ -32,6 +32,7 @@ class DBMigracija {
         $this->pridetiVartotojoPareiguStulpeli();
         $this->pridetiUzsakymoImonesStulpelius();
         $this->sukurtiRememberTokensLentele();
+        $this->pridetiDefektoPdfStulpelius();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -381,6 +382,17 @@ class DBMigracija {
                     expires_at TIMESTAMP NOT NULL
                 )
             ");
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function pridetiDefektoPdfStulpelius(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'pretenzijos' AND column_name = 'defekto_pdf_pavadinimas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE pretenzijos ADD COLUMN IF NOT EXISTS defekto_pdf_pavadinimas VARCHAR(255), ADD COLUMN IF NOT EXISTS defekto_pdf_turinys BYTEA");
+            }
         } catch (PDOException $e) {
         }
     }
