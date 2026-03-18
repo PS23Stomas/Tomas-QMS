@@ -27,7 +27,7 @@ if (!$p) {
 $tipai = [
     'vidine' => 'Vidinė pretenzija',
     'kliento' => 'Kliento pretenzija',
-    'tiekejo' => 'Tiekėjo pretenzija'
+    'tiekejo' => 'Tiekėjui pretenzija'
 ];
 
 $statusai = [

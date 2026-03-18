@@ -19,7 +19,7 @@ $arSkaitytojas = ($user['role'] === 'skaitytojas');
 $tipai = [
     'vidine' => 'Vidinė pretenzija',
     'kliento' => 'Kliento pretenzija',
-    'tiekejo' => 'Tiekėjo pretenzija'
+    'tiekejo' => 'Tiekėjui pretenzija'
 ];
 
 // Pretenzijų statusų apibrėžimai su spalvomis atvaizdavimui
@@ -1136,7 +1136,7 @@ function editPretenzija(id) {
   const tipaiOpts = [
     ['vidine', 'Vidinė'],
     ['kliento', 'Kliento'],
-    ['tiekejo', 'Tiekėjo']
+    ['tiekejo', 'Tiekėjui']
   ].map(([k, l]) => `<option value="${k}" ${p.tipas === k ? 'selected' : ''}>${l}</option>`).join('');
 
   const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
