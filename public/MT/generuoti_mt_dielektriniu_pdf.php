@@ -308,6 +308,7 @@ table.data-table th {
 <tbody>' . $prietaisai_html . '</tbody>
 </table>
 
+' . ($grupes_pavadinimas === 'MT' ? '
 <h3>SAUGIKLIŲ ĮDĖKLAI</h3>
 <table class="data-table">
 <thead>
@@ -317,7 +318,7 @@ table.data-table th {
 <tr><td>3.5</td><td class="text-left">' . htmlspecialchars($label_35) . '</td><td style="padding:0;">' . ($saugikliu_html ?: 'Duomenys nesuvesti') . '</td></tr>
 ' . ($trafo_kiekis >= 2 ? '<tr><td>3.6</td><td class="text-left">Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:</td><td style="padding:0;">' . ($saugikliu_36_html ?: 'Duomenys nesuvesti') . '</td></tr>' : '') . '
 </tbody>
-</table>
+</table>' : '') . '
 
 ' . (!empty($vid_itampa) || !$jau_issaugota ? '
 <h3>Vidutinės įtampos (6–24 kV) kabelių bandymas</h3>
