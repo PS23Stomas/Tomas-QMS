@@ -294,7 +294,7 @@ table.data-table th {
     </div>
 </div>
 
-<h2>' . htmlspecialchars(mb_strtoupper($grupes_pavadinimas)) . ' ATLIKTŲ BANDYMŲ PROTOKOLAS NR. ' . htmlspecialchars($protokolo_nr) . '</h2>
+<h2>BANDYMŲ PROTOKOLAS NR. ' . htmlspecialchars($protokolo_nr) . '</h2>
 
 <div class="meta-line"><strong>Užsakymo Nr.:</strong> ' . htmlspecialchars($uzsakymo_numeris) . '</div>
 <div class="meta-line"><strong>Užsakovas:</strong> ' . htmlspecialchars($uzsakovas) . '</div>
