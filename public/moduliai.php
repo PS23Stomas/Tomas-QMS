@@ -184,7 +184,8 @@ include __DIR__ . '/includes/header.php';
                     <input type="text" class="form-control" name="pavadinimas" required placeholder="pvz. USN, SI-04, GVX..." data-testid="input-module-name" autofocus>
                 </div>
                 <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-                    Sukūrus naują modulį, jis atsiras modulių sąraše. Galėsite jį pasirinkti ir valdyti jo užsakymus bei kokybės rodiklius.
+                    Sukūrus naują modulį, jame galėsite kurti gaminių tipus ir užsakymus.
+                    
                 </p>
             </div>
             <div class="modal-footer">

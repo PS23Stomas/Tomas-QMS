@@ -2305,7 +2305,7 @@ textarea.form-control {
 #ordersCard {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 110px);
+    max-height: calc(100vh - 120px);
 }
 #ordersCardHeader {
     flex-shrink: 0;
