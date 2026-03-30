@@ -123,8 +123,8 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         .col-eilnr  { width: 50px; text-align:center; }
         .col-irase  { width: 110px; }
         .col-atliko { width: 160px; }
-        .col-isvada { width: 100px; }
-        .col-defekt { width: 260px; }
+        .col-isvada { width: 160px; }
+        .col-defekt { width: 220px; }
         .col-nuotr  { width: 220px; }
         .col-patais { width: 160px; }
         .col-issiusta { width: 140px; }
