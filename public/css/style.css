@@ -305,6 +305,10 @@ a {
 .content-area {
     flex: 1;
     padding: 24px;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ==========================================================================
@@ -2305,7 +2309,9 @@ textarea.form-control {
 #ordersCard {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 120px);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 #ordersCardHeader {
     flex-shrink: 0;
