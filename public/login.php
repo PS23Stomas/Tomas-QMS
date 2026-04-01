@@ -323,7 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label class="form-label" for="vardas">Vardas</label>
                     <input type="text" class="form-control" id="vardas" name="vardas" 
-                           value="<?= htmlspecialchars($_POST['vardas'] ?? '') ?>" required autofocus
+                           value="<?= htmlspecialchars($_POST['vardas'] ?? '') ?>" required
                            data-testid="input-vardas">
                 </div>
                 <div class="form-group">
@@ -347,6 +347,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="forgot-link">
             <a href="/slaptazodis_atstatymas.php" data-testid="link-forgot-password">Pamiršau slaptažodį</a>
         </div>
+        <script>
+        (function(){
+            var v = document.getElementById('vardas');
+            var p = document.getElementById('pavarde');
+            var s = document.getElementById('slaptazodis');
+            if (!v || !p || !s) return;
+
+            var saved_v = localStorage.getItem('login_vardas') || '';
+            var saved_p = localStorage.getItem('login_pavarde') || '';
+
+            if (!v.value && saved_v) v.value = saved_v;
+            if (!p.value && saved_p) p.value = saved_p;
+
+            if (v.value && p.value) {
+                s.focus();
+            } else {
+                v.focus();
+            }
+
+            v.closest('form').addEventListener('submit', function(){
+                localStorage.setItem('login_vardas', v.value);
+                localStorage.setItem('login_pavarde', p.value);
+            });
+        })();
+        </script>
         <?php endif; ?>
     </div>
 </body>
