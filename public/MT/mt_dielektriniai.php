@@ -364,7 +364,14 @@ document.querySelector('form').addEventListener('submit', function(e) {
 });
 </script>
 
-<?php if ($grupe === 'MT'): ?>
+<?php if ($grupe === 'MT'):
+    $gaminio_id = $gaminys_id;
+    $st_saug = $conn->prepare("SELECT COUNT(*) FROM saugikliu_ideklai WHERE gaminio_id=?");
+    $st_saug->execute([$gaminio_id]);
+    $saugikliu_cnt = (int)$st_saug->fetchColumn();
+    $saugikliai_tusti = ($saugikliu_cnt === 0) && ($istrinta === 'saugikliai' || $istrinta === 'visi');
+?>
+<?php if (!$saugikliai_tusti): ?>
 <!-- Saugikliu ideklu blokas (3.5 / 3.6) - tik MT moduliui -->
 <div class="section-header" style="margin-top:2rem;">
     <h5 class="text-uppercase fw-bold" style="margin:0;">SAUGIKLIU IDEKLAI</h5>
@@ -373,11 +380,11 @@ document.querySelector('form').addEventListener('submit', function(e) {
 <table class="table table-bordered">
 <tbody>
 <?php
-$gaminio_id = $gaminys_id;
 include __DIR__ . '/mt_saugikliai_blokas.php';
 ?>
 </tbody>
 </table>
+<?php endif; ?>
 <?php endif; ?>
 
 <form action="/MT/issaugoti_mt_dielektriniai.php" method="post">

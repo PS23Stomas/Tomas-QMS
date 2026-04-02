@@ -32,6 +32,7 @@ try {
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
     } elseif ($lentele === 'visi') {
         $conn->beginTransaction();
+        $conn->prepare("DELETE FROM saugikliu_ideklai WHERE gaminio_id=?")->execute([$gaminys_id]);
         $conn->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id=?")->execute([$gaminys_id]);
         $conn->prepare("DELETE FROM bandymai_prietaisai WHERE gaminys_id=?")->execute([$gaminys_id]);
