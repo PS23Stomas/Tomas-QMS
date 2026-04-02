@@ -369,7 +369,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
     $st_saug = $conn->prepare("SELECT COUNT(*) FROM saugikliu_ideklai WHERE gaminio_id=?");
     $st_saug->execute([$gaminio_id]);
     $saugikliu_cnt = (int)$st_saug->fetchColumn();
-    $saugikliai_tusti = ($saugikliu_cnt === 0) && ($istrinta === 'saugikliai' || $istrinta === 'visi');
+    $saugikliai_tusti = ($saugikliu_cnt === 0) && ($jau_issaugota || $istrinta === 'saugikliai' || $istrinta === 'visi');
 ?>
 <?php if (!$saugikliai_tusti): ?>
 <!-- Saugikliu ideklu blokas (3.5 / 3.6) - tik MT moduliui -->
