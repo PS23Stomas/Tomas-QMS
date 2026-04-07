@@ -246,7 +246,7 @@ try {
 
     $pdf_content = $mpdf->Output('', 'S');
 
-    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $grupes_pavadinimas) . '_Funkciniai_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
+    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_Funkciniai.pdf';
 
     $stmt = $conn->prepare("UPDATE gaminiai SET mt_funkciniu_pdf = :pdf, mt_funkciniu_failas = :failas WHERE id = :id");
     $stmt->bindParam('pdf', $pdf_content, PDO::PARAM_LOB);

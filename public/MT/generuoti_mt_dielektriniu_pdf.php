@@ -389,7 +389,7 @@ try {
 
     $pdf_content = $mpdf->Output('', 'S');
 
-    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $grupes_pavadinimas) . '_Dielektriniai_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_' . $gaminio_id . '.pdf';
+    $failo_pavadinimas = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uzsakymo_numeris) . '_Dielektriniai.pdf';
 
     $stmt = $conn->prepare("UPDATE gaminiai SET mt_dielektriniu_pdf = :pdf, mt_dielektriniu_failas = :failas WHERE id = :id");
     $stmt->bindParam('pdf', $pdf_content, PDO::PARAM_LOB);
