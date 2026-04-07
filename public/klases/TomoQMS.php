@@ -952,11 +952,11 @@ class TomoQMS {
                         $rezultatas['pretenzijos']++;
 
                         if ($qt_nuotr_table) {
+                            $localConn->prepare("DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?")->execute([$local_pret_id]);
                             $nuotr_rows = $qt->prepare("SELECT pavadinimas, tipas, turinys FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?");
                             $nuotr_rows->execute([$qt_pret_id]);
                             $nuotraukos = $nuotr_rows->fetchAll(PDO::FETCH_ASSOC);
                             if (!empty($nuotraukos)) {
-                                $localConn->prepare("DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?")->execute([$local_pret_id]);
                                 $ins_nuotr = $localConn->prepare("INSERT INTO pretenzijos_nuotraukos (pretenzija_id, pavadinimas, tipas, turinys) VALUES (?, ?, ?, ?)");
                                 foreach ($nuotraukos as $n) {
                                     $ins_nuotr->bindValue(1, $local_pret_id, PDO::PARAM_INT);
@@ -970,11 +970,11 @@ class TomoQMS {
                         }
 
                         if ($qt_email_table) {
+                            $localConn->prepare("DELETE FROM pretenzijos_email_history WHERE pretenzija_id = ?")->execute([$local_pret_id]);
                             $email_rows = $qt->prepare("SELECT email_delegated_to, email_cc, email_subject, sent_by, sent_at, feedback_text, feedback_at, feedback_by FROM pretenzijos_email_history WHERE pretenzija_id = ?");
                             $email_rows->execute([$qt_pret_id]);
                             $emails = $email_rows->fetchAll(PDO::FETCH_ASSOC);
                             if (!empty($emails)) {
-                                $localConn->prepare("DELETE FROM pretenzijos_email_history WHERE pretenzija_id = ?")->execute([$local_pret_id]);
                                 $ins_email = $localConn->prepare("INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by, sent_at, feedback_text, feedback_at, feedback_by) VALUES (?,?,?,?,?,?,?,?,?)");
                                 foreach ($emails as $em) {
                                     $ins_email->execute([$local_pret_id, $em['email_delegated_to'] ?? null, $em['email_cc'] ?? null, $em['email_subject'] ?? null, $em['sent_by'] ?? null, $em['sent_at'] ?? null, $em['feedback_text'] ?? null, $em['feedback_at'] ?? null, $em['feedback_by'] ?? null]);
