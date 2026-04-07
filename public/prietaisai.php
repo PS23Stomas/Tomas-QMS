@@ -35,8 +35,16 @@ function tikrintiPdfFaila(&$error) {
     return [file_get_contents($tmp), $pavadinimas];
 }
 
+function utf8Valyti($reiksme) {
+    if (!is_string($reiksme)) return $reiksme;
+    $reiksme = mb_convert_encoding($reiksme, 'UTF-8', 'UTF-8');
+    $reiksme = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $reiksme);
+    return $reiksme;
+}
+
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    array_walk_recursive($_POST, function(&$val) { $val = utf8Valyti($val); });
     $action = $_POST['action'] ?? '';
 
     // Naujo prietaiso kūrimas su visais kalibravimo duomenimis
