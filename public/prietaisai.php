@@ -56,28 +56,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         list($pdf_data, $pdf_failas) = tikrintiPdfFaila($error);
         if (!$error) {
         $stmt = $pdo->prepare("INSERT INTO prietaisai (vidinis_kodas, pavadinimas, gamintojas, modelis, serijos_nr, matavimo_tipas, matavimo_ribos, tikslumo_klase, busena, vieta, atsakingas_asmuo, kalibracijos_sertifikato_nr, kalibravimo_istaiga, kalibravimo_data, galiojimo_pabaiga, kita_kalibracija, standartas_metodika, pastabos, sertifikato_pdf, sertifikato_failas, sukurta) VALUES (:vidinis_kodas, :pavadinimas, :gamintojas, :modelis, :serijos_nr, :matavimo_tipas, :matavimo_ribos, :tikslumo_klase, :busena, :vieta, :atsakingas_asmuo, :kalibracijos_sertifikato_nr, :kalibravimo_istaiga, :kalibravimo_data, :galiojimo_pabaiga, :kita_kalibracija, :standartas_metodika, :pastabos, :sertifikato_pdf, :sertifikato_failas, CURRENT_TIMESTAMP)");
-        $stmt->execute([
-            'vidinis_kodas' => $_POST['vidinis_kodas'] ?? '',
-            'pavadinimas' => $_POST['pavadinimas'] ?? '',
-            'gamintojas' => $_POST['gamintojas'] ?? '',
-            'modelis' => $_POST['modelis'] ?? '',
-            'serijos_nr' => $_POST['serijos_nr'] ?? '',
-            'matavimo_tipas' => $_POST['matavimo_tipas'] ?? '',
-            'matavimo_ribos' => $_POST['matavimo_ribos'] ?? '',
-            'tikslumo_klase' => $_POST['tikslumo_klase'] ?? '',
-            'busena' => $_POST['busena'] ?? 'naudojamas',
-            'vieta' => $_POST['vieta'] ?? '',
-            'atsakingas_asmuo' => $_POST['atsakingas_asmuo'] ?? '',
-            'kalibracijos_sertifikato_nr' => $_POST['kalibracijos_sertifikato_nr'] ?? '',
-            'kalibravimo_istaiga' => $_POST['kalibravimo_istaiga'] ?? '',
-            'kalibravimo_data' => $_POST['kalibravimo_data'] ?: null,
-            'galiojimo_pabaiga' => $_POST['galiojimo_pabaiga'] ?: null,
-            'kita_kalibracija' => $_POST['kita_kalibracija'] ?: null,
-            'standartas_metodika' => $_POST['standartas_metodika'] ?? '',
-            'pastabos' => $_POST['pastabos'] ?? '',
-            'sertifikato_pdf' => $pdf_data,
-            'sertifikato_failas' => $pdf_failas,
-        ]);
+        $stmt->bindValue(':vidinis_kodas', $_POST['vidinis_kodas'] ?? '');
+        $stmt->bindValue(':pavadinimas', $_POST['pavadinimas'] ?? '');
+        $stmt->bindValue(':gamintojas', $_POST['gamintojas'] ?? '');
+        $stmt->bindValue(':modelis', $_POST['modelis'] ?? '');
+        $stmt->bindValue(':serijos_nr', $_POST['serijos_nr'] ?? '');
+        $stmt->bindValue(':matavimo_tipas', $_POST['matavimo_tipas'] ?? '');
+        $stmt->bindValue(':matavimo_ribos', $_POST['matavimo_ribos'] ?? '');
+        $stmt->bindValue(':tikslumo_klase', $_POST['tikslumo_klase'] ?? '');
+        $stmt->bindValue(':busena', $_POST['busena'] ?? 'naudojamas');
+        $stmt->bindValue(':vieta', $_POST['vieta'] ?? '');
+        $stmt->bindValue(':atsakingas_asmuo', $_POST['atsakingas_asmuo'] ?? '');
+        $stmt->bindValue(':kalibracijos_sertifikato_nr', $_POST['kalibracijos_sertifikato_nr'] ?? '');
+        $stmt->bindValue(':kalibravimo_istaiga', $_POST['kalibravimo_istaiga'] ?? '');
+        $stmt->bindValue(':kalibravimo_data', $_POST['kalibravimo_data'] ?: null);
+        $stmt->bindValue(':galiojimo_pabaiga', $_POST['galiojimo_pabaiga'] ?: null);
+        $stmt->bindValue(':kita_kalibracija', $_POST['kita_kalibracija'] ?: null);
+        $stmt->bindValue(':standartas_metodika', $_POST['standartas_metodika'] ?? '');
+        $stmt->bindValue(':pastabos', $_POST['pastabos'] ?? '');
+        $stmt->bindValue(':sertifikato_pdf', $pdf_data, $pdf_data !== null ? PDO::PARAM_LOB : PDO::PARAM_NULL);
+        $stmt->bindValue(':sertifikato_failas', $pdf_failas);
+        $stmt->execute();
         $message = 'Prietaisas pridėtas sėkmingai.';
         }
     // Esamo prietaiso duomenų atnaujinimas
@@ -93,27 +92,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$error) {
         $stmt = $pdo->prepare("UPDATE prietaisai SET vidinis_kodas = :vidinis_kodas, pavadinimas = :pavadinimas, gamintojas = :gamintojas, modelis = :modelis, serijos_nr = :serijos_nr, matavimo_tipas = :matavimo_tipas, matavimo_ribos = :matavimo_ribos, tikslumo_klase = :tikslumo_klase, busena = :busena, vieta = :vieta, atsakingas_asmuo = :atsakingas_asmuo, kalibracijos_sertifikato_nr = :kalibracijos_sertifikato_nr, kalibravimo_istaiga = :kalibravimo_istaiga, kalibravimo_data = :kalibravimo_data, galiojimo_pabaiga = :galiojimo_pabaiga, kita_kalibracija = :kita_kalibracija, standartas_metodika = :standartas_metodika, pastabos = :pastabos{$pdf_sql}, atnaujinta = CURRENT_TIMESTAMP WHERE id = :id");
-        $stmt->execute(array_merge([
-            'vidinis_kodas' => $_POST['vidinis_kodas'] ?? '',
-            'pavadinimas' => $_POST['pavadinimas'] ?? '',
-            'gamintojas' => $_POST['gamintojas'] ?? '',
-            'modelis' => $_POST['modelis'] ?? '',
-            'serijos_nr' => $_POST['serijos_nr'] ?? '',
-            'matavimo_tipas' => $_POST['matavimo_tipas'] ?? '',
-            'matavimo_ribos' => $_POST['matavimo_ribos'] ?? '',
-            'tikslumo_klase' => $_POST['tikslumo_klase'] ?? '',
-            'busena' => $_POST['busena'] ?? 'naudojamas',
-            'vieta' => $_POST['vieta'] ?? '',
-            'atsakingas_asmuo' => $_POST['atsakingas_asmuo'] ?? '',
-            'kalibracijos_sertifikato_nr' => $_POST['kalibracijos_sertifikato_nr'] ?? '',
-            'kalibravimo_istaiga' => $_POST['kalibravimo_istaiga'] ?? '',
-            'kalibravimo_data' => $_POST['kalibravimo_data'] ?: null,
-            'galiojimo_pabaiga' => $_POST['galiojimo_pabaiga'] ?: null,
-            'kita_kalibracija' => $_POST['kita_kalibracija'] ?: null,
-            'standartas_metodika' => $_POST['standartas_metodika'] ?? '',
-            'pastabos' => $_POST['pastabos'] ?? '',
-            'id' => $_POST['id'],
-        ], $pdf_params));
+        $stmt->bindValue(':vidinis_kodas', $_POST['vidinis_kodas'] ?? '');
+        $stmt->bindValue(':pavadinimas', $_POST['pavadinimas'] ?? '');
+        $stmt->bindValue(':gamintojas', $_POST['gamintojas'] ?? '');
+        $stmt->bindValue(':modelis', $_POST['modelis'] ?? '');
+        $stmt->bindValue(':serijos_nr', $_POST['serijos_nr'] ?? '');
+        $stmt->bindValue(':matavimo_tipas', $_POST['matavimo_tipas'] ?? '');
+        $stmt->bindValue(':matavimo_ribos', $_POST['matavimo_ribos'] ?? '');
+        $stmt->bindValue(':tikslumo_klase', $_POST['tikslumo_klase'] ?? '');
+        $stmt->bindValue(':busena', $_POST['busena'] ?? 'naudojamas');
+        $stmt->bindValue(':vieta', $_POST['vieta'] ?? '');
+        $stmt->bindValue(':atsakingas_asmuo', $_POST['atsakingas_asmuo'] ?? '');
+        $stmt->bindValue(':kalibracijos_sertifikato_nr', $_POST['kalibracijos_sertifikato_nr'] ?? '');
+        $stmt->bindValue(':kalibravimo_istaiga', $_POST['kalibravimo_istaiga'] ?? '');
+        $stmt->bindValue(':kalibravimo_data', $_POST['kalibravimo_data'] ?: null);
+        $stmt->bindValue(':galiojimo_pabaiga', $_POST['galiojimo_pabaiga'] ?: null);
+        $stmt->bindValue(':kita_kalibracija', $_POST['kita_kalibracija'] ?: null);
+        $stmt->bindValue(':standartas_metodika', $_POST['standartas_metodika'] ?? '');
+        $stmt->bindValue(':pastabos', $_POST['pastabos'] ?? '');
+        $stmt->bindValue(':id', $_POST['id']);
+        if ($pdf_data !== null && !empty($pdf_params)) {
+            $stmt->bindValue(':sertifikato_pdf', $pdf_data, PDO::PARAM_LOB);
+            $stmt->bindValue(':sertifikato_failas', $pdf_failas);
+        }
+        $stmt->execute();
         $message = 'Prietaisas atnaujintas.';
         }
     } elseif ($action === 'delete') {
