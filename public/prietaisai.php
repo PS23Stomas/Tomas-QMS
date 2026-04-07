@@ -48,7 +48,17 @@ function tikrintiPdfFaila(&$error) {
 
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    array_walk_recursive($_POST, function(&$val) { $val = utf8Valyti($val); });
+    array_walk_recursive($_POST, function(&$val) {
+        if (is_string($val)) $val = utf8Valyti($val);
+    });
+    if (!empty($_FILES)) {
+        foreach ($_FILES as &$f) {
+            if (isset($f['name']) && is_string($f['name'])) {
+                $f['name'] = utf8Valyti($f['name']);
+            }
+        }
+        unset($f);
+    }
     $action = $_POST['action'] ?? '';
 
     // Naujo prietaiso kūrimas su visais kalibravimo duomenimis
