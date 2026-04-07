@@ -68,7 +68,7 @@ if ($importas) {
         echo json_encode([
             'success' => $success,
             'message' => $success
-                ? 'Importas sėkmingas! Nauji: ' . $rezultatas['nauji'] . ', Atnaujinti: ' . $rezultatas['atnaujinti'] . ', Gaminiai: ' . $rezultatas['gaminiai'] . ', Bandymai: ' . $rezultatas['bandymai'] . ', Komponentai: ' . $rezultatas['komponentai']
+                ? 'Importas sėkmingas! Nauji: ' . $rezultatas['nauji'] . ', Atnaujinti: ' . $rezultatas['atnaujinti'] . ', Gaminiai: ' . $rezultatas['gaminiai'] . ', Bandymai: ' . $rezultatas['bandymai'] . ', Komponentai: ' . $rezultatas['komponentai'] . ', Pretenzijos: ' . ($rezultatas['pretenzijos'] ?? 0)
                 : 'Importas baigtas su klaidomis.',
             'rezultatas' => $rezultatas
         ]);
