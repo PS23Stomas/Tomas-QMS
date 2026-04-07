@@ -614,7 +614,13 @@ class TomoQMS {
             $st = $localConn->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
             foreach ($st as $r) $existing_local[trim($r['uzsakymo_numeris'])] = (int)$r['id'];
 
-            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_mt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $use_mt_fb = !empty($qt_mt_fb_cols);
+            if ($use_mt_fb) {
+                $qt_fb_cols = $qt_mt_fb_cols;
+            } else {
+                $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            }
             $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
             $qt_mk_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_komponentai'")->fetchAll(PDO::FETCH_COLUMN);
             $has_parinkta = in_array('parinkta_projektui', $qt_mk_cols);
@@ -650,13 +656,24 @@ class TomoQMS {
 
             if ($progressCallback) $progressCallback(55, $viso_uzsakymu, 'Fazė 2: kraunami bandymai iš QT...');
 
-            $fb_sel_cols = "gaminys_id AS gaminio_id, eil_nr, reikalavimas, isvada, defektas, atliko_vardas AS darba_atliko, pildytojas_vardas AS irase_vartotojas";
+            if ($use_mt_fb) {
+                $fb_gam_col = in_array('gaminio_id', $qt_fb_cols) ? 'gaminio_id' : 'gaminys_id';
+                $fb_atliko_col = in_array('darba_atliko', $qt_fb_cols) ? 'darba_atliko' : (in_array('atliko_vardas', $qt_fb_cols) ? 'atliko_vardas' : 'darba_atliko');
+                $fb_irase_col = in_array('irase_vartotojas', $qt_fb_cols) ? 'irase_vartotojas' : (in_array('pildytojas_vardas', $qt_fb_cols) ? 'pildytojas_vardas' : 'irase_vartotojas');
+                $fb_table = 'mt_funkciniai_bandymai';
+            } else {
+                $fb_gam_col = 'gaminys_id';
+                $fb_atliko_col = 'atliko_vardas';
+                $fb_irase_col = 'pildytojas_vardas';
+                $fb_table = 'funkciniai_bandymai';
+            }
+            $fb_sel_cols = "$fb_gam_col AS gaminio_id, eil_nr, reikalavimas, isvada, defektas, $fb_atliko_col AS darba_atliko, $fb_irase_col AS irase_vartotojas";
             if ($has_photo) $fb_sel_cols .= ", defekto_nuotrauka, defekto_nuotraukos_pavadinimas";
             $all_fb_by_gam = [];
             if (!empty($all_qt_gam_ids)) {
                 try {
                     $placeholders = implode(',', array_fill(0, count($all_qt_gam_ids), '?'));
-                    $fb_batch = $qt->prepare("SELECT $fb_sel_cols FROM funkciniai_bandymai WHERE gaminys_id IN ($placeholders) ORDER BY gaminys_id, eil_nr");
+                    $fb_batch = $qt->prepare("SELECT $fb_sel_cols FROM $fb_table WHERE $fb_gam_col IN ($placeholders) ORDER BY $fb_gam_col, eil_nr");
                     $fb_batch->execute($all_qt_gam_ids);
                     foreach ($fb_batch->fetchAll(PDO::FETCH_ASSOC) as $row) {
                         $gid = (int)$row['gaminio_id'];
@@ -664,7 +681,7 @@ class TomoQMS {
                         $all_fb_by_gam[$gid][] = $row;
                     }
                 } catch (Exception $e) {
-                    $rezultatas['klaidos'][] = "QT bandymai batch: {$e->getMessage()}";
+                    $rezultatas['klaidos'][] = "QT bandymai batch ($fb_table): {$e->getMessage()}";
                 }
             }
 
@@ -947,19 +964,33 @@ class TomoQMS {
             }
 
             // === 6. FUNKCINIAI BANDYMAI ===
-            $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_mt_fb_cols2 = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+            $use_mt_fb2 = !empty($qt_mt_fb_cols2);
+            if ($use_mt_fb2) {
+                $qt_fb_cols = $qt_mt_fb_cols2;
+                $fb_gam_col2 = in_array('gaminio_id', $qt_fb_cols) ? 'gaminio_id' : 'gaminys_id';
+                $fb_atliko_col2 = in_array('darba_atliko', $qt_fb_cols) ? 'darba_atliko' : (in_array('atliko_vardas', $qt_fb_cols) ? 'atliko_vardas' : 'darba_atliko');
+                $fb_irase_col2 = in_array('irase_vartotojas', $qt_fb_cols) ? 'irase_vartotojas' : (in_array('pildytojas_vardas', $qt_fb_cols) ? 'pildytojas_vardas' : 'irase_vartotojas');
+                $fb_table2 = 'mt_funkciniai_bandymai';
+            } else {
+                $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
+                $fb_gam_col2 = 'gaminys_id';
+                $fb_atliko_col2 = 'atliko_vardas';
+                $fb_irase_col2 = 'pildytojas_vardas';
+                $fb_table2 = 'funkciniai_bandymai';
+            }
             $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
 
-            $select_cols = "fb.gaminys_id AS gaminio_id, fb.eil_nr, fb.reikalavimas, fb.isvada, fb.defektas, fb.atliko_vardas AS darba_atliko, fb.pildytojas_vardas AS irase_vartotojas";
+            $select_cols = "fb.$fb_gam_col2 AS gaminio_id, fb.eil_nr, fb.reikalavimas, fb.isvada, fb.defektas, fb.$fb_atliko_col2 AS darba_atliko, fb.$fb_irase_col2 AS irase_vartotojas";
             if ($has_photo) $select_cols .= ", fb.defekto_nuotrauka, fb.defekto_nuotraukos_pavadinimas";
 
             $tests = $qt->query("
                 SELECT $select_cols
-                FROM funkciniai_bandymai fb
-                JOIN gaminiai g ON g.id = fb.gaminys_id
+                FROM $fb_table2 fb
+                JOIN gaminiai g ON g.id = fb.$fb_gam_col2
                 JOIN uzsakymai u ON u.id = g.uzsakymo_id
                 WHERE u.gaminiu_rusis_id = 2
-                ORDER BY fb.gaminys_id, fb.eil_nr
+                ORDER BY fb.$fb_gam_col2, fb.eil_nr
             ")->fetchAll(PDO::FETCH_ASSOC);
 
             $grouped = [];
