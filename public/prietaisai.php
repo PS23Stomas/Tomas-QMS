@@ -37,7 +37,10 @@ function tikrintiPdfFaila(&$error) {
 
 function utf8Valyti($reiksme) {
     if (!is_string($reiksme)) return $reiksme;
-    $reiksme = mb_convert_encoding($reiksme, 'UTF-8', 'UTF-8');
+    if (!mb_check_encoding($reiksme, 'UTF-8')) {
+        $reiksme = mb_convert_encoding($reiksme, 'UTF-8', 'ISO-8859-1');
+    }
+    $reiksme = iconv('UTF-8', 'UTF-8//IGNORE', $reiksme);
     $reiksme = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $reiksme);
     return $reiksme;
 }
