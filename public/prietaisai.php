@@ -15,6 +15,16 @@ $user = currentUser();
 $message = '';
 $error = '';
 
+function utf8Valyti($reiksme) {
+    if (!is_string($reiksme)) return $reiksme;
+    if (!mb_check_encoding($reiksme, 'UTF-8')) {
+        $reiksme = mb_convert_encoding($reiksme, 'UTF-8', 'ISO-8859-1');
+    }
+    $reiksme = iconv('UTF-8', 'UTF-8//IGNORE', $reiksme);
+    $reiksme = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $reiksme);
+    return $reiksme;
+}
+
 function tikrintiPdfFaila(&$error) {
     if (empty($_FILES['sertifikato_pdf']['tmp_name']) || $_FILES['sertifikato_pdf']['error'] !== UPLOAD_ERR_OK) {
         return [null, null];
@@ -32,17 +42,8 @@ function tikrintiPdfFaila(&$error) {
         $error = 'Netinkamas failo formatas. Leidžiamas tik PDF.';
         return [null, null];
     }
+    $pavadinimas = utf8Valyti($pavadinimas);
     return [file_get_contents($tmp), $pavadinimas];
-}
-
-function utf8Valyti($reiksme) {
-    if (!is_string($reiksme)) return $reiksme;
-    if (!mb_check_encoding($reiksme, 'UTF-8')) {
-        $reiksme = mb_convert_encoding($reiksme, 'UTF-8', 'ISO-8859-1');
-    }
-    $reiksme = iconv('UTF-8', 'UTF-8//IGNORE', $reiksme);
-    $reiksme = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $reiksme);
-    return $reiksme;
 }
 
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
