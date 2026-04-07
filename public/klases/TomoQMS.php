@@ -856,6 +856,7 @@ class TomoQMS {
 
             try {
                 $qt_pret_table_check = $qt->query("SELECT to_regclass('pretenzijos')")->fetchColumn();
+                error_log("Pretenzijos fazė: QT pretenzijos lentelė = " . ($qt_pret_table_check ?: 'NERASTA'));
                 if ($qt_pret_table_check) {
                     $qt_pret_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='pretenzijos'")->fetchAll(PDO::FETCH_COLUMN);
                     $qt_has_gaminys = in_array('gaminys_id', $qt_pret_cols);
@@ -866,6 +867,7 @@ class TomoQMS {
                     if ($qt_has_defekto_pdf) $pret_sel .= ", defekto_pdf_pavadinimas, defekto_pdf_turinys";
 
                     $qt_pretenzijos = $qt->query("SELECT $pret_sel FROM pretenzijos ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+                    error_log("Pretenzijos fazė: QT turi " . count($qt_pretenzijos) . " pretenzijų, stulpeliai: " . implode(',', $qt_pret_cols));
 
                     $local_has_qt_id = false;
                     try {
@@ -989,6 +991,7 @@ class TomoQMS {
                     }
                 }
             } catch (Exception $e) {
+                error_log("Pretenzijos fazė KLAIDA: " . $e->getMessage() . " @ " . $e->getFile() . ":" . $e->getLine());
                 $rezultatas['klaidos'][] = "Pretenzijos: {$e->getMessage()}";
             }
 
