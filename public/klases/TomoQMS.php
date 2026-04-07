@@ -882,6 +882,7 @@ class TomoQMS {
                     $qt_email_table = (bool)$qt->query("SELECT to_regclass('pretenzijos_email_history')")->fetchColumn();
 
                     foreach ($qt_pretenzijos as $p) {
+                        try {
                         $qt_pret_id = (int)$p['id'];
 
                         $local_uzs_id = null;
@@ -904,6 +905,9 @@ class TomoQMS {
                             $existing_pret_id = $chk_pret_fallback->fetchColumn();
                         }
 
+                        $pret_data = $p['gavimo_data'] ?? $p['sukurta'] ?? date('Y-m-d');
+                        $pret_prioritetas = 'vidutinis';
+
                         $common_cols = "tipas=?, statusas=?, aprasymas=?, priezastis=?, veiksmai=?, atsakingas_asmuo=?, gavimo_data=?, terminas=?, uzbaigimo_data=?, sukure_vardas=?, aptikimo_vieta=?, gaminys_info=?, atsakingas_padalinys=?, siulomas_sprendimas=?, uzfiksavo_padalinys=?, uzfiksavo_asmuo=?, uzsakymo_numeris_ranka=?, uzsakymo_id=?, gaminio_id=?";
                         $common_params = [$p['tipas'], $p['statusas'], $p['aprasymas'], $p['priezastis'] ?? null, $p['veiksmai'] ?? null, $p['atsakingas_asmuo'] ?? null, $p['gavimo_data'], $p['terminas'] ?? null, $p['uzbaigimo_data'] ?? null, $p['sukure_vardas'], $p['aptikimo_vieta'] ?? null, $p['gaminys_info'] ?? null, $p['atsakingas_padalinys'] ?? null, $p['siulomas_sprendimas'] ?? null, $p['uzfiksavo_padalinys'] ?? null, $p['uzfiksavo_asmuo'] ?? null, $p['uzsakymo_numeris_ranka'] ?? null, $local_uzs_id, $local_gam_id];
 
@@ -924,10 +928,12 @@ class TomoQMS {
                             $localConn->prepare($upd_sql)->execute($upd_params);
                             $local_pret_id = (int)$existing_pret_id;
                         } else {
-                            $ins_cols = "tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka, uzsakymo_id, gaminio_id";
-                            $ins_vals = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+                            $ins_cols = "tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka, uzsakymo_id, gaminio_id, data, prioritetas";
+                            $ins_vals = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
                             $ins_params = $common_params;
                             array_splice($ins_params, 10, 0, [$p['sukurta'] ?? date('Y-m-d H:i:s'), $p['atnaujinta'] ?? date('Y-m-d H:i:s')]);
+                            $ins_params[] = $pret_data;
+                            $ins_params[] = $pret_prioritetas;
                             if ($qt_has_defekto_pdf) {
                                 $ins_cols .= ", defekto_pdf_pavadinimas, defekto_pdf_turinys";
                                 $ins_vals .= ", ?, ?";
@@ -975,6 +981,10 @@ class TomoQMS {
                                     $rezultatas['pretenzijos_email']++;
                                 }
                             }
+                        }
+
+                        } catch (Exception $row_e) {
+                            $rezultatas['klaidos'][] = "Pretenzija qt_id={$p['id']}: {$row_e->getMessage()}";
                         }
                     }
                 }
