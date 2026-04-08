@@ -397,7 +397,6 @@ include __DIR__ . '/includes/header.php';
     background: white;
     border-radius: 10px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-    overflow: visible;
     flex-shrink: 0;
   }
   
