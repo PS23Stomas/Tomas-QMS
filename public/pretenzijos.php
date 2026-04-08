@@ -397,7 +397,11 @@ include __DIR__ . '/includes/header.php';
     background: white;
     border-radius: 10px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   
   .card-header-custom {
@@ -409,8 +413,20 @@ include __DIR__ . '/includes/header.php';
     align-items: center;
     flex-wrap: wrap;
     gap: 0.75rem;
+    flex-shrink: 0;
   }
   
+  .content-area {
+    overflow: hidden;
+  }
+
+  .pretenzijos-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 0 0.25rem;
+  }
+
   .filters {
     display: flex;
     gap: 0.75rem;
@@ -704,6 +720,7 @@ include __DIR__ . '/includes/header.php';
     <?php endif; ?>
   </div>
   
+  <div class="pretenzijos-list">
   <?php if (empty($pretenzijos)): ?>
     <div class="empty-state">
       <i class="bi bi-inbox"></i>
@@ -787,6 +804,7 @@ include __DIR__ . '/includes/header.php';
       </div>
     <?php endforeach; ?>
   <?php endif; ?>
+  </div>
 </div>
 
 <div id="modalKurti" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
