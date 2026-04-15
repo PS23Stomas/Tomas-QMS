@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Z41YG_b5r_9t2Dw0jyGDg"
+uri = "file://public/docs/tomo_qms_techninis_aprasymas.txt"
+type = "text"
+title = "Tomo-QMS — Pilnas techninis sistemos aprašymas"

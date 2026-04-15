@@ -1,0 +1,725 @@
+Tomo-QMS — Pilnas techninis sistemos aprašymas
+================================================================================
+
+1. APŽVALGA
+================================================================================
+Tomo-QMS (Quality Management System) yra žiniatinklio pagrindu veikianti gamybos
+kokybės valdymo sistema, sukurta UAB „ELGA" gamybos procesų kokybės kontrolei.
+Sistema apima užsakymų valdymą, funkcinių ir dielektrinių bandymų registravimą,
+komponentų sekimą, gaminio paso generavimą, pretenzijų valdymą, matavimo
+prietaisų priežiūrą ir kokybės statistiką.
+
+Technologijos: PHP 8.3 / PostgreSQL (PDO) / mPDF / Resend API
+Serveris: PHP integruotas serveris (php -S 0.0.0.0:5000)
+Produkcinė sistema: https://nkokybe.elga.tech
+El. pašto siuntėjas: Tomo-QMS <noreply@updates.elga.tech>
+
+2. TECHNINĖ ARCHITEKTŪRA
+================================================================================
+
+2.1 Serverio paleidimas (server/index.ts)
+- Node.js procesas paleidžia PHP integruotą serverį komanda:
+  php -S 0.0.0.0:5000 -t public public/router.php
+- Automatinis perkrovimas: jei PHP procesas sustoja, palaukiama 1-2 sek. ir
+  paleidžiamas iš naujo
+- Startuojant valomi pasenusios PHP sesijos: rm -f /tmp/sess_*
+
+2.2 URL maršrutizavimas (public/router.php)
+- Šakninis / nukreipia į login.php
+- Švarios URL: /uzsakymai -> uzsakymai.php (automatiškai pridedamas .php)
+- Statiniai failai (CSS, JS, paveikslėliai) grąžinami tiesiogiai
+- Sveikatos tikrinimas: /__healthcheck ir /__replit_health grąžina "OK"
+- Nežinomoms URL grąžinamas 404 puslapis
+
+2.3 Aplinkos kintamieji
+- DATABASE_URL — vietinės PostgreSQL DB prisijungimas
+- TOMO_QMS_DATABASE_URL — nuotolinės TomoQMS DB (eksportui)
+- QUALITY_TOMAS_DATABASE_URL — quality_tomas DB (importui)
+- RESEND_API_KEY — Resend.com API raktas el. laiškų siuntimui
+
+3. DUOMENŲ BAZĖ
+================================================================================
+
+3.1 Pagrindinės lentelės (Core)
+
+Lentelė: uzsakymai
+- id                  SERIAL PRIMARY KEY
+- uzsakymo_numeris    VARCHAR — užsakymo numeris
+- kiekis              INTEGER — gaminių kiekis užsakyme
+- uzsakovas_id        INTEGER → FK uzsakovai(id)
+- objektas_id         INTEGER → FK objektai(id)
+- vartotojas_id       INTEGER → FK vartotojai(id)
+- gaminiu_rusis_id    INTEGER → FK gaminiu_rusys(id)
+- sukurtas            TIMESTAMP DEFAULT now()
+- imone_pavadinimas   VARCHAR — įmonės pavadinimo perrašymas (per-order)
+- imone_adresas       TEXT
+- imone_telefonas     VARCHAR
+- imone_faksas        VARCHAR
+- imone_el_pastas     VARCHAR
+- imone_internetas    VARCHAR
+
+Lentelė: gaminiai
+- id                        SERIAL PRIMARY KEY
+- uzsakymo_id               INTEGER → FK uzsakymai(id)
+- gaminio_numeris            VARCHAR — automatiškai generuojamas (pvz. "16467-1")
+- gaminio_tipas_id           INTEGER → FK gaminio_tipai(id)
+- protokolo_nr               VARCHAR — dielektrinių bandymų protokolo numeris
+- pavadinimas                TEXT — individualus gaminio pavadinimas
+- mt_paso_pdf                BYTEA — sugeneruotas paso PDF
+- mt_paso_failas             VARCHAR — paso failo pavadinimas
+- mt_dielektriniu_pdf        BYTEA — dielektrinių bandymų PDF
+- mt_dielektriniu_failas     VARCHAR
+- mt_funkciniu_pdf           BYTEA — funkcinių bandymų PDF
+- mt_funkciniu_failas        VARCHAR
+- dielektriniai_issaugoti    BOOLEAN — ar dielektriniai duomenys išsaugoti
+
+Lentelė: uzsakovai
+- id          SERIAL PRIMARY KEY
+- uzsakovas   VARCHAR — užsakovo pavadinimas
+
+Lentelė: objektai
+- id           SERIAL PRIMARY KEY
+- pavadinimas  VARCHAR — objekto pavadinimas
+
+Lentelė: gaminio_tipai
+- id                SERIAL PRIMARY KEY
+- gaminio_tipas     VARCHAR — tipo pavadinimas
+- grupe             VARCHAR — modulio grupė
+- atitikmuo_kodas   VARCHAR — atitikties kodas (pvz. "15.6.2")
+
+Lentelė: gaminiu_rusys
+- id           SERIAL PRIMARY KEY
+- pavadinimas  VARCHAR — modulio pavadinimas (pvz. "MT", "USN")
+
+3.2 Bandymų ir komponentų lentelės
+
+Lentelė: funkciniai_bandymai
+- id                              SERIAL PRIMARY KEY
+- gaminio_id                      INTEGER → FK gaminiai(id)
+- eil_nr                          INTEGER — eilės numeris
+- reikalavimas                    TEXT — tikrinamo reikalavimo pavadinimas
+- isvada                          VARCHAR — 'atitinka'|'nepadaryta'|'nėra'
+- defektas                        TEXT — defekto aprašymas
+- darba_atliko                    VARCHAR — kas atliko darbus
+- irase_vartotojas                VARCHAR — kas įrašė rezultatą
+- defekto_nuotrauka               BYTEA — defekto nuotraukos binarinis turinys
+- defekto_nuotraukos_pavadinimas  VARCHAR — nuotraukos failo pavadinimas
+- pataisyta                       TEXT — pataisymo aprašymas
+- issiusta_kam                    TEXT — kam išsiųstas pranešimas
+
+Lentelė: funkciniu_sablonas
+- id                SERIAL PRIMARY KEY
+- eil_nr            INTEGER — eilės numeris šablone
+- pavadinimas       TEXT — reikalavimo pavadinimas
+- gaminiu_rusis_id  INTEGER → FK gaminiu_rusys(id)
+
+Lentelė: dielektriniai_bandymai
+- id                    SERIAL PRIMARY KEY
+- gaminys_id            INTEGER → FK gaminiai(id)
+- eiles_nr              INTEGER
+- aprasymas             TEXT — kabelio/grandinės aprašymas
+- itampa                VARCHAR — nominali įtampa
+- schema1..schema6      VARCHAR — bandymo schemos reikšmės
+- isvada                VARCHAR — bandymo išvada
+- tipas                 VARCHAR — bandymo tipas
+- grandines_pavadinimas TEXT
+- grandines_itampa      VARCHAR
+- bandymo_schema        VARCHAR
+- bandymo_itampa_kv     VARCHAR
+- bandymo_trukme        VARCHAR
+
+Lentelė: antriniu_grandiniu_bandymai
+- gaminys_id            INTEGER → FK gaminiai(id)
+- eiles_nr              INTEGER
+- grandines_pavadinimas TEXT
+- grandines_itampa      VARCHAR
+- bandymo_schema        VARCHAR
+- bandymo_itampa_kv     VARCHAR
+- bandymo_trukme        VARCHAR
+- isvada                VARCHAR
+
+Lentelė: izeminimo_tikrinimas
+- id                       SERIAL PRIMARY KEY
+- gaminys_id               INTEGER → FK gaminiai(id)
+- eil_nr                   INTEGER
+- tasko_pavadinimas        TEXT — matavimo taško pavadinimas
+- matavimo_tasku_skaicius  INTEGER
+- varza_ohm                VARCHAR — varžos reikšmė (Ω)
+- budas                    VARCHAR — matavimo būdas
+- bukle                    VARCHAR — būklė
+
+Lentelė: komponentai
+- id                  SERIAL PRIMARY KEY
+- gaminio_id          INTEGER → FK gaminiai(id)
+- eiles_numeris       INTEGER
+- gamintojo_kodas     VARCHAR
+- kiekis              INTEGER
+- aprasymas           TEXT — komponento aprašymas
+- gamintojas          VARCHAR
+- parinkta_projektui  BOOLEAN — ar naudojamas šiame projekte
+
+Lentelė: saugikliu_ideklai
+- id                SERIAL PRIMARY KEY
+- gaminio_id        INTEGER → FK gaminiai(id)
+- sekcija           VARCHAR
+- pozicija          VARCHAR
+- gabaritas         VARCHAR
+- nominalas         VARCHAR
+- pozicijos_numeris VARCHAR
+
+Lentelė: bandymai_prietaisai
+- id               SERIAL PRIMARY KEY
+- gaminys_id       INTEGER → FK gaminiai(id)
+- prietaiso_tipas  VARCHAR — prietaiso modelis
+- prietaiso_nr     VARCHAR — serijinis numeris
+- patikra_data     DATE — paskutinės patikros data
+- galioja_iki      DATE — patikros galiojimo terminas
+- sertifikato_nr   VARCHAR
+
+Lentelė: paso_teksto_korekcijos
+- id          SERIAL PRIMARY KEY
+- gaminio_id  INTEGER → FK gaminiai(id)
+- laukas      VARCHAR — koreguojamo lauko identifikatorius
+- kalba       VARCHAR — kalba (lt, en)
+- tekstas     TEXT — koreguotas tekstas
+
+3.3 Pretenzijų lentelės
+
+Lentelė: pretenzijos
+- id                       SERIAL PRIMARY KEY
+- uzsakymo_id              INTEGER → FK uzsakymai(id) ON DELETE SET NULL
+- gaminio_id               INTEGER → FK gaminiai(id) ON DELETE SET NULL
+- pretenzijos_nr           VARCHAR
+- data                     DATE
+- tipas                    VARCHAR — 'vidine'|'kliento'|'tiekejo'
+- aprasymas                TEXT NOT NULL
+- statusas                 VARCHAR — 'nauja'|'tyrimas'|'vykdoma'|'uzbaigta'|'atmesta'
+- prioritetas              VARCHAR — 'zemas'|'vidutinis'|'aukstas'|'kritinis'
+- atsakingas_asmuo         VARCHAR
+- sprendimas               TEXT
+- uzdaryta_data            DATE
+- sukure_id                INTEGER → FK vartotojai(id)
+- sukurta                  TIMESTAMP DEFAULT now()
+- atnaujinta               TIMESTAMP DEFAULT now()
+- aptikimo_vieta           VARCHAR
+- gaminys_info             VARCHAR
+- atsakingas_padalinys     VARCHAR
+- siulomas_sprendimas      TEXT
+- uzfiksavo_padalinys      VARCHAR
+- uzfiksavo_asmuo          VARCHAR
+- priezastis               TEXT
+- veiksmai                 TEXT — korekciniai veiksmai
+- terminas                 DATE
+- gavimo_data              DATE
+- uzbaigimo_data           DATE
+- sukure_vardas            VARCHAR
+- uzsakymo_numeris_ranka   VARCHAR
+- defekto_pdf_pavadinimas  VARCHAR(255)
+- defekto_pdf_turinys      BYTEA
+- qt_pretenzija_id         INTEGER UNIQUE — stabilus ID iš quality_tomas DB
+
+Lentelė: pretenzijos_nuotraukos
+- id              SERIAL PRIMARY KEY
+- pretenzija_id   INTEGER → FK pretenzijos(id) ON DELETE CASCADE
+- pavadinimas     VARCHAR — failo pavadinimas
+- tipas           VARCHAR — MIME tipas
+- turinys         BYTEA — nuotraukos binarinis turinys
+
+Lentelė: pretenzijos_email_history
+- id                  SERIAL PRIMARY KEY
+- pretenzija_id       INTEGER → FK pretenzijos(id) ON DELETE CASCADE
+- email_delegated_to  VARCHAR(255) — pagrindinis gavėjas
+- email_cc            TEXT — CC gavėjai
+- email_subject       VARCHAR(500)
+- sent_by             VARCHAR(255) — kas siuntė
+- sent_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+- feedback_text       TEXT — gavėjo atsakymas
+- feedback_at         TIMESTAMP
+- feedback_by         VARCHAR(255) — kas atsakė
+
+3.4 Vartotojų ir sistemos lentelės
+
+Lentelė: vartotojai
+- id              SERIAL PRIMARY KEY
+- vardas          VARCHAR — vardas
+- pavarde         VARCHAR — pavardė
+- pastas          VARCHAR — el. pašto adresas
+- slaptazodis     VARCHAR — bcrypt hash
+- role            VARCHAR — 'admin'|'user'|'skaitytojas'
+- parasas         BYTEA — parašo vaizdas
+- parasas_tipas   VARCHAR — parašo MIME tipas
+- pareigos        VARCHAR — pareigų pavadinimas
+
+Lentelė: aktyvus_vartotojai
+- id                  SERIAL PRIMARY KEY
+- vartotojas_id       INTEGER → FK vartotojai(id)
+- paskutinis_veiksmas TIMESTAMP
+
+Lentelė: remember_tokens
+- id            SERIAL PRIMARY KEY
+- vartotojas_id INTEGER → FK vartotojai(id)
+- token         VARCHAR — SHA-256 hash žetono
+- expires_at    TIMESTAMP — galiojimo pabaiga (30 dienų)
+
+Lentelė: imones_nustatymai
+- id               SERIAL PRIMARY KEY
+- pavadinimas      VARCHAR — įmonės pavadinimas
+- adresas          TEXT
+- telefonas        VARCHAR
+- faksas           VARCHAR
+- el_pastas        VARCHAR
+- internetas       VARCHAR
+- logotipas        BYTEA — logotipo vaizdas
+- logotipo_tipas   VARCHAR
+
+Lentelė: prietaisai
+- id                         SERIAL PRIMARY KEY
+- vidinis_kodas              VARCHAR — vidinis prietaiso kodas
+- pavadinimas                VARCHAR — prietaiso pavadinimas
+- gamintojas                 VARCHAR
+- modelis                    VARCHAR
+- serijinis_numeris          VARCHAR
+- matavimo_tipas             VARCHAR
+- paskutine_patikra          DATE
+- kita_patikra               DATE
+- sertifikato_nr             VARCHAR
+- sertifikato_pdf            BYTEA — kalibravimo sertifikato PDF
+- sertifikato_pdf_pavadinimas VARCHAR
+- pastabos                   TEXT
+
+Lentelė: sync_log (nuotolinėje TomoQMS DB)
+- id                SERIAL PRIMARY KEY
+- data              TIMESTAMP
+- veiksmas          VARCHAR — sinchronizacijos veiksmas
+- lentele           VARCHAR — sinchronizuota lentelė
+- uzsakymo_numeris  VARCHAR
+- irasu_kiekis      INTEGER — sinchronizuotų įrašų kiekis
+- statusas          VARCHAR — 'ok'|'klaida'
+- klaida            TEXT — klaidos pranešimas
+- vartotojas        VARCHAR — kas inicijavo sinchronizaciją
+
+3.5 Duomenų bazės migracija (public/klases/DBMigracija.php)
+- Migracijos klasė su privačiais metodais kiekvienai schemai
+- Visi metodai iškviečiami iš paleisti() metodo
+- Naudoja CREATE TABLE IF NOT EXISTS ir ALTER TABLE ADD COLUMN IF NOT EXISTS
+- Užtikrina saugų schemos atnaujinimą be duomenų praradimo
+
+4. FAILŲ STRUKTŪRA
+================================================================================
+
+4.1 Serverio failai
+server/index.ts                — Node.js wrapper, paleidžiantis PHP serverį
+
+4.2 Pagrindiniai PHP failai (public/)
+login.php                      — prisijungimo puslapis
+logout.php                     — atsijungimas (sesija + remember token valymas)
+moduliai.php                   — gamybos modulių pasirinkimas
+uzsakymai.php                  — užsakymų valdymas (CRUD)
+pretenzijos.php                — pretenzijų valdymas (CRUD + UI)
+prietaisai.php                 — matavimo prietaisų valdymas
+profilis.php                   — vartotojo profilio nustatymai
+vartotojai.php                 — vartotojų administravimas (tik admin)
+imones_nustatymai.php          — įmonės nustatymų valdymas (tik admin)
+index.php                      — rodiklių skydelis (dashboard)
+sinchronizuoti.php             — sinchronizacijos paleidimas
+sync_log.php                   — sinchronizacijos žurnalas
+sablonas_funkciniai.php        — funkcinių bandymų šablonų valdymas
+slaptazodis_atstatymas.php     — slaptažodžio atstatymas (el. paštu)
+slaptazodis_keitimas.php       — slaptažodžio keitimas
+db_diagrama.php                — DB schemos vizualizacija
+router.php                     — URL maršrutizatorius
+
+4.3 MT modulio failai
+mt_funkciniai_bandymai.php     — funkcinių bandymų pildymo forma
+MT/mt_dielektriniai.php        — dielektrinių bandymų protokolas
+MT/mt_sumontuoti_komponentai.php — sumontuotų komponentų valdymas
+MT/mt_pasas.php                — gaminio paso generavimo sąsaja
+
+4.4 PDF generavimo failai
+MT/generuoti_mt_paso_pdf.php       — gaminio paso PDF
+MT/generuoti_mt_dielektriniu_pdf.php — dielektrinių bandymų PDF
+MT/generuoti_mt_funkciniu_pdf.php  — funkcinių bandymų PDF
+kokybe_30d_pdf.php                 — 30 dienų kokybės ataskaita PDF
+kokybe_isplestine_pdf.php          — išplėstinė kokybės ataskaita PDF
+generuoti_ketvirciu_pdf.php        — ketvirčių palyginimo PDF
+pretenzijos_pdf.php                — pretenzijos PDF
+
+4.5 Viešieji endpoint'ai (be autentikacijos)
+pretenzija_perziura.php        — viešas pretenzijos peržiūros puslapis
+pretenzijos_atsakymas.php      — viešas feedback puslapis
+pretenzijos_nuotrauka.php      — nuotraukos iš BYTEA grąžinimas
+pretenzija_defekto_pdf.php     — defekto PDF iš BYTEA grąžinimas
+
+4.6 AJAX endpoint'ai
+pretenzijos_siusti.php         — pretenzijos el. laiško siuntimas (JSON)
+siusti_defekta.php             — defekto pranešimo siuntimas (JSON)
+issaugoti_mt_bandyma.php       — funkcinių bandymų išsaugojimas
+api/delete_defekto_nuotrauka.php — defekto nuotraukos trynimas
+api/quick_add.php              — greitas duomenų pridėjimas
+
+4.7 Statistikos failai
+mt_statistika.php              — MT gedimų statistika
+darbuotoju_statistika.php      — darbuotojų mėnesinė statistika
+grafiko_duomenys.php           — grafiko duomenų JSON endpoint
+
+4.8 Klasės (public/klases/)
+Database.php                   — PDO prisijungimas
+DBMigracija.php                — duomenų bazės migracija
+Sesija.php                     — sesijų valdymas ir rolių tikrinimas
+TomoQMS.php                    — sinchronizacijos logika
+Emailas.php                    — el. pašto siuntimas per Resend API
+Gaminys.php                    — gaminio logika
+Komponentas.php                — komponentų logika
+MTPasasKomponentai.php         — paso komponentų atvaizdavimas
+
+4.9 Bendri failai
+includes/header.php            — šoninė navigacija ir antraštė
+includes/config.php            — konfigūracija ir requireLogin()
+css/style.css                  — pagrindinis stiliaus failas (2300+ eilučių)
+js/app.js                      — kliento JavaScript
+
+5. AUTENTIKACIJA IR SAUGUMAS
+================================================================================
+
+5.1 Prisijungimas (login.php)
+- Priima vardą, pavardę ir slaptažodį
+- Ieško vartotojo pagal vardą ir pavardę vartotojai lentelėje
+- Tikrina slaptažodį su password_verify() (bcrypt — PASSWORD_BCRYPT)
+- Sėkmės atveju: session_regenerate_id(true) prieš sesijos kintamųjų nustatymą
+- Nustato: vartotojas_id, vardas, pavarde, role, paskutine_veikla
+- Registruoja aktyvų vartotoją aktyvus_vartotojai lentelėje
+
+5.2 Sesijos konfigūracija (Sesija.php)
+- Galiojimas: 1800 sekundžių (30 minučių)
+- Slapuko parametrai:
+  - lifetime: 0 (iki naršyklės uždarymo)
+  - secure: true (tik HTTPS)
+  - httponly: true (neprieinamas JavaScript)
+  - samesite: Lax
+- Kiekviena užklausa atnaujina $_SESSION['paskutine_veikla']
+- Atsitiktinai (1 iš 10) valo neaktyvius vartotojus iš aktyvus_vartotojai
+
+5.3 "Prisiminti mane" mechanizmas
+- Generuojamas žetonas: bin2hex(random_bytes(32)) — 64 simbolių
+- Naršyklėje: remember_token slapukas
+- DB: SHA-256 maišos reikšmė remember_tokens lentelėje
+- Galiojimas: 30 dienų
+- Atsijungiant: trinamas iš DB ir naršyklės
+
+5.4 Rolės ir teisės
+╔═══════════════╦═══════════════╦═══════════════╦═══════════════╗
+║ Veiksmas      ║ admin         ║ user          ║ skaitytojas   ║
+╠═══════════════╬═══════════════╬═══════════════╬═══════════════╣
+║ Peržiūrėti    ║ ✓             ║ ✓             ║ ✓             ║
+║ Sukurti       ║ ✓             ║ ✓             ║ ✗             ║
+║ Redaguoti     ║ ✓             ║ ✓             ║ ✗             ║
+║ Trinti        ║ ✓             ║ ✗             ║ ✗             ║
+║ Valdyti vart. ║ ✓             ║ ✗             ║ ✗             ║
+║ Įm. nustatym. ║ ✓             ║ ✗             ║ ✗             ║
+╚═══════════════╩═══════════════╩═══════════════╩═══════════════╝
+
+Tikrinimo funkcijos:
+- Sesija::arSkaitytojas() → $_SESSION['role'] === 'skaitytojas'
+- Sesija::blokuotiSkaitytojaVeiksma() → nukreipia su klaida
+- Inline: if (($user['role'] ?? '') !== 'admin') { die; }
+
+5.5 Apsauga nuo atakų
+- SQL injekcijos: PDO su paruoštomis užklausomis (prepared statements)
+- XSS: htmlspecialchars() visur išvedant vartotojo duomenis
+- CSRF: dalinė apsauga per SameSite=Lax sesijos slapukus
+  (atskiro CSRF žetono mechanizmo nėra)
+- Failų įkėlimas: mime_content_type() + plėtinio tikrinimas
+- Sesijų fiksacija: session_regenerate_id(true) po prisijungimo
+
+6. NAVIGACIJA (public/includes/header.php)
+================================================================================
+
+Šoninė navigacija su sekcijomis:
+
+MODULIAI:
+- Visi moduliai (/moduliai.php)
+- Užsakymai (/uzsakymai.php?grupe=...) — tik kai aktyvus modulis
+- Kokybiniai rodikliai (/index.php?grupe=...) — tik kai aktyvus modulis
+- Tikrinimo šablonas (/sablonas_funkciniai.php) — tik admin
+
+BENDRA:
+- Pretenzijos (/pretenzijos.php)
+
+ADMINISTRAVIMAS:
+- Prietaisų patikra (/prietaisai.php)
+- Vartotojų valdymas (/vartotojai.php) — tik admin
+
+VARTOTOJAS:
+- Profilis (/profilis.php)
+- Atsijungti (/logout.php)
+
+7. MODULIŲ APRAŠYMAI
+================================================================================
+
+7.1 Gamybos modulių valdymas (moduliai.php)
+- Rodomi visi gamybos moduliai (gaminiu_rusys lentelė)
+- Admin gali kurti naujus modulius
+- Dublikatų prevencija: tikrinama ar pavadinimas jau egzistuoja prieš sukuriant
+- Pasirinktas modulis saugomas sesijoje (aktyvus_grupe, aktyvus_modulis_pav)
+
+7.2 Užsakymų valdymas (uzsakymai.php)
+Sukūrimas:
+- Įvedamas užsakymo numeris, kiekis, užsakovas, objektas
+- Automatiškai generuojami gaminiai pagal kiekį
+  (pvz. kiekis=3 → gaminiai: 16467-1, 16467-2, 16467-3)
+- Galima nustatyti per-order įmonės duomenis (PDF generavimui)
+
+Sąrašo vaizdas:
+- Filtruojama pagal aktyvią gaminių rūšį (gaminiu_rusis_id)
+- Rikiuojama: sukurtas DESC, id DESC
+- Rodomas PDF būklės indikatorius kiekvienam gaminiui
+  (paso PDF, dielektrinių PDF, funkcinių PDF)
+
+Detali peržiūra (?id=X):
+- Visi užsakymo gaminiai su mygtukais bandymams
+- Galimybė pervardyti individualius gaminius
+
+Trynimas:
+- Tik admin rolei
+- Reikia patvirtinti įvedant tikslų užsakymo numerį
+- Kaskadinis trynimas: funkciniai_bandymai, komponentai,
+  dielektriniai_bandymai, saugikliu_ideklai, izeminimo_tikrinimas,
+  paso_teksto_korekcijos, pretenzijos (su nuotraukomis), gaminiai
+
+7.3 Funkciniai bandymai (mt_funkciniai_bandymai.php)
+- 21 gamybos reikalavimas (arba pagal šabloną iš funkciniu_sablonas)
+- Kiekvienam reikalavimui: išvada (atitinka/nepadaryta/nėra),
+  defekto aprašymas, kas atliko, kas įrašė
+- Defektų nuotraukų įkėlimas ir peržiūra (lightbox)
+- El. laiškų siuntimas apie defektus (siusti_defekta.php)
+- Pataisymo būklės sekimas
+- Mobiliam telefonui pritaikyta: kortelių vaizdas (<768px),
+  lentelės vaizdas (≥768px)
+- Duomenys saugomi funkciniai_bandymai lentelėje
+
+7.4 Dielektriniai bandymai (MT/mt_dielektriniai.php)
+- Aukštos įtampos elektros saugos testai
+- Sekcijos:
+  a) Bandymų prietaisai (CRUD) — modelis, numeris, kalibravimo data
+  b) Vidutinės įtampos bandymai (6-24 kV) — kabelių testavimas
+  c) Žemos įtampos bandymai (0.4 kV) — izoliacijos varža
+  d) Antrinių grandinių bandymai
+  e) Įžeminimo grandinių tikrinimas — varžos matavimas (Ω)
+  f) Saugiklių įdėklai — tik kai modulis = 'MT'
+- Automatinis protokolo numerių generavimas (pvz. "d0009")
+- Duomenys: dielektriniai_bandymai, antriniu_grandiniu_bandymai,
+  izeminimo_tikrinimas, bandymai_prietaisai, saugikliu_ideklai
+
+7.5 Sumontuoti komponentai (MT/mt_sumontuoti_komponentai.php)
+- BOM (Bill of Materials) sekimas kiekvienam gaminiui
+- 18 numatytųjų MT komponentų (kirtikliai, transformatoriai ir kt.)
+- Kiekvienam komponentui: gamintojo kodas, kiekis, aprašymas, gamintojas
+- "Parinkta projektui" vėliavėlė — ar komponentas naudojamas šiame gaminyje
+- Dinaminis esamų gamintojų kodų ir pavadinimų paieška
+- Duomenys: komponentai lentelė
+
+7.6 Gaminio pasas (MT/mt_pasas.php)
+- Formalus techninis dokumentas klientui
+- Agreguoja duomenis iš komponentų ir dielektrinių bandymų
+- Techninės specifikacijos: atitikties kodas, galia (kVA), konfigūracija
+- Teksto korekcijos (paso_teksto_korekcijos) — rankiniai perrašymai
+- Daugiakalbis palaikymas (lt, en)
+- Įmonės duomenys iš imones_nustatymai arba per-order perrašymai
+- PDF generavimas: MT/generuoti_mt_paso_pdf.php (mPDF)
+
+7.7 Pretenzijų valdymas (pretenzijos.php)
+Gyvavimo ciklas:
+  nauja → tyrimas → vykdoma → uzbaigta
+                              → atmesta
+  Kai statusas = uzbaigta|atmesta → auto uzbaigimo_data = CURRENT_DATE
+
+Sukūrimas:
+- Privalomas: aprasymas
+- Tipas: vidine/kliento/tiekejo
+- Galima susieti su užsakymu (dropdown) arba įvesti rankinį numerį
+- Galima įkelti nuotraukas (multiple) → BYTEA pretenzijos_nuotraukos
+- Galima įkelti defekto PDF → BYTEA pretenzijos.defekto_pdf_turinys
+- Auto el. laiškas į kokybe@elga.lt su PDF priedu
+
+Filtravimas:
+- GET ?tipas=vidine|kliento|tiekejo
+- GET ?statusas=nauja|tyrimas|vykdoma|uzbaigta|atmesta
+- Rikiavimas: statusas prioritetas (nauja=1, tyrimas=2...), tada sukurta DESC
+
+Statistikos kortelės:
+- Viso pretenzijų, naujų, aktyvių (nauja+tyrimas+vykdoma), užbaigtų
+
+El. laiškų siuntimas:
+- pretenzijos_siusti.php (AJAX, JSON)
+- Pagrindinis gavėjas (email_delegated_to) gauna su feedback mygtuku
+- CC gavėjai gauna be feedback mygtuko
+- Priedas: defekto PDF arba generuotas pretenzijos PDF
+- Feedback: pretenzijos_atsakymas.php — viešas puslapis,
+  identifikuojamas per pretenzijos_email_history.id URL parametre
+
+Viešoji peržiūra:
+- pretenzija_perziura.php — be sesijos, skirtas nuorodoms el. laiškuose
+
+7.8 Matavimo prietaisų valdymas (prietaisai.php)
+- CRUD operacijos prietaisams
+- Stebimi: vidinis kodas, pavadinimas, gamintojas, modelis, serijinis nr.
+- Kalibravimo sekimas su būsenos indikatoriais:
+  - Žalias (Galioja) — kalibravimas galioja
+  - Geltonas (Baigiasi greitai) — liko < 30 dienų
+  - Raudonas (Pasibaigęs) — kalibravimas pasibaigęs
+- PDF sertifikatų įkėlimas ir peržiūra (BYTEA, prietaiso_sertifikatas.php)
+- Trynimas tik admin
+
+7.9 Rodiklių skydelis (index.php)
+Trys pagrindinės skiltys:
+
+30 dienų rodikliai:
+- Patikrintų gaminių skaičius
+- Viso neatitikimų
+- Neatitikimų procentas (%)
+- Aktyvūs nepataisyti defektai
+- TOP 5 dažniausios klaidos
+- Savaitinė suvestinė (grafikas)
+
+Ketvirčių palyginimas:
+- Dviejų pasirinktų ketvirčių palyginimas
+- Užsakymų, gaminių, tikrinimo taškų, defektų rodikliai
+- Geriausių darbuotojų reitingas
+- Probleminės operacijos
+
+Mėnesinė darbuotojų statistika:
+- Kiekvieno darbuotojo veiklos rodikliai
+- Patikrintų gaminių, taškų, defektų skaičius
+
+8. PDF GENERAVIMAS
+================================================================================
+
+Visi PDF dokumentai generuojami naudojant mPDF (mpdf/mpdf ^8.2) biblioteką.
+
+Generuojami dokumentai:
+1. Gaminio pasas          — MT/generuoti_mt_paso_pdf.php
+2. Dielektrinių protokolas — MT/generuoti_mt_dielektriniu_pdf.php
+3. Funkcinių protokolas    — MT/generuoti_mt_funkciniu_pdf.php
+4. 30 dienų ataskaita      — kokybe_30d_pdf.php
+5. Išplėstinė ataskaita    — kokybe_isplestine_pdf.php
+6. Ketvirčių palyginimas   — generuoti_ketvirciu_pdf.php
+7. Pretenzijos dokumentas   — pretenzijos_pdf.php
+
+PDF saugojimas:
+- Gaminio pasas, dielektrinių, funkcinių PDF → BYTEA gaminiai lentelėje
+- Defekto PDF → BYTEA pretenzijos lentelėje
+- Kalibravimo sertifikatai → BYTEA prietaisai lentelėje
+
+9. EL. PAŠTO SISTEMA
+================================================================================
+
+9.1 Emailas.php klasė
+- Siuntėjas: Tomo-QMS <noreply@updates.elga.tech>
+- API: Resend (https://api.resend.com/emails)
+- Naudoja curl POST su JSON duomenimis
+- Aplinkos kintamasis: RESEND_API_KEY
+
+9.2 El. laiškų tipai
+1. Slaptažodžio atstatymas — violetinė antraštė, "Atstatyti slaptažodį" mygtukas
+2. Defekto pranešimas — lentelė su neatliktais tikrinimo taškais
+3. Pretenzijos pranešimas — raudona antraštė, "Pateikti atsakymą" mygtukas
+4. Pretenzijos atsakymas — žalia antraštė, atsakymo turinys
+5. Automatinis naujos pretenzijos pranešimas — PDF priedas, siunčiamas į kokybe@elga.lt
+
+9.3 El. laiškų struktūra (Outlook suderinamumas)
+- Naudojama <table width="640"> struktūra (ne CSS max-width)
+- Outlook nepalaiko CSS max-width ant <div>, todėl HTML width atributas
+- Nuotraukos el. laiškuose: išorinės URL (ne base64, nes Gmail blokuoja data: URI)
+
+10. SINCHRONIZACIJOS SISTEMA
+================================================================================
+
+10.1 Architektūra
+Sistema naudoja dvi nuotolines duomenų bazes:
+- TOMO_QMS_DATABASE_URL — eksporto tikslas (test rezultatų siuntimas)
+- QUALITY_TOMAS_DATABASE_URL — importo šaltinis (užsakymų, gaminių gavimas)
+
+10.2 Importas (quality_tomas → vietinė DB)
+Paleidimas: sinchronizuoti.php POST importas=1
+Metodas: TomoQMS::importuotiILocalDB()
+
+Fazės:
+1. Užsakymai — filtruoja pagal gaminiu_rusis_id=2 (MT),
+   sinchronizuoja uzsakovai ir objektai
+2. Gaminiai ir bandymai — iteruoja per importuotus užsakymus,
+   traukia gaminius, funkcinius bandymus (mt_funkciniai_bandymai),
+   komponentus (mt_komponentai)
+3. Pretenzijos — traukia pretenzijas su nuotraukomis ir el. pašto istorija,
+   naudoja qt_pretenzija_id stabiliam identifikavimui,
+   mapuoja QT gaminys_id → vietinį gaminio_id
+
+10.3 Eksportas (vietinė DB → TomoQMS)
+Paleidimas: sinchronizuoti.php POST masinis=1 arba uzsakymo_id=X
+
+Sinchronizuojami duomenys (per sinchronizuotiGamini() funkciją):
+- sinchFunkciniai — funkciniai bandymai su defektų nuotraukomis
+- sinchKomponentai — komponentų sąrašai
+- sinchDielektriniai — dielektriniai, antrinių grandinių, įžeminimo bandymai
+- sinchSaugiklius — saugiklių įdėklai
+- sinchPrietaisus — bandymų prietaisai
+- sinchProtokoloNr — protokolų numeriai
+- sinchPasoTeksta — paso teksto korekcijos
+- sinchPDF — sugeneruoti PDF failai
+
+Eksporto logika: DELETE esami + INSERT nauji (pilnas perrašymas)
+
+10.4 Sinchronizacijos žurnalas (sync_log)
+- Saugomas nuotolinėje TomoQMS DB
+- Kiekviena operacija registruojama su: data, veiksmas, lentelė,
+  užsakymo numeris, įrašų kiekis, statusas (ok/klaida), klaidos tekstas
+- Peržiūra: sync_log.php
+
+11. VARTOTOJO SĄSAJA
+================================================================================
+
+11.1 CSS architektūra
+- Pagrindinis failas: public/css/style.css (2300+ eilučių)
+- Individualus CSS karkasas su CSS kintamaisiais (--primary: #2563eb ir kt.)
+- Flexbox ir Grid išdėstymas
+- Bootstrap 5 selektyviai integruotas tik specifiniuose puslapiuose:
+  - mt_funkciniai_bandymai.php — lentelės ir formos
+  - MT/mt_dielektriniai.php — bandymų protokolas
+  - MT/mt_sumontuoti_komponentai.php — komponentų lentelė
+  - pretenzija_perziura.php — viešoji peržiūra
+- Šriftas: Inter (Google Fonts)
+
+11.2 JavaScript (public/js/app.js + inline)
+- "Vanilla" JavaScript (be framework'ų)
+- Sesijų valdymas, modalai, filtrai
+- Dinaminiai sąrašai ir lentelių atnaujinimas
+- AJAX užklausos (fetch API)
+- Lightbox nuotraukoms
+
+11.3 Responsive dizainas
+- Funkcinių bandymų forma: kortelių vaizdas mobiliame (<768px),
+  lentelės vaizdas kompiuteryje (≥768px)
+- Viewport meta tag mobiliems puslapiams
+- data-label atributai mobilio kortelių etiketėms
+
+12. TECHNINIAI REIKALAVIMAI
+================================================================================
+
+Serveris:
+- Minimaliai: 2 branduolių CPU, 4 GB RAM, ~50 GB SSD
+- Rekomenduojama: 4+ branduoliai, 8-16 GB RAM, NVMe diskai
+
+Programinė įranga:
+- PHP 8.3+
+- PostgreSQL 14+
+- Node.js (serverio wrapper'iui)
+- Composer (PHP priklausomybėms)
+
+PHP priklausomybės (composer.json):
+- mpdf/mpdf ^8.2 — PDF generavimas
+- setasign/fpdi — PDF šablonų importavimas (mPDF priklausomybė)
+
+Aplinkos kintamieji:
+- DATABASE_URL (privalomas)
+- RESEND_API_KEY (privalomas el. paštui)
+- TOMO_QMS_DATABASE_URL (sinchronizacijai)
+- QUALITY_TOMAS_DATABASE_URL (importui)
