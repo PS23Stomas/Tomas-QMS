@@ -2342,3 +2342,185 @@ textarea.form-control {
     background: #f8f9fa;
     border-bottom: 2px solid var(--border);
 }
+
+/* ==========================================================================
+   MOBILIOSIOS ADAPTACIJOS IŠPLĖTIMAS
+   Apima: uzsakovai, objektai, vartotojai, imones_nustatymai,
+          sablonas_funkciniai, pretenzijos modalai, pretenzija_perziura
+   ========================================================================== */
+
+/* --- Bendras kortelių lentelės stilius mažiems ekranams (uzsakovai, objektai) --- */
+@media (max-width: 768px) {
+    .generic-card-table thead {
+        display: none;
+    }
+
+    .generic-card-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        gap: 6px;
+        background: var(--bg-card);
+    }
+
+    .generic-card-table tbody tr:hover {
+        background: var(--bg-card);
+    }
+
+    .generic-card-table tbody tr td {
+        display: flex;
+        align-items: center;
+        padding: 2px 0;
+        border-bottom: none;
+        font-size: 13px;
+    }
+
+    .generic-card-table tbody tr td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        min-width: 90px;
+        flex-shrink: 0;
+    }
+
+    .generic-card-table tbody tr td.gct-cell-title {
+        font-size: 15px;
+        font-weight: 600;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2px;
+    }
+
+    .generic-card-table tbody tr td.gct-cell-title::before {
+        display: none;
+    }
+
+    .generic-card-table tbody tr td.gct-cell-actions {
+        justify-content: flex-end;
+        padding-top: 6px;
+        border-top: 1px solid var(--border);
+        margin-top: 2px;
+    }
+
+    .generic-card-table tbody tr td.gct-cell-actions::before {
+        display: none;
+    }
+
+    /* --- Vartotojų lentelės (activeUsersTable, usersTable) --- */
+    #activeUsersTable thead,
+    #usersTable thead {
+        display: none;
+    }
+
+    #activeUsersTable tbody tr,
+    #usersTable tbody tr {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        gap: 6px;
+        background: var(--bg-card);
+    }
+
+    #activeUsersTable tbody tr:hover,
+    #usersTable tbody tr:hover {
+        background: var(--bg-card);
+    }
+
+    #activeUsersTable tbody tr td,
+    #usersTable tbody tr td {
+        display: flex;
+        align-items: center;
+        padding: 2px 0;
+        border-bottom: none;
+        font-size: 13px;
+    }
+
+    #activeUsersTable tbody tr td::before,
+    #usersTable tbody tr td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        min-width: 110px;
+        flex-shrink: 0;
+    }
+
+    #usersTable tbody tr td.usr-cell-name {
+        font-size: 15px;
+        font-weight: 600;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2px;
+    }
+
+    #usersTable tbody tr td.usr-cell-name::before {
+        display: none;
+    }
+
+    #usersTable tbody tr td.usr-cell-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--border);
+        margin-top: 2px;
+    }
+
+    #usersTable tbody tr td.usr-cell-actions::before {
+        display: none;
+    }
+
+    /* --- Įmonės nustatymų dviejų stulpelių tinkleliai --- */
+    .imones-grid-2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* --- Šablono puslapio antraštė --- */
+    .sablonas-ph {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    .sablonas-ph h2 {
+        margin: 0;
+    }
+
+    /* --- Pretenzijų modalų 3-stulpelių tinklelis → 1 stulpelis --- */
+    .pretenzija-form-3col {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* --- Pretenzijų peržiūros lentelių horizontalus slinkimas --- */
+    .perziura-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 0.75rem;
+    }
+
+    /* --- Pretenzijų peržiūros Bootstrap eilutės → stulpelis --- */
+    .perziura-row-flex {
+        flex-direction: column;
+    }
+
+    /* --- Sablonas lentelės veiksmų stulpelis --- */
+    #sablonasTable tbody tr td:last-child {
+        text-align: left;
+        padding: 4px 8px;
+    }
+
+    #sablonasTable tbody tr td:first-child {
+        display: none;
+    }
+}

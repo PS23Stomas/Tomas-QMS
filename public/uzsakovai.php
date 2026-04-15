@@ -59,7 +59,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table>
+            <table class="generic-card-table">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -72,10 +72,10 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if (count($clients) > 0): ?>
                         <?php foreach ($clients as $c): ?>
                         <tr data-testid="row-client-<?= $c['id'] ?>">
-                            <td><?= $c['id'] ?></td>
-                            <td style="font-weight: 500;"><?= h($c['uzsakovas']) ?></td>
-                            <td><span class="badge badge-info"><?= $c['uzsakymu_sk'] ?></span></td>
-                            <td>
+                            <td data-label="ID"><?= $c['id'] ?></td>
+                            <td class="gct-cell-title"><?= h($c['uzsakovas']) ?></td>
+                            <td data-label="Užsakymų"><span class="badge badge-info"><?= $c['uzsakymu_sk'] ?></span></td>
+                            <td class="gct-cell-actions">
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editClient(<?= $c['id'] ?>, '<?= h(addslashes($c['uzsakovas'])) ?>')" data-testid="button-edit-client-<?= $c['id'] ?>">Redaguoti</button>
                                     <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>

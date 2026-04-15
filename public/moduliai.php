@@ -127,7 +127,7 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">
-    Pasirinkite modulį, kad matytumėte jo užsakymus, kokybės rodiklius ir tikrinimo šabloną.
+    Pasirinkite modulį
 </p>
 
 <div class="modules-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px;">

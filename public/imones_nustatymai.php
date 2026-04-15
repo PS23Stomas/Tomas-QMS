@@ -224,7 +224,7 @@ include __DIR__ . '/includes/header.php';
                               data-testid="input-company-address"><?= h($nustatymai['adresas'] ?? '') ?></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="imones-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
                         <label for="telefonas" class="form-label">Telefonas</label>
                         <input type="text" id="telefonas" name="telefonas" class="form-control"
@@ -237,7 +237,7 @@ include __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="imones-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
                         <label for="el_pastas" class="form-label">El. paštas</label>
                         <input type="email" id="el_pastas" name="el_pastas" class="form-control"

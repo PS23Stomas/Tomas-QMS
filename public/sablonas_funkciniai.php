@@ -34,9 +34,9 @@ $klaida = $_GET['klaida'] ?? '';
 include __DIR__ . '/includes/header.php';
 ?>
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+<div class="page-header sablonas-ph" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <h2 data-testid="text-page-title">Funkcinių bandymų šablonas</h2>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-sm" onclick="pridetiEilute()" data-testid="button-add-row" style="background:var(--success);color:#fff;border:none;display:inline-flex;align-items:center;gap:4px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Pridėti punktą

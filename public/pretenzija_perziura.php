@@ -97,22 +97,24 @@ $nl    = fn($s) => nl2br($esc($s));
       <span class="text-muted ms-auto" style="font-size:0.83rem;"><i class="bi bi-clock me-1"></i><?= $esc(substr($p['sukurta'] ?? '', 0, 16)) ?></span>
     </div>
 
-    <table class="table table-bordered mb-3">
-      <thead class="table-light">
-        <tr>
-          <th>Problemos pastebėjimo vieta</th>
-          <th>Gaminys</th>
-          <th>Užsakymo Nr.</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><?= $esc($p['aptikimo_vieta'] ?? '') ?: '-' ?></td>
-          <td><?= $esc($p['gaminys_info'] ?? '') ?: '-' ?></td>
-          <td><?= $esc($p['uzsakymo_numeris'] ?? $p['uzsakymo_numeris_ranka'] ?? '') ?: '-' ?></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="perziura-table-wrap">
+      <table class="table table-bordered mb-3">
+        <thead class="table-light">
+          <tr>
+            <th>Problemos pastebėjimo vieta</th>
+            <th>Gaminys</th>
+            <th>Užsakymo Nr.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><?= $esc($p['aptikimo_vieta'] ?? '') ?: '-' ?></td>
+            <td><?= $esc($p['gaminys_info'] ?? '') ?: '-' ?></td>
+            <td><?= $esc($p['uzsakymo_numeris'] ?? $p['uzsakymo_numeris_ranka'] ?? '') ?: '-' ?></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="mb-3">
       <div class="section-label">Problemos aprašymas</div>
@@ -137,7 +139,7 @@ $nl    = fn($s) => nl2br($esc($s));
 
     <div class="p-3 rounded mb-3" style="background:#f8f9fa;border:1px solid #dee2e6;">
       <div class="section-label">Problemą užfiksavo</div>
-      <div class="row text-muted mt-1" style="font-size:0.9rem;">
+      <div class="row perziura-row-flex text-muted mt-1" style="font-size:0.9rem;">
         <div class="col-md-4"><strong>Padalinys:</strong> <?= $esc($p['uzfiksavo_padalinys'] ?? '') ?: '-' ?></div>
         <div class="col-md-4"><strong>Asmuo:</strong> <?= $esc($p['uzfiksavo_asmuo'] ?? '') ?: '-' ?></div>
         <div class="col-md-4"><strong>Data:</strong> <?= $esc($p['gavimo_data'] ?? '') ?: '-' ?></div>

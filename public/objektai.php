@@ -59,7 +59,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table>
+            <table class="generic-card-table">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -72,10 +72,10 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if (count($objects) > 0): ?>
                         <?php foreach ($objects as $o): ?>
                         <tr data-testid="row-object-<?= $o['id'] ?>">
-                            <td><?= $o['id'] ?></td>
-                            <td style="font-weight: 500;"><?= h($o['pavadinimas']) ?></td>
-                            <td><span class="badge badge-info"><?= $o['uzsakymu_sk'] ?></span></td>
-                            <td>
+                            <td data-label="ID"><?= $o['id'] ?></td>
+                            <td class="gct-cell-title"><?= h($o['pavadinimas']) ?></td>
+                            <td data-label="Užsakymų"><span class="badge badge-info"><?= $o['uzsakymu_sk'] ?></span></td>
+                            <td class="gct-cell-actions">
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editObject(<?= $o['id'] ?>, '<?= h(addslashes($o['pavadinimas'])) ?>')" data-testid="button-edit-object-<?= $o['id'] ?>">Redaguoti</button>
                                     <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>

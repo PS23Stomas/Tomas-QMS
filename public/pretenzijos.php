@@ -941,7 +941,7 @@ include __DIR__ . '/includes/header.php';
         <input type="hidden" name="veiksmas" value="kurti">
         
         <div style="margin-bottom:1.5rem;">
-          <div style="display:grid;grid-template-columns:5fr 4fr 3fr;gap:1rem;">
+          <div class="pretenzija-form-3col" style="display:grid;grid-template-columns:5fr 4fr 3fr;gap:1rem;">
             <div>
               <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;">Problemos pastebėjimo (aptikimo) vieta</label>
               <select name="aptikimo_vieta_select" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;margin-bottom:0.4rem;" onchange="toggleCustomField(this, 'aptikimo_vieta_custom')" data-testid="select-aptikimo-vieta">

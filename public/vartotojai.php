@@ -192,7 +192,7 @@ require_once __DIR__ . '/includes/header.php';
     <?php if (!empty($aktyvus_vartotojai)): ?>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table data-testid="table-active-users">
+            <table id="activeUsersTable" data-testid="table-active-users">
                 <thead>
                     <tr>
                         <th>Būsena</th>
@@ -205,11 +205,11 @@ require_once __DIR__ . '/includes/header.php';
                 <tbody>
                     <?php foreach ($aktyvus_vartotojai as $av): ?>
                     <tr data-testid="row-active-user-<?= h($av['vardas'] . '-' . $av['pavarde']) ?>">
-                        <td><span class="badge badge-success" style="display: inline-flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:#16a34a;border-radius:50%;display:inline-block;animation:pulse-dot 2s infinite;"></span> Aktyvus</span></td>
-                        <td style="font-weight: 500;"><?= h($av['vardas'] ?? '-') ?></td>
-                        <td><?= h($av['pavarde'] ?? '-') ?></td>
-                        <td style="color: var(--text-secondary);"><?= h($av['prisijungimo_laikas'] ? date('Y-m-d H:i', strtotime($av['prisijungimo_laikas'])) : '-') ?></td>
-                        <td style="color: var(--text-secondary);"><?= h($av['paskutine_veikla'] ? date('Y-m-d H:i', strtotime($av['paskutine_veikla'])) : '-') ?></td>
+                        <td data-label="Būsena"><span class="badge badge-success" style="display: inline-flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:#16a34a;border-radius:50%;display:inline-block;animation:pulse-dot 2s infinite;"></span> Aktyvus</span></td>
+                        <td data-label="Vardas" style="font-weight: 500;"><?= h($av['vardas'] ?? '-') ?></td>
+                        <td data-label="Pavardė"><?= h($av['pavarde'] ?? '-') ?></td>
+                        <td data-label="Prisijungta" style="color: var(--text-secondary);"><?= h($av['prisijungimo_laikas'] ? date('Y-m-d H:i', strtotime($av['prisijungimo_laikas'])) : '-') ?></td>
+                        <td data-label="Veikla" style="color: var(--text-secondary);"><?= h($av['paskutine_veikla'] ? date('Y-m-d H:i', strtotime($av['paskutine_veikla'])) : '-') ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -233,7 +233,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-wrapper">
-            <table>
+            <table id="usersTable">
                 <thead>
                     <tr>
                         <th>Vardas</th>
@@ -253,18 +253,18 @@ require_once __DIR__ . '/includes/header.php';
                         elseif ($u['role'] === 'user') $role_badge = 'badge-primary';
                     ?>
                     <tr data-testid="row-user-<?= $u['id'] ?>">
-                        <td style="font-weight: 500;"><?= h($u['vardas'] ?? '-') ?></td>
-                        <td><?= h($u['pavarde'] ?? '-') ?></td>
-                        <td style="color: var(--text-secondary);"><?= h($u['el_pastas'] ?? '-') ?></td>
-                        <td><span class="badge <?= $role_badge ?>"><?= h($role_labels[$u['role']] ?? $u['role'] ?? '-') ?></span></td>
-                        <td>
+                        <td class="usr-cell-name" data-label="Vardas" style="font-weight: 500;"><?= h($u['vardas'] ?? '-') ?></td>
+                        <td data-label="Pavardė"><?= h($u['pavarde'] ?? '-') ?></td>
+                        <td data-label="El. paštas" style="color: var(--text-secondary);"><?= h($u['el_pastas'] ?? '-') ?></td>
+                        <td data-label="Rolė"><span class="badge <?= $role_badge ?>"><?= h($role_labels[$u['role']] ?? $u['role'] ?? '-') ?></span></td>
+                        <td data-label="Patvirtintas">
                             <?php if ($u['patvirtintas']): ?>
                                 <span class="badge badge-success">Taip</span>
                             <?php else: ?>
                                 <span class="badge badge-warning">Ne</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="usr-cell-actions">
                             <div class="actions">
                                 <button class="btn btn-secondary btn-sm" onclick='editUser(<?= json_encode($u) ?>)' data-testid="button-edit-user-<?= $u['id'] ?>">Redaguoti</button>
                                 <?php if (!$u['patvirtintas']): ?>
