@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/pretenzijos_pdf_gen.php';
 requireLogin();
 
 $page_title = 'Pretenzijos';
@@ -152,6 +153,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmtPdf->bindValue(':id', $pretenzijaId, PDO::PARAM_INT);
                         $stmtPdf->execute();
                     }
+                }
+
+                try {
+                    $tipai_lt = [
+                        'vidine' => 'Vidinė pretenzija',
+                        'kliento' => 'Kliento pretenzija',
+                        'tiekejo' => 'Tiekėjui pretenzija'
+                    ];
+                    $tipas_lt = $tipai_lt[$tipas] ?? $tipas;
+
+                    $emailHtml = '
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                            <h1 style="color: white; margin: 0; font-size: 20px;">Nauja pretenzija #' . $pretenzijaId . '</h1>
+                        </div>
+                        <div style="background: #f9fafb; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+                            <p style="color: #333; font-size: 14px;"><strong>Tipas:</strong> ' . htmlspecialchars($tipas_lt) . '</p>
+                            <p style="color: #333; font-size: 14px;"><strong>Aprašymas:</strong><br>' . nl2br(htmlspecialchars($aprasymas)) . '</p>
+                            <p style="color: #333; font-size: 14px;"><strong>Sukūrė:</strong> ' . htmlspecialchars($prisijunges) . '</p>
+                            <p style="color: #333; font-size: 14px;"><strong>Data:</strong> ' . htmlspecialchars($gavimo_data) . '</p>
+                            ' . (!empty($aptikimo_vieta) ? '<p style="color: #333; font-size: 14px;"><strong>Aptikimo vieta:</strong> ' . htmlspecialchars($aptikimo_vieta) . '</p>' : '') . '
+                            ' . (!empty($gaminys_info) ? '<p style="color: #333; font-size: 14px;"><strong>Gaminys:</strong> ' . htmlspecialchars($gaminys_info) . '</p>' : '') . '
+                            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+                            <p style="color: #888; font-size: 12px; text-align: center;">Kokybės valdymo sistema — Tomo QMS</p>
+                        </div>
+                    </div>';
+
+                    $priedai = [];
+                    $pdfContent = generatePretenzijaPdf($pdo, (int)$pretenzijaId);
+                    if ($pdfContent) {
+                        $priedai[] = [
+                            'filename' => 'Pretenzija_' . $pretenzijaId . '.pdf',
+                            'content' => base64_encode($pdfContent)
+                        ];
+                    }
+
+                    Emailas::siusti(
+                        'kokybe@elga.lt',
+                        'Nauja pretenzija #' . $pretenzijaId . ' — ' . $tipas_lt,
+                        $emailHtml,
+                        $priedai
+                    );
+                } catch (Exception $emailEx) {
+                    error_log('Pretenzijos el. laiško klaida: ' . $emailEx->getMessage());
                 }
 
                 pretenzijosRedirect('sukurta');

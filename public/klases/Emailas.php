@@ -30,18 +30,26 @@ class Emailas {
     public static function getLastError(): string { return self::$lastError; }
     public static function getLastResponse(): string { return self::$lastResponse; }
 
-    /** Išsiunčia el. laišką per Resend API nurodytam gavėjui su tema ir HTML turiniu */
-    public static function siusti(string $kam, string $tema, string $html): bool {
+    /** Išsiunčia el. laišką per Resend API nurodytam gavėjui su tema ir HTML turiniu.
+     *  $priedai — neprivalomas masyvas priedų: [['filename'=>'...', 'content'=>base64_string], ...]
+     */
+    public static function siusti(string $kam, string $tema, string $html, array $priedai = []): bool {
         self::$lastError = '';
         self::$lastResponse = '';
         $apiKey = self::getApiKey();
 
-        $data = json_encode([
+        $payload = [
             'from' => self::$fromEmail,
             'to' => [$kam],
             'subject' => $tema,
             'html' => $html,
-        ]);
+        ];
+
+        if (!empty($priedai)) {
+            $payload['attachments'] = $priedai;
+        }
+
+        $data = json_encode($payload);
 
         $ch = curl_init('https://api.resend.com/emails');
         curl_setopt_array($ch, [
