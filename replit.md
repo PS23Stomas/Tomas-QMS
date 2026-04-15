@@ -44,6 +44,9 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - **Core Features**: CRUD operations for orders, products, clients, objects, claims, devices, and users.
 - **Claims Module (Pretenzijos)**: Full claim lifecycle with PDF export (`pretenzijos_pdf.php`, PR 28/2 form), email sending with delegation (`pretenzijos_siusti.php`), email history with feedback tracking (`pretenzijos_email_history` table), public feedback page (`pretenzijos_atsakymas.php`), photo compression loading indicator, and automatic email notification with PDF attachment to kokybe@elga.lt on new claim creation.
     - **Shared PDF generation**: `pretenzijos_pdf_gen.php` provides `generatePretenzijaPdf()` function returning PDF as string for email attachments.
+    - **Multi-file attachments**: `pretenzijos_failai` table supports multiple PDF and .msg files per claim. AJAX API (`pretenzijos_failai_api.php`) with session check for file list/delete. Download via `pretenzijos_failas_atsisiusti.php`.
+    - **Photo upload in edit mode**: Edit form allows adding new photos (appended to existing), with preview thumbnails of current photos.
+    - **Email modal attachment count**: Shows "X priedai bus pridėti" or "Priedų nėra — bus generuotas PDF" before sending.
 - **Manufacturing Process Tracking**:
     - **Functional Tests**: Management of 21 manufacturing requirements, including defect tracking, photo uploads (with lightbox preview and AJAX delete), and PDF generation. Supports editable templates for requirements.
     - **Component Management**: Tracking of mounted components (18 default items).

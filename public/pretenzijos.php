@@ -155,6 +155,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                if (!empty($_FILES['pretenzijos_failai']['name'][0])) {
+                    $stmtFailas = $pdo->prepare("
+                        INSERT INTO pretenzijos_failai (pretenzija_id, pavadinimas, tipas, turinys)
+                        VALUES (:pretenzija_id, :pavadinimas, :tipas, :turinys)
+                    ");
+                    $allowedExts = ['pdf', 'msg'];
+                    foreach ($_FILES['pretenzijos_failai']['tmp_name'] as $fi => $fTmp) {
+                        if (!empty($fTmp) && is_uploaded_file($fTmp)) {
+                            $fName = $_FILES['pretenzijos_failai']['name'][$fi];
+                            $fExt = strtolower(pathinfo($fName, PATHINFO_EXTENSION));
+                            if (!in_array($fExt, $allowedExts)) continue;
+                            $fType = $_FILES['pretenzijos_failai']['type'][$fi] ?: 'application/octet-stream';
+                            $fContent = file_get_contents($fTmp);
+                            $stmtFailas->bindValue(':pretenzija_id', $pretenzijaId, PDO::PARAM_INT);
+                            $stmtFailas->bindValue(':pavadinimas', $fName, PDO::PARAM_STR);
+                            $stmtFailas->bindValue(':tipas', $fType, PDO::PARAM_STR);
+                            $stmtFailas->bindValue(':turinys', $fContent, PDO::PARAM_LOB);
+                            $stmtFailas->execute();
+                        }
+                    }
+                }
+
                 try {
                     $tipai_lt = [
                         'vidine' => 'Vidinė pretenzija',
@@ -288,6 +310,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            if (!empty($_FILES['pretenzijos_failai_edit']['name'][0])) {
+                $stmtFailas = $pdo->prepare("
+                    INSERT INTO pretenzijos_failai (pretenzija_id, pavadinimas, tipas, turinys)
+                    VALUES (:pretenzija_id, :pavadinimas, :tipas, :turinys)
+                ");
+                $allowedExts = ['pdf', 'msg'];
+                foreach ($_FILES['pretenzijos_failai_edit']['tmp_name'] as $fi => $fTmp) {
+                    if (!empty($fTmp) && is_uploaded_file($fTmp)) {
+                        $fName = $_FILES['pretenzijos_failai_edit']['name'][$fi];
+                        $fExt = strtolower(pathinfo($fName, PATHINFO_EXTENSION));
+                        if (!in_array($fExt, $allowedExts)) continue;
+                        $fType = $_FILES['pretenzijos_failai_edit']['type'][$fi] ?: 'application/octet-stream';
+                        $fContent = file_get_contents($fTmp);
+                        $stmtFailas->bindValue(':pretenzija_id', $id, PDO::PARAM_INT);
+                        $stmtFailas->bindValue(':pavadinimas', $fName, PDO::PARAM_STR);
+                        $stmtFailas->bindValue(':tipas', $fType, PDO::PARAM_STR);
+                        $stmtFailas->bindValue(':turinys', $fContent, PDO::PARAM_LOB);
+                        $stmtFailas->execute();
+                    }
+                }
+            }
+
+            if (!empty($_FILES['nuotraukos_edit']['name'][0])) {
+                $stmtPhoto = $pdo->prepare("
+                    INSERT INTO pretenzijos_nuotraukos (pretenzija_id, pavadinimas, tipas, turinys)
+                    VALUES (:pretenzija_id, :pavadinimas, :tipas, :turinys)
+                ");
+                foreach ($_FILES['nuotraukos_edit']['tmp_name'] as $fi => $fTmp) {
+                    if (!empty($fTmp) && is_uploaded_file($fTmp)) {
+                        $fName = $_FILES['nuotraukos_edit']['name'][$fi];
+                        $fType = $_FILES['nuotraukos_edit']['type'][$fi];
+                        $fContent = file_get_contents($fTmp);
+                        $stmtPhoto->bindValue(':pretenzija_id', $id, PDO::PARAM_INT);
+                        $stmtPhoto->bindValue(':pavadinimas', $fName, PDO::PARAM_STR);
+                        $stmtPhoto->bindValue(':tipas', $fType, PDO::PARAM_STR);
+                        $stmtPhoto->bindValue(':turinys', $fContent, PDO::PARAM_LOB);
+                        $stmtPhoto->execute();
+                    }
+                }
+            }
+
             pretenzijosRedirect('atnaujinta');
         }
     }
@@ -374,6 +437,17 @@ while ($row = $nuotraukosStmt->fetch(PDO::FETCH_ASSOC)) {
     $nuotraukos_map[$pid][] = ['id' => $row['id'], 'pavadinimas' => $row['pavadinimas']];
 }
 
+$failai_map = [];
+try {
+    $failaiStmt = $pdo->query("SELECT id, pretenzija_id, pavadinimas, tipas FROM pretenzijos_failai ORDER BY id");
+    while ($row = $failaiStmt->fetch(PDO::FETCH_ASSOC)) {
+        $pid = $row['pretenzija_id'];
+        if (!isset($failai_map[$pid])) $failai_map[$pid] = [];
+        $failai_map[$pid][] = ['id' => $row['id'], 'pavadinimas' => $row['pavadinimas'], 'tipas' => $row['tipas']];
+    }
+} catch (PDOException $e) {
+}
+
 $email_stats_map = [];
 $emailStatsStmt = $pdo->query("
     SELECT pretenzija_id,
@@ -391,6 +465,7 @@ while ($row = $emailStatsStmt->fetch(PDO::FETCH_ASSOC)) {
 
 foreach ($pretenzijos as &$p) {
     $p['nuotraukos'] = $nuotraukos_map[$p['id']] ?? [];
+    $p['failai'] = $failai_map[$p['id']] ?? [];
     $p['email_stats'] = $email_stats_map[$p['id']] ?? ['sent' => 0, 'answered' => 0];
 }
 unset($p);
@@ -812,6 +887,9 @@ include __DIR__ . '/includes/header.php';
           <?php if (!empty($p['nuotraukos'])): ?>
             <span style="display:inline-block;background:#6c757d;color:white;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;margin-left:0.5rem;"><i class="bi bi-camera-fill me-1"></i><?= count($p['nuotraukos']) ?></span>
           <?php endif; ?>
+          <?php if (!empty($p['failai'])): ?>
+            <span style="display:inline-block;background:#e67e22;color:white;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;margin-left:0.3rem;" data-testid="badge-failai-<?= $p['id'] ?>"><i class="bi bi-paperclip me-1"></i><?= count($p['failai']) ?></span>
+          <?php endif; ?>
         </div>
         
         <div class="pretenzija-info">
@@ -926,10 +1004,10 @@ include __DIR__ . '/includes/header.php';
               <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
           </div>
-          <div style="margin-top:0.75rem;">
-            <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF (neprivaloma)</label>
-            <input type="file" name="defekto_pdf" accept="application/pdf,.pdf" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;background:white;" data-testid="input-defekto-pdf">
-            <small style="color:#6c757d;">Tik PDF failai priimami</small>
+          <div style="margin-top:0.75rem;padding:0.75rem;border-radius:8px;background:#fff8f0;border-left:4px solid #e67e22;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;font-size:0.88rem;"><i class="bi bi-paperclip me-1"></i>Failai (PDF, .msg — neprivaloma)</label>
+            <input type="file" name="pretenzijos_failai[]" multiple accept="application/pdf,.pdf,.msg,application/vnd.ms-outlook" style="width:100%;padding:0.4rem 0.6rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;background:white;" data-testid="input-pretenzijos-failai">
+            <small style="color:#6c757d;">PDF ir .msg failai priimami. Galite pasirinkti kelis failus.</small>
           </div>
         </div>
         
@@ -1026,6 +1104,7 @@ include __DIR__ . '/includes/header.php';
           <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">CC (kopija, neprivaloma)</label>
           <input type="text" id="emailCc" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="kopija1@imone.lt, kopija2@imone.lt" data-testid="input-email-cc">
         </div>
+        <div id="emailAttachmentInfo" style="display:none;margin-bottom:1rem;padding:0.5rem 0.8rem;border-radius:6px;font-size:0.83rem;background:#fff8f0;border:1px solid #f0d9b5;color:#856404;"></div>
         <div id="emailStatus" style="display:none;margin-bottom:1rem;padding:0.6rem 0.8rem;border-radius:6px;font-size:0.85rem;"></div>
       </div>
       <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
@@ -1179,6 +1258,19 @@ function viewPretenzija(id) {
           <a href="pretenzija_defekto_pdf.php?id=${id}" target="_blank" style="color:#c0392b;font-weight:500;text-decoration:none;" data-testid="link-view-defekto-pdf">
             <i class="bi bi-download me-1"></i>${escH(p.defekto_pdf_pavadinimas)}
           </a>
+        </div>
+      </div>
+    ` : ''}
+
+    ${p.failai && p.failai.length > 0 ? `
+      <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#fff8f0;border-left:4px solid #e67e22;">
+        <strong style="text-transform:uppercase;font-size:0.88rem;"><i class="bi bi-paperclip me-1"></i>Pridėti failai (${p.failai.length})</strong>
+        <div style="margin-top:0.5rem;">
+          ${p.failai.map(f => {
+            const icon = f.pavadinimas.toLowerCase().endsWith('.msg') ? 'bi-envelope-fill' : 'bi-file-earmark-pdf-fill';
+            const color = f.pavadinimas.toLowerCase().endsWith('.msg') ? '#2980b9' : '#c0392b';
+            return '<div style="margin-bottom:0.3rem;"><a href="pretenzijos_failas_atsisiusti.php?id=' + parseInt(f.id) + '" target="_blank" style="color:' + color + ';font-weight:500;text-decoration:none;" data-testid="link-failas-' + parseInt(f.id) + '"><i class="bi ' + icon + ' me-1"></i>' + escH(f.pavadinimas) + '</a></div>';
+          }).join('')}
         </div>
       </div>
     ` : ''}
@@ -1348,13 +1440,37 @@ function editPretenzija(id) {
       </div>
     </div>
 
-    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f8f9fa;border-left:4px solid #e74c3c;">
-      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#e74c3c;margin-bottom:0.75rem;"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF</div>
-      ${p.defekto_pdf_pavadinimas ? `<div style="margin-bottom:0.5rem;"><a href="pretenzija_defekto_pdf.php?id=${id}" target="_blank" style="color:#e74c3c;font-weight:500;text-decoration:none;" data-testid="link-edit-pdf-download"><i class="bi bi-file-earmark-pdf me-1"></i>${esc(p.defekto_pdf_pavadinimas)}</a></div>` : ''}
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#f0f8ff;border-left:4px solid #6c757d;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#6c757d;margin-bottom:0.75rem;"><i class="bi bi-camera me-1"></i>Nuotraukos ${p.nuotraukos && p.nuotraukos.length > 0 ? '(' + p.nuotraukos.length + ' esamos)' : ''}</div>
+      ${p.nuotraukos && p.nuotraukos.length > 0 ? `
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:0.5rem;">
+          ${p.nuotraukos.map(n => '<img src="pretenzijos_nuotrauka.php?id=' + parseInt(n.id) + '" alt="' + escH(n.pavadinimas) + '" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">').join('')}
+        </div>
+        <small style="color:#6c757d;font-size:0.78rem;">Naujos nuotraukos bus pridėtos prie esamų</small>
+      ` : ''}
       <div>
-        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">${p.defekto_pdf_pavadinimas ? 'Pakeisti PDF failą' : 'Įkelti PDF failą'}</label>
-        <input type="file" name="defekto_pdf" accept="application/pdf,.pdf" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;background:white;" data-testid="input-edit-defekto-pdf">
-        <small style="color:#6c757d;font-size:0.78rem;">Tik PDF failai priimami</small>
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Pridėti nuotraukų</label>
+        <input type="file" name="nuotraukos_edit[]" multiple accept="image/*" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;background:white;" data-testid="input-edit-nuotraukos" id="editPhotoInput_${id}">
+        <div id="editPhotoPreview_${id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:0.5rem;"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;padding:0.75rem;border-radius:8px;background:#fff8f0;border-left:4px solid #e67e22;">
+      <div style="font-weight:700;text-transform:uppercase;font-size:0.78rem;color:#e67e22;margin-bottom:0.75rem;"><i class="bi bi-paperclip me-1"></i>Failai (PDF, .msg)</div>
+      ${p.defekto_pdf_pavadinimas ? `<div style="margin-bottom:0.5rem;"><a href="pretenzija_defekto_pdf.php?id=${id}" target="_blank" style="color:#e74c3c;font-weight:500;text-decoration:none;" data-testid="link-edit-pdf-download"><i class="bi bi-file-earmark-pdf-fill me-1"></i>${esc(p.defekto_pdf_pavadinimas)}</a> <small style="color:#6c757d;">(senas PDF)</small></div>` : ''}
+      ${p.failai && p.failai.length > 0 ? `
+        <div style="margin-bottom:0.5rem;">
+          ${p.failai.map(f => {
+            const icon = f.pavadinimas.toLowerCase().endsWith('.msg') ? 'bi-envelope-fill' : 'bi-file-earmark-pdf-fill';
+            const color = f.pavadinimas.toLowerCase().endsWith('.msg') ? '#2980b9' : '#c0392b';
+            return '<div style="margin-bottom:0.3rem;display:flex;align-items:center;gap:0.5rem;"><a href="pretenzijos_failas_atsisiusti.php?id=' + parseInt(f.id) + '" target="_blank" style="color:' + color + ';font-weight:500;text-decoration:none;"><i class="bi ' + icon + ' me-1"></i>' + escH(f.pavadinimas) + '</a><button type="button" onclick="trintiFaila(' + parseInt(f.id) + ',' + id + ')" style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:0.8rem;" title="Pašalinti" data-testid="button-trinti-failas-' + parseInt(f.id) + '"><i class="bi bi-x-circle"></i></button></div>';
+          }).join('')}
+        </div>
+      ` : ''}
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:0.25rem;font-size:0.82rem;">Pridėti failų</label>
+        <input type="file" name="pretenzijos_failai_edit[]" multiple accept="application/pdf,.pdf,.msg,application/vnd.ms-outlook" style="width:100%;padding:0.35rem 0.5rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.85rem;background:white;" data-testid="input-edit-failai">
+        <small style="color:#6c757d;font-size:0.78rem;">PDF ir .msg failai priimami</small>
       </div>
     </div>
   `;
@@ -1533,6 +1649,25 @@ document.querySelector('#modalKurti form').addEventListener('submit', function(e
   }
 });
 
+function trintiFaila(failoId, pretenzijaId) {
+  if (!confirm('Ar tikrai norite pašalinti šį failą?')) return;
+  const fd = new FormData();
+  fd.append('veiksmas', 'trinti');
+  fd.append('pretenzija_id', pretenzijaId);
+  fd.append('failo_id', failoId);
+  fetch('pretenzijos_failai_api.php', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const p = pretenzijosData.find(x => x.id == pretenzijaId);
+        if (p && p.failai) {
+          p.failai = p.failai.filter(f => f.id != failoId);
+        }
+        editPretenzija(pretenzijaId);
+      }
+    });
+}
+
 function openEmailModal(id) {
   document.getElementById('emailPretenzijaId').value = id;
   document.getElementById('emailTo').value = '';
@@ -1541,6 +1676,20 @@ function openEmailModal(id) {
   status.style.display = 'none';
   status.innerHTML = '';
   document.getElementById('btnSendEmail').disabled = false;
+
+  const p = pretenzijosData.find(x => x.id == id);
+  const infoEl = document.getElementById('emailAttachmentInfo');
+  if (infoEl && p) {
+    const failaiCount = (p.failai ? p.failai.length : 0) + (p.defekto_pdf_pavadinimas ? 1 : 0);
+    if (failaiCount > 0) {
+      infoEl.innerHTML = '<i class="bi bi-paperclip me-1"></i>' + failaiCount + ' pried' + (failaiCount === 1 ? 'as bus pridėtas' : 'ai bus pridėti');
+      infoEl.style.display = 'block';
+    } else {
+      infoEl.innerHTML = '<i class="bi bi-file-earmark-pdf me-1"></i>Priedų nėra — bus generuotas PDF';
+      infoEl.style.display = 'block';
+    }
+  }
+
   document.getElementById('modalEmail').style.display = 'flex';
 }
 

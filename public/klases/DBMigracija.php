@@ -34,6 +34,7 @@ class DBMigracija {
         $this->sukurtiRememberTokensLentele();
         $this->pridetiDefektoPdfStulpelius();
         $this->pridetiQtPretenzijaIdStulpeli();
+        $this->sukurtiPretenzijoFailuLentele();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -406,6 +407,23 @@ class DBMigracija {
                 $this->conn->exec("ALTER TABLE pretenzijos ADD COLUMN qt_pretenzija_id INTEGER");
                 $this->conn->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_pretenzijos_qt_id ON pretenzijos(qt_pretenzija_id) WHERE qt_pretenzija_id IS NOT NULL");
             }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function sukurtiPretenzijoFailuLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS pretenzijos_failai (
+                    id SERIAL PRIMARY KEY,
+                    pretenzija_id INTEGER NOT NULL REFERENCES pretenzijos(id) ON DELETE CASCADE,
+                    pavadinimas VARCHAR(500) NOT NULL,
+                    tipas VARCHAR(255),
+                    turinys BYTEA NOT NULL,
+                    ikelta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+            $this->conn->exec("CREATE INDEX IF NOT EXISTS idx_pretenzijos_failai_pid ON pretenzijos_failai(pretenzija_id)");
         } catch (PDOException $e) {
         }
     }
