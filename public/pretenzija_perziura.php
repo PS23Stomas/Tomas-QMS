@@ -78,6 +78,17 @@ $nl    = fn($s) => nl2br($esc($s));
     .photo-grid img { width: 100%; border-radius: 6px; cursor: pointer; border: 1px solid #dee2e6; }
     .email-history-item { font-size: 0.87rem; }
     @media print { body { background: #fff; } .card-main { box-shadow: none; } .no-print { display: none !important; } }
+    @media (max-width: 768px) {
+      .card-main { margin: 10px; width: auto; }
+      .card-body-inner { padding: 1rem; }
+      .card-header-custom { padding: 0.9rem 1rem; }
+      .perziura-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .perziura-row-flex { flex-direction: column !important; }
+      .perziura-row-flex > [class^="col"] { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; margin-bottom: 6px; }
+      .row.mb-3 > .col-md-8,
+      .row.mb-3 > .col-md-4 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+      .mb-3.d-flex.flex-wrap { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>

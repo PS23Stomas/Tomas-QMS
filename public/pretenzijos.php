@@ -782,6 +782,23 @@ include __DIR__ . '/includes/header.php';
       grid-template-columns: 1fr;
     }
   }
+
+  @media (max-width: 768px) {
+    #modalKurti > div,
+    #modalView > div,
+    #modalEdit > div,
+    #modalEmail > div {
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #modalKurti,
+    #modalView,
+    #modalEdit,
+    #modalEmail {
+      padding-top: 5vh;
+      align-items: flex-start;
+    }
+  }
 </style>
 
 <?php if ($klaida): ?>
