@@ -113,6 +113,7 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
 <html lang="lt">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MT atliktų darbų pildymo forma</title>
     <link rel="shortcut icon" type="image/png" href="/favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
@@ -158,6 +159,95 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         .siuntimo-rezultatas { margin-top: 4px; font-size: 11px; font-weight: 500; }
         .siuntimo-rezultatas.ok { color: #27ae60; }
         .siuntimo-rezultatas.klaida { color: #c0392b; }
+
+        @media (max-width: 767px) {
+            .container { padding-left: 10px; padding-right: 10px; }
+            h2 { font-size: 1.2rem; }
+            .table-responsive { overflow-x: visible; }
+            table.table thead { display: none; }
+            table.table, table.table tbody, table.table tr, table.table td {
+                display: block;
+                width: 100%;
+            }
+            table.table tr {
+                position: relative;
+                background: #fff;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                margin-bottom: 14px;
+                padding: 14px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            }
+            table.table tr:nth-child(even) {
+                background: #f8f9fa;
+            }
+            table.table td {
+                border: none;
+                padding: 6px 0;
+                text-align: left !important;
+            }
+            table.table td::before {
+                content: attr(data-label);
+                display: block;
+                font-weight: 600;
+                font-size: 12px;
+                color: #6c757d;
+                margin-bottom: 3px;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+            table.table td:first-child {
+                position: absolute;
+                right: 14px;
+                top: 14px;
+                width: auto;
+                padding: 0;
+            }
+            table.table td:first-child::before { display: none; }
+            table.table td:nth-child(2) {
+                font-size: 13px;
+                font-weight: 700;
+                color: #2563eb;
+                padding-bottom: 2px;
+                border-bottom: 1px solid #e5e7eb;
+                margin-bottom: 8px;
+            }
+            table.table td:nth-child(2)::before { display: inline; margin-right: 4px; }
+            table.table td .form-control,
+            table.table td .form-select {
+                font-size: 15px;
+                padding: 10px 12px;
+                border-radius: 8px;
+            }
+            table.table td .nuotr-input {
+                font-size: 13px;
+                padding: 10px;
+            }
+            .nuotr-preview {
+                max-width: 80px;
+                max-height: 60px;
+            }
+            .col-eilnr, .col-irase, .col-atliko, .col-isvada,
+            .col-defekt, .col-nuotr, .col-patais, .col-issiusta {
+                width: 100%;
+            }
+            .d-flex.justify-content-between.mt-4 {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .d-flex.justify-content-between.mt-4 .btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+            }
+            .d-flex.justify-content-end.mb-2 .btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 15px;
+            }
+            .mb-4 h5 { font-size: 0.95rem; }
+            .alert { font-size: 14px; padding: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -233,11 +323,11 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                     $issiusta_kam = $row['issiusta_kam'] ?? '';
                 ?>
                     <tr data-eil-nr="<?= $eil_nr ?>" data-reikalavimas="<?= htmlspecialchars($reik) ?>">
-                        <td class="text-center"><input type="checkbox" class="siuntimo-cb" value="<?= $eil_nr ?>" data-testid="checkbox-eilute-<?= $eil_nr ?>"></td>
-                        <td class="text-center"><?= $eil_nr ?></td>
-                        <td><?= htmlspecialchars($reik) ?></td>
-                        <td><?= htmlspecialchars($irase) ?></td>
-                        <td>
+                        <td class="text-center" data-label=""><input type="checkbox" class="siuntimo-cb" value="<?= $eil_nr ?>" data-testid="checkbox-eilute-<?= $eil_nr ?>"></td>
+                        <td class="text-center" data-label="Nr."><?= $eil_nr ?></td>
+                        <td data-label="Reikalavimas"><?= htmlspecialchars($reik) ?></td>
+                        <td data-label="Įrašė"><?= htmlspecialchars($irase) ?></td>
+                        <td data-label="Atliko">
                             <?php if ($eil_nr === 14 && $atliko !== ''): ?>
                                 <input type="text" name="darba_atliko[<?= $i ?>]" class="form-control" 
                                        value="<?= htmlspecialchars($atliko) ?>" readonly 
@@ -248,20 +338,20 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                                        placeholder="Kas atliko darbus" value="<?= htmlspecialchars($atliko) ?>">
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Išvada">
                             <select name="isvada[<?= $i ?>]" class="form-select">
                                 <option value="atitinka"   <?= $isvada === 'atitinka'   ? 'selected' : '' ?>>Atitinka</option>
                                 <option value="nepadaryta" <?= $isvada === 'nepadaryta' ? 'selected' : '' ?>>Nepadaryta</option>
                                 <option value="nėra"       <?= $isvada === 'nėra'       ? 'selected' : '' ?>>Šio mazgo daryti nereikia</option>
                             </select>
                         </td>
-                        <td>
+                        <td data-label="Defektas/Trūkumas">
                             <input type="text" name="defektas[<?= $i ?>]" class="form-control"
                                    placeholder="Įveskite defektą (jei yra)" value="<?= htmlspecialchars($defektas) ?>">
                             <input type="hidden" name="reikalavimas[<?= $i ?>]" value="<?= htmlspecialchars($reik) ?>">
                             <input type="hidden" name="eil_nr[<?= $i ?>]" value="<?= (int)$eil_nr ?>">
                         </td>
-                        <td class="text-center" id="nuotr-cell-<?= $eil_nr ?>">
+                        <td class="text-center" data-label="Nuotrauka" id="nuotr-cell-<?= $eil_nr ?>">
                             <?php if (!empty($nuotrauka)): ?>
                                 <div class="nuotr-wrap">
                                     <img src="/defekto_nuotrauka.php?gaminio_id=<?= $gaminio_id ?>&eil_nr=<?= $eil_nr ?>&thumb=1"
@@ -273,11 +363,11 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                             <?php endif; ?>
                             <input type="file" name="nuotrauka_<?= $eil_nr ?>" accept="image/*" capture="environment" class="form-control nuotr-input mt-1" data-testid="input-photo-<?= $eil_nr ?>">
                         </td>
-                        <td>
+                        <td data-label="Pataisyta">
                             <input type="text" name="pataisyta[<?= $i ?>]" class="form-control"
                                    placeholder="" value="<?= htmlspecialchars($pataisyta) ?>" data-testid="input-pataisyta-<?= $eil_nr ?>">
                         </td>
-                        <td>
+                        <td data-label="Išsiųsta">
                             <div id="issiusta-info-<?= $eil_nr ?>" class="issiusta-info"><?= !empty($issiusta_kam) ? htmlspecialchars($issiusta_kam) : '' ?></div>
                             <div id="siuntimo-rez-<?= $eil_nr ?>" class="siuntimo-rezultatas"></div>
                         </td>
