@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#4c596d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Slaptažodžio atstatymas - MT Modulis</title>
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4c596d 0%, #1e293b 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -122,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            border-color: #4c596d;
+            box-shadow: 0 0 0 3px rgba(76, 89, 109, 0.2);
         }
         .btn-reset {
             width: 100%;
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             border: none;
             border-radius: 0.5rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4c596d 0%, #1e293b 100%);
             color: white;
             cursor: pointer;
             transition: opacity 0.2s, transform 0.1s;
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 1.25rem;
         }
         .back-link a {
-            color: #667eea;
+            color: #a59a6d;
             text-decoration: none;
             font-weight: 500;
             font-size: 0.9rem;
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .icon-lock svg {
             width: 48px;
             height: 48px;
-            color: #667eea;
+            color: #a59a6d;
         }
         @media (max-width: 480px) {
             .reset-card { padding: 1.5rem; }

@@ -70,13 +70,16 @@
     --text-sidebar: #cbd5e1;
     --text-sidebar-active: #ffffff;
     --border: #e2e8f0;
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-light: #dbeafe;
+    --primary: #4c596d;
+    --primary-hover: #323c4c;
+    --primary-light: #e8ecf0;
+    --accent: #a59a6d;
+    --accent-hover: #736a48;
+    --accent-light: #f0ebe0;
     --success: #16a34a;
     --success-light: #dcfce7;
-    --warning: #d97706;
-    --warning-light: #fef3c7;
+    --warning: #8c6a4a;
+    --warning-light: #f0e8e0;
     --danger: #dc2626;
     --danger-light: #fee2e2;
     --info: #0891b2;
@@ -533,7 +536,7 @@ table tbody tr:last-child td {
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(76, 89, 109, 0.15);
 }
 
 select.form-control {
@@ -851,7 +854,7 @@ textarea.form-control {
 }
 
 .group-card.mt-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #a59a6d 0%, #595029 100%);
 }
 
 .group-card.gvx-card {
@@ -1899,8 +1902,8 @@ textarea.form-control {
 }
 
 .pokytis-up {
-    background: #dbeafe;
-    color: #2563eb;
+    background: #e8ecf0;
+    color: #4c596d;
 }
 
 .pokytis-down {
@@ -2124,8 +2127,8 @@ textarea.form-control {
     color: var(--success, #16a34a);
 }
 .gaminiu-tab-status.status-warn {
-    background: #fef3c7;
-    color: #d97706;
+    background: #f0e8e0;
+    color: #8c6a4a;
 }
 .pdf-dropdown {
     position: relative;
