@@ -219,8 +219,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .form-control:focus {
             outline: none;
-            border-color: #4c596d;
-            box-shadow: 0 0 0 3px rgba(76, 89, 109, 0.2);
+            border-color: #736a48;
+            box-shadow: 0 0 0 3px rgba(115, 106, 72, 0.2);
         }
         .form-control.is-invalid {
             border-color: #dc2626;
@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             border: none;
             border-radius: 0.5rem;
-            background: linear-gradient(135deg, #4c596d 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #a59a6d 0%, #595029 100%);
             color: white;
             cursor: pointer;
             transition: opacity 0.2s, transform 0.1s;
