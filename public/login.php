@@ -1,11 +1,12 @@
 <?php
 /**
- * Prisijungimo puslapis - autentifikacija pagal vardą, pavardę ir slaptažodį
+ * Prisijungimo puslapis - autentifikacija pagal vardą ir slaptažodį
  *
  * Funkcionalumas:
  * - Automatinis prisijungimas per „prisiminti mane" (remember_token) slapuką
  * - Sesijos tikrinimas ir nukreipimas jei jau prisijungta
- * - POST autentifikacija: vardo, pavardės ir slaptažodžio patikra
+ * - POST autentifikacija: vardo ir slaptažodžio patikra
+ * - Slaptažodžio validacija: ≥8 simbolių ir ≥1 skaičius
  * - Aktyvių vartotojų (aktyvus_vartotojai) sekimas
  */
 
@@ -31,7 +32,6 @@ $pdo = new PDO($dsn, $parsed['user'], $parsed['pass'], [
 $klaida = '';
 
 // Automatinio prisijungimo tikrinimas per „prisiminti mane" slapuką (remember_token)
-// Pastaba: GET užklausoms nenukreipiame - tiesiog nustatome sesiją ir rodome formą
 if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     $token = $_COOKIE['remember_token'];
     $hashed_token = hash('sha256', $token);
@@ -83,67 +83,68 @@ $jau_prisijunges = isset($_SESSION['vartotojas_id']);
 // POST užklausos apdorojimas: prisijungimo formos duomenų tikrinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $vardas = trim($_POST['vardas'] ?? '');
-    $pavarde = trim($_POST['pavarde'] ?? '');
     $slaptazodis = $_POST['slaptazodis'] ?? '';
 
-    if ($vardas && $pavarde && $slaptazodis) {
-        // Vartotojo paieška duomenų bazėje pagal vardą ir pavardę
-        $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas AND pavarde = :pavarde");
-        $stmt->execute([
-            'vardas' => $vardas,
-            'pavarde' => $pavarde
-        ]);
-        $naudotojas = $stmt->fetch();
-
-        // Slaptažodžio tikrinimas su password_verify (bcrypt)
-        if ($naudotojas && password_verify($slaptazodis, $naudotojas['slaptazodis'])) {
-            // Sėkmingas prisijungimas: sesijos kintamųjų nustatymas
-            session_regenerate_id(true);
-            
-            $_SESSION['vartotojas_id'] = $naudotojas['id'];
-            $_SESSION['vardas'] = $naudotojas['vardas'];
-            $_SESSION['pavarde'] = $naudotojas['pavarde'];
-            $_SESSION['role'] = $naudotojas['role'] ?? '';
-            $_SESSION['paskutine_veikla'] = time();
-            
-            // Aktyvaus vartotojo įrašymas (sesijos sekimas)
-            $session_id = session_id();
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-            
-            $stmt_ins = $pdo->prepare("INSERT INTO aktyvus_vartotojai 
-                (vartotojas_id, session_id, vardas, pavarde, ip_adresas, naršykle) 
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (session_id) DO UPDATE SET 
-                    paskutine_veikla = CURRENT_TIMESTAMP");
-            $stmt_ins->execute([$naudotojas['id'], $session_id, $naudotojas['vardas'], $naudotojas['pavarde'], $ip, $user_agent]);
-            
-            // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
-            if (isset($_POST['remember']) && $_POST['remember'] == '1') {
-                $token = bin2hex(random_bytes(32));
-                $expires = time() + (30 * 24 * 60 * 60);
-                
-                // Užšifruoto žetono įrašymas į remember_tokens lentelę
-                $stmt_token = $pdo->prepare("INSERT INTO remember_tokens 
-                    (vartotojas_id, token, expires_at) 
-                    VALUES (?, ?, TO_TIMESTAMP(?))");
-                $stmt_token->execute([$naudotojas['id'], hash('sha256', $token), $expires]);
-                
-                // Slapuko nustatymas naršyklėje
-                setcookie('remember_token', $token, [
-                    'expires' => $expires,
-                    'path' => '/',
-                    'secure' => true,
-                    'httponly' => true,
-                    'samesite' => 'Lax'
-                ]);
-            }
-            
-            http_response_code(200);
-            echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/moduliai.php"></head><body><p>Nukreipiama...</p><script>window.location.replace("/moduliai.php")</script></body></html>';
-            exit;
+    if ($vardas && $slaptazodis) {
+        // Serverio pusės slaptažodžio validacija
+        if (strlen($slaptazodis) < 8) {
+            $klaida = "Slaptažodis turi būti bent 8 simbolių ilgio.";
+        } elseif (!preg_match('/\d/', $slaptazodis)) {
+            $klaida = "Slaptažodyje turi būti bent vienas skaičius.";
         } else {
-            $klaida = "Neteisingi prisijungimo duomenys.";
+            // Vartotojo paieška duomenų bazėje pagal vardą
+            $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas");
+            $stmt->execute(['vardas' => $vardas]);
+            $naudotojas = $stmt->fetch();
+
+            // Slaptažodžio tikrinimas su password_verify (bcrypt)
+            if ($naudotojas && password_verify($slaptazodis, $naudotojas['slaptazodis'])) {
+                // Sėkmingas prisijungimas: sesijos kintamųjų nustatymas
+                session_regenerate_id(true);
+                
+                $_SESSION['vartotojas_id'] = $naudotojas['id'];
+                $_SESSION['vardas'] = $naudotojas['vardas'];
+                $_SESSION['pavarde'] = $naudotojas['pavarde'];
+                $_SESSION['role'] = $naudotojas['role'] ?? '';
+                $_SESSION['paskutine_veikla'] = time();
+                
+                // Aktyvaus vartotojo įrašymas (sesijos sekimas)
+                $session_id = session_id();
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+                
+                $stmt_ins = $pdo->prepare("INSERT INTO aktyvus_vartotojai 
+                    (vartotojas_id, session_id, vardas, pavarde, ip_adresas, naršykle) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (session_id) DO UPDATE SET 
+                        paskutine_veikla = CURRENT_TIMESTAMP");
+                $stmt_ins->execute([$naudotojas['id'], $session_id, $naudotojas['vardas'], $naudotojas['pavarde'], $ip, $user_agent]);
+                
+                // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
+                if (isset($_POST['remember']) && $_POST['remember'] == '1') {
+                    $token = bin2hex(random_bytes(32));
+                    $expires = time() + (30 * 24 * 60 * 60);
+                    
+                    $stmt_token = $pdo->prepare("INSERT INTO remember_tokens 
+                        (vartotojas_id, token, expires_at) 
+                        VALUES (?, ?, TO_TIMESTAMP(?))");
+                    $stmt_token->execute([$naudotojas['id'], hash('sha256', $token), $expires]);
+                    
+                    setcookie('remember_token', $token, [
+                        'expires' => $expires,
+                        'path' => '/',
+                        'secure' => true,
+                        'httponly' => true,
+                        'samesite' => 'Lax'
+                    ]);
+                }
+                
+                http_response_code(200);
+                echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/moduliai.php"></head><body><p>Nukreipiama...</p><script>window.location.replace("/moduliai.php")</script></body></html>';
+                exit;
+            } else {
+                $klaida = "Neteisingi prisijungimo duomenys.";
+            }
         }
     } else {
         $klaida = "Visi laukai yra privalomi.";
@@ -221,12 +222,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
-        .form-row {
-            display: flex;
-            gap: 0.75rem;
+        .form-control.is-invalid {
+            border-color: #dc2626;
         }
-        .form-row .form-group {
-            flex: 1;
+        .field-error {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            display: none;
+        }
+        .field-error.visible {
+            display: block;
         }
         .remember-row {
             display: flex;
@@ -259,12 +265,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: opacity 0.2s, transform 0.1s;
             font-family: 'Inter', sans-serif;
         }
-        .btn-login:hover {
-            opacity: 0.9;
-        }
-        .btn-login:active {
-            transform: scale(0.98);
-        }
+        .btn-login:hover { opacity: 0.9; }
+        .btn-login:active { transform: scale(0.98); }
         .alert {
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
@@ -286,23 +288,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 500;
             font-size: 0.9rem;
         }
-        .forgot-link a:hover {
-            text-decoration: underline;
-        }
+        .forgot-link a:hover { text-decoration: underline; }
         @media (max-width: 480px) {
-            .login-card {
-                padding: 1.5rem;
-            }
-            .form-row {
-                flex-direction: column;
-                gap: 0;
-            }
+            .login-card { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <h2>Tomo_QMS sistema </h2>
+        <h2>Tomo_QMS sistema</h2>
         <p class="login-subtitle">Kokybės valdymo sistema</p>
         <?php if ($jau_prisijunges): ?>
             <div data-testid="text-already-logged-in" style="text-align:center;padding:1.5rem 0;">
@@ -318,25 +312,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($klaida): ?>
             <div class="alert alert-danger" data-testid="text-login-error"><?= htmlspecialchars($klaida) ?></div>
         <?php endif; ?>
-        <form method="POST" action="/login.php">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="vardas">Vardas</label>
-                    <input type="text" class="form-control" id="vardas" name="vardas" 
-                           value="<?= htmlspecialchars($_POST['vardas'] ?? '') ?>" required
-                           data-testid="input-vardas">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="pavarde">Pavardė</label>
-                    <input type="text" class="form-control" id="pavarde" name="pavarde" 
-                           value="<?= htmlspecialchars($_POST['pavarde'] ?? '') ?>" required
-                           data-testid="input-pavarde">
-                </div>
+        <form method="POST" action="/login.php" id="loginForm" novalidate>
+            <div class="form-group">
+                <label class="form-label" for="vardas">Vardas</label>
+                <input type="text" class="form-control" id="vardas" name="vardas"
+                       value="<?= htmlspecialchars($_POST['vardas'] ?? '') ?>" required
+                       data-testid="input-vardas">
             </div>
             <div class="form-group">
                 <label class="form-label" for="slaptazodis">Slaptažodis</label>
                 <input type="password" class="form-control" id="slaptazodis" name="slaptazodis" required
                        data-testid="input-password">
+                <div class="field-error" id="slaptazodisKlaida" data-testid="text-password-error"></div>
             </div>
             <div class="remember-row">
                 <input type="checkbox" id="remember" name="remember" value="1" data-testid="checkbox-remember">
@@ -350,26 +337,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <script>
         (function(){
             var v = document.getElementById('vardas');
-            var p = document.getElementById('pavarde');
             var s = document.getElementById('slaptazodis');
-            if (!v || !p || !s) return;
+            var errEl = document.getElementById('slaptazodisKlaida');
+            if (!v || !s) return;
 
+            // Autofill iš localStorage (tik vardas)
             var saved_v = localStorage.getItem('login_vardas') || '';
-            var saved_p = localStorage.getItem('login_pavarde') || '';
-
             if (!v.value && saved_v) v.value = saved_v;
-            if (!p.value && saved_p) p.value = saved_p;
 
-            if (v.value && p.value) {
+            if (v.value) {
                 s.focus();
             } else {
                 v.focus();
             }
 
-            v.closest('form').addEventListener('submit', function(){
-                localStorage.setItem('login_vardas', v.value);
-                localStorage.setItem('login_pavarde', p.value);
+            // Slaptažodžio laukinis tikrinimas realiuoju laiku
+            s.addEventListener('input', function() {
+                validatePassword(false);
             });
+
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                if (!validatePassword(true)) {
+                    e.preventDefault();
+                    return;
+                }
+                localStorage.setItem('login_vardas', v.value);
+            });
+
+            function validatePassword(showEmpty) {
+                var val = s.value;
+                if (!val) {
+                    if (showEmpty) {
+                        showErr('Slaptažodis yra privalomas.');
+                        return false;
+                    }
+                    hideErr();
+                    return true;
+                }
+                if (val.length < 8) {
+                    showErr('Slaptažodis turi būti bent 8 simbolių ilgio.');
+                    return false;
+                }
+                if (!/\d/.test(val)) {
+                    showErr('Slaptažodyje turi būti bent vienas skaičius.');
+                    return false;
+                }
+                hideErr();
+                return true;
+            }
+
+            function showErr(msg) {
+                s.classList.add('is-invalid');
+                errEl.textContent = msg;
+                errEl.classList.add('visible');
+            }
+
+            function hideErr() {
+                s.classList.remove('is-invalid');
+                errEl.textContent = '';
+                errEl.classList.remove('visible');
+            }
         })();
         </script>
         <?php endif; ?>
