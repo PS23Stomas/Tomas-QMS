@@ -133,6 +133,7 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label" for="naujas_slaptazodis">Naujas slaptažodis</label>
                     <input type="password" class="form-control" id="naujas_slaptazodis" name="naujas_slaptazodis" required minlength="8"
                            data-testid="input-new-password">
+                    <div id="profilis_strengthBar" style="height:4px;border-radius:2px;margin-top:0.4rem;transition:all 0.3s;background:#e0e0e0;" data-testid="password-strength-bar"></div>
                     <small id="naujas_slaptazodis_hint" style="display:block; color:#6b7280; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-hint">Bent 8 simboliai ir vienas skaičius</small>
                     <div id="naujas_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-error"></div>
                 </div>
@@ -151,6 +152,7 @@ require_once __DIR__ . '/includes/header.php';
                 var hintEl = document.getElementById('naujas_slaptazodis_hint');
                 var repeatInput = document.getElementById('pakartoti_slaptazodis');
                 var repeatHint = document.getElementById('pakartoti_slaptazodis_hint');
+                var strengthBar = document.getElementById('profilis_strengthBar');
 
                 function validate() {
                     var val = input.value;
@@ -195,8 +197,30 @@ require_once __DIR__ . '/includes/header.php';
                     return true;
                 }
 
+                function updateStrengthBar() {
+                    if (!strengthBar) return;
+                    var v = input.value;
+                    var score = 0;
+                    if (v.length >= 8) score++;
+                    if (v.length >= 12) score++;
+                    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+                    if (/[0-9]/.test(v)) score++;
+                    if (/[^A-Za-z0-9]/.test(v)) score++;
+                    if (score <= 1) {
+                        strengthBar.style.background = '#ef4444';
+                        strengthBar.style.width = '33%';
+                    } else if (score <= 3) {
+                        strengthBar.style.background = '#f59e0b';
+                        strengthBar.style.width = '66%';
+                    } else {
+                        strengthBar.style.background = '#22c55e';
+                        strengthBar.style.width = '100%';
+                    }
+                }
+
                 input.addEventListener('input', function() {
                     validate();
+                    updateStrengthBar();
                     if (repeatInput && repeatInput.value.length > 0) validateRepeat();
                 });
                 repeatInput && repeatInput.addEventListener('input', validateRepeat);
