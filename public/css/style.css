@@ -45,6 +45,13 @@
  * 38. MT pavadinimo sekcija (.mt-pavadinimas-section)    — uzsakymai.php (gaminio pavadinimo keitimo eilutė)
  * 39. Responsive / mobilūs (@media max-width: 768px)     — Visi puslapiai (šoninė navigacija slepiasi, tinkleliai susitraukia)
  * 40. Pokyčio žymekliai (.pokytis-badge, .pokytis-up)    — index.php (dashboard – ketvirtinio palyginimo procentiniai pokyčiai)
+ * 41. Ketvirčių palyginimo sekcija (.kp-filter-form)     — index.php (ketvirtinis palyginimas, dviejų stulpelių tinkleliai, mėnesinė statistika)
+ * 42. Gaminių skirtukai (.gaminiu-tabs, .gaminiu-tab)    — uzsakymai.php (gaminio pasirinkimo skirtukai detalių rodinyje)
+ * 43. PDF išskleidžiamasis meniu (.pdf-dropdown)         — uzsakymai.php (PDF failų sąrašas su trinamuoju mygtuku)
+ * 44. Užsakymų kortelė (#ordersCard, #ordersTable)       — uzsakymai.php (slenkanti lentelė su fiksuota antrašte)
+ * 45. Breadcrumb navigacija (.breadcrumb, .breadcrumb-sep) — header.php (navigacijos kelias viršutinėje juostoje)
+ * 46. Skip-to-content (.skip-to-content)                 — header.php (prieinamumo nuoroda ekrano skaitytojams)
+ * 47. Formų validacijos indikatoriai (.form-hint)        — Visi puslapiai (privalomų laukų ženklinimas ir validacija)
  */
 
 /* ==========================================================================
@@ -493,6 +500,9 @@ table tbody tr:last-child td {
 .btn-sm {
     padding: 5px 10px;
     font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .btn-icon {
@@ -573,7 +583,10 @@ textarea.form-control {
 .badge-info { background: var(--info-light); color: var(--info); }
 .badge-primary { background: var(--primary-light); color: var(--primary); }
 
-/* 12. Klaidos eilutė – uzsakymai.php (eilutės su neištaisytais defektais pažymimos rausvu fonu) */
+/* ==========================================================================
+   12. KLAIDOS EILUTĖ
+   Naudojama: uzsakymai.php – eilutės su neištaisytais defektais pažymimos rausvu fonu
+   ========================================================================== */
 .row-error { background: rgba(239, 68, 68, 0.05); }
 
 /* ==========================================================================
@@ -931,7 +944,10 @@ textarea.form-control {
     min-width: 160px;
 }
 
-/* 22. Grįžimo nuoroda – mt_statistika.php, sablonas_funkciniai.php (← Grįžti) */
+/* ==========================================================================
+   22. GRĮŽIMO NUORODA
+   Naudojama: mt_statistika.php, sablonas_funkciniai.php – „← Grįžti" nuoroda
+   ========================================================================== */
 .back-link {
     display: inline-flex;
     align-items: center;
@@ -949,7 +965,10 @@ textarea.form-control {
     color: var(--text);
 }
 
-/* 23. Statistikos santrauka – mt_statistika.php (sutrauktos statistikos kortelės) */
+/* ==========================================================================
+   23. STATISTIKOS SANTRAUKA
+   Naudojama: mt_statistika.php – sutrauktos statistikos kortelės tinklelis
+   ========================================================================== */
 .stats-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -965,7 +984,10 @@ textarea.form-control {
     font-size: 24px;
 }
 
-/* 24. Informacinis pranešimas – mt_statistika.php, index.php (mėlyna info juosta) */
+/* ==========================================================================
+   24. INFORMACINIS PRANEŠIMAS
+   Naudojama: mt_statistika.php, index.php – mėlyna informacinė juosta
+   ========================================================================== */
 .alert-info {
     background: var(--info-light);
     color: var(--info);
@@ -1072,14 +1094,6 @@ textarea.form-control {
     margin-bottom: 20px;
     gap: 12px;
     flex-wrap: wrap;
-}
-
-.btn-sm {
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
 }
 
 /* ==========================================================================
@@ -1314,7 +1328,10 @@ textarea.form-control {
     line-height: 1.4;
 }
 
-/* 33. Dashboard poraštė – index.php (apačios informacinis tekstas) */
+/* ==========================================================================
+   33. DASHBOARD PORAŠTĖ
+   Naudojama: index.php (dashboard) – apačios informacinis tekstas
+   ========================================================================== */
 .dashboard-footer-info {
     text-align: center;
     color: var(--text-light);
@@ -1376,7 +1393,11 @@ textarea.form-control {
     animation: fadeIn 0.2s ease;
 }
 
-/* 35. ANIMACIJOS – fadeIn (skirtukų turinys), spin (įkėlimo ratas), pulse-dot (aktyvus taškas) */
+/* ==========================================================================
+   35. ANIMACIJOS
+   Naudojama: index.php – fadeIn (skirtukų turinio pasirodymas),
+   spin (įkėlimo sukimosi ratas), pulse-dot (aktyvus mirksintis taškas)
+   ========================================================================== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -1903,7 +1924,7 @@ textarea.form-control {
 
 .pokytis-up {
     background: #e8ecf0;
-    color: #4c596d;
+    color: #736a48;
 }
 
 .pokytis-down {
@@ -2072,7 +2093,11 @@ textarea.form-control {
     }
 }
 
-/* Gaminių tabs - užsakymo detalėse */
+/* ==========================================================================
+   42. GAMINIŲ SKIRTUKAI
+   Naudojama: uzsakymai.php – gaminio pasirinkimo skirtukai detalių rodinyje
+   (gaminio numeris, pavadinimas, užbaigtumo būsena)
+   ========================================================================== */
 .gaminiu-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -2130,6 +2155,12 @@ textarea.form-control {
     background: #f0e8e0;
     color: #8c6a4a;
 }
+
+/* ==========================================================================
+   43. PDF IŠSKLEIDŽIAMASIS MENIU
+   Naudojama: uzsakymai.php – PDF failų sąrašas su trinamuoju mygtuku.
+   Atsidaro paspaudus „PDF" mygtuką lentelėje; pozicionuojamas per JS.
+   ========================================================================== */
 .pdf-dropdown {
     position: relative;
     display: inline-block;
@@ -2217,8 +2248,9 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   41. BREADCRUMB NAVIGACIJA
-   Naudojama: header.php – navigacijos kelias viršuje
+   45. BREADCRUMB NAVIGACIJA
+   Naudojama: header.php – navigacijos kelias viršutinėje juostoje
+   (Moduliai → Grupė → Puslapis); rodomas tik esant aktyviam moduliui
    ========================================================================== */
 
 .page-header-info {
@@ -2263,7 +2295,7 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   42. SKIP-TO-CONTENT (prieinamumo nuoroda)
+   46. SKIP-TO-CONTENT (prieinamumo nuoroda)
    Naudojama: header.php – paslėpta nuoroda ekrano skaitytojams
    ========================================================================== */
 
@@ -2287,7 +2319,7 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   43. FORMŲ VALIDACIJOS INDIKATORIAI
+   47. FORMŲ VALIDACIJOS INDIKATORIAI
    Naudojama: visuose puslapiuose – privalomų laukų ženklinimas ir validacija
    ========================================================================== */
 
@@ -2313,6 +2345,11 @@ textarea.form-control {
     margin-top: 4px;
 }
 
+/* ==========================================================================
+   44. UŽSAKYMŲ KORTELĖ
+   Naudojama: uzsakymai.php – slenkanti lentelė su fiksuota antrašte.
+   #ordersCard užpildo visą turinio sritį; antraštė fiksuojama scroll metu.
+   ========================================================================== */
 #ordersCard {
     display: flex;
     flex-direction: column;
