@@ -133,6 +133,7 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label" for="naujas_slaptazodis">Naujas slaptažodis</label>
                     <input type="password" class="form-control" id="naujas_slaptazodis" name="naujas_slaptazodis" required minlength="8"
                            data-testid="input-new-password">
+                    <small id="naujas_slaptazodis_hint" style="display:block; color:#6b7280; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-hint">Bent 8 simboliai ir vienas skaičius</small>
                     <div id="naujas_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-error"></div>
                 </div>
                 <div class="form-group">
@@ -146,20 +147,28 @@ require_once __DIR__ . '/includes/header.php';
             (function() {
                 var input = document.getElementById('naujas_slaptazodis');
                 var errorDiv = document.getElementById('naujas_slaptazodis_error');
+                var hintEl = document.getElementById('naujas_slaptazodis_hint');
                 function validate() {
                     var val = input.value;
-                    if (val.length === 0) { errorDiv.style.display = 'none'; return true; }
+                    if (val.length === 0) {
+                        errorDiv.style.display = 'none';
+                        if (hintEl) hintEl.style.color = '#6b7280';
+                        return true;
+                    }
                     if (val.length < 8) {
                         errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.';
                         errorDiv.style.display = 'block';
+                        if (hintEl) hintEl.style.color = '#dc2626';
                         return false;
                     }
                     if (!/[0-9]/.test(val)) {
                         errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.';
                         errorDiv.style.display = 'block';
+                        if (hintEl) hintEl.style.color = '#dc2626';
                         return false;
                     }
                     errorDiv.style.display = 'none';
+                    if (hintEl) hintEl.style.color = '#16a34a';
                     return true;
                 }
                 input.addEventListener('input', validate);

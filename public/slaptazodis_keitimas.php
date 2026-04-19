@@ -237,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
                            required autofocus minlength="8"
                            data-testid="input-new-password">
                     <div class="password-strength" id="strengthBar"></div>
+                    <small id="slaptazodis_hint" style="display:block; color:#6b7280; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-hint">Bent 8 simboliai ir vienas skaičius</small>
                     <div id="slaptazodis_error" style="display:none; color:#991b1b; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-error"></div>
                 </div>
                 <div class="form-group">
@@ -265,20 +266,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
         var pw = document.getElementById('slaptazodis');
         var bar = document.getElementById('strengthBar');
         var errorDiv = document.getElementById('slaptazodis_error');
+        var hintEl = document.getElementById('slaptazodis_hint');
         if (!pw) return;
 
         function validatePw() {
             var v = pw.value;
-            if (v.length === 0) { if (errorDiv) errorDiv.style.display = 'none'; return true; }
+            if (v.length === 0) {
+                if (errorDiv) errorDiv.style.display = 'none';
+                if (hintEl) hintEl.style.color = '#6b7280';
+                return true;
+            }
             if (v.length < 8) {
                 if (errorDiv) { errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.'; errorDiv.style.display = 'block'; }
+                if (hintEl) hintEl.style.color = '#dc2626';
                 return false;
             }
             if (!/[0-9]/.test(v)) {
                 if (errorDiv) { errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.'; errorDiv.style.display = 'block'; }
+                if (hintEl) hintEl.style.color = '#dc2626';
                 return false;
             }
             if (errorDiv) errorDiv.style.display = 'none';
+            if (hintEl) hintEl.style.color = '#16a34a';
             return true;
         }
 

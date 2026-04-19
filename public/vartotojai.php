@@ -330,6 +330,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Slaptažodis *</label>
                     <input type="password" class="form-control" name="slaptazodis" id="create_slaptazodis" required minlength="8" data-testid="input-user-password">
+                    <small id="create_slaptazodis_hint" style="display:block; color:#6b7280; font-size:0.82rem; margin-top:4px;" data-testid="text-create-password-hint">Bent 8 simboliai ir vienas skaičius</small>
                     <div id="create_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-create-password-error"></div>
                 </div>
                 <div class="form-group">
@@ -376,6 +377,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Naujas slaptažodis (palikite tuščią jei nekeičiate)</label>
                     <input type="password" class="form-control" name="slaptazodis" id="edit_slaptazodis" minlength="8" data-testid="input-user-password-edit">
+                    <small id="edit_slaptazodis_hint" style="display:block; color:#6b7280; font-size:0.82rem; margin-top:4px;" data-testid="text-edit-password-hint">Bent 8 simboliai ir vienas skaičius</small>
                     <div id="edit_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-edit-password-error"></div>
                 </div>
                 <div class="form-group">
@@ -418,20 +420,28 @@ require_once __DIR__ . '/includes/header.php';
 function validatePasswordField(inputId, errorId) {
     var input = document.getElementById(inputId);
     var errorDiv = document.getElementById(errorId);
+    var hintEl = document.getElementById(inputId + '_hint');
     if (!input || !errorDiv) return true;
     var val = input.value;
-    if (val.length === 0) { errorDiv.style.display = 'none'; return true; }
+    if (val.length === 0) {
+        errorDiv.style.display = 'none';
+        if (hintEl) hintEl.style.color = '#6b7280';
+        return true;
+    }
     if (val.length < 8) {
         errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.';
         errorDiv.style.display = 'block';
+        if (hintEl) hintEl.style.color = '#dc2626';
         return false;
     }
     if (!/[0-9]/.test(val)) {
         errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.';
         errorDiv.style.display = 'block';
+        if (hintEl) hintEl.style.color = '#dc2626';
         return false;
     }
     errorDiv.style.display = 'none';
+    if (hintEl) hintEl.style.color = '#16a34a';
     return true;
 }
 
