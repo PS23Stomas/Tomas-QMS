@@ -6,3 +6,9 @@ id = "Z41YG_b5r_9t2Dw0jyGDg"
 uri = "file://public/docs/tomo_qms_techninis_aprasymas.txt"
 type = "text"
 title = "Tomo-QMS — Pilnas techninis sistemos aprašymas"
+
+[[outputs]]
+id = "5TnWu4FFqPcgOYiG7mDqf"
+uri = "file://paaiskinimai.xlsx"
+type = "table"
+title = "paaiskinimai.xlsx — sistemos failų paaiškinimai"
