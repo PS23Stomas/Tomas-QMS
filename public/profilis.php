@@ -140,6 +140,7 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label" for="pakartoti_slaptazodis">Pakartokite naują slaptažodį</label>
                     <input type="password" class="form-control" id="pakartoti_slaptazodis" name="pakartoti_slaptazodis" required minlength="8"
                            data-testid="input-repeat-password">
+                    <div id="pakartoti_slaptazodis_hint" style="display:none; font-size:0.82rem; margin-top:4px;" data-testid="text-repeat-password-hint"></div>
                 </div>
                 <button type="submit" class="btn btn-primary" data-testid="button-change-password">Pakeisti slaptažodį</button>
             </form>
@@ -148,6 +149,9 @@ require_once __DIR__ . '/includes/header.php';
                 var input = document.getElementById('naujas_slaptazodis');
                 var errorDiv = document.getElementById('naujas_slaptazodis_error');
                 var hintEl = document.getElementById('naujas_slaptazodis_hint');
+                var repeatInput = document.getElementById('pakartoti_slaptazodis');
+                var repeatHint = document.getElementById('pakartoti_slaptazodis_hint');
+
                 function validate() {
                     var val = input.value;
                     if (val.length === 0) {
@@ -171,9 +175,34 @@ require_once __DIR__ . '/includes/header.php';
                     if (hintEl) hintEl.style.color = '#16a34a';
                     return true;
                 }
-                input.addEventListener('input', validate);
+
+                function validateRepeat() {
+                    if (!repeatInput || !repeatHint) return true;
+                    var val = repeatInput.value;
+                    if (val.length === 0) {
+                        repeatHint.style.display = 'none';
+                        return true;
+                    }
+                    if (val !== input.value) {
+                        repeatHint.textContent = 'Slaptažodžiai nesutampa.';
+                        repeatHint.style.color = '#dc2626';
+                        repeatHint.style.display = 'block';
+                        return false;
+                    }
+                    repeatHint.textContent = 'Slaptažodžiai sutampa.';
+                    repeatHint.style.color = '#16a34a';
+                    repeatHint.style.display = 'block';
+                    return true;
+                }
+
+                input.addEventListener('input', function() {
+                    validate();
+                    if (repeatInput && repeatInput.value.length > 0) validateRepeat();
+                });
+                repeatInput && repeatInput.addEventListener('input', validateRepeat);
+
                 input.closest('form').addEventListener('submit', function(e) {
-                    if (!validate()) e.preventDefault();
+                    if (!validate() || !validateRepeat()) e.preventDefault();
                 });
             })();
             </script>

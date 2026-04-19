@@ -245,6 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
                     <input type="password" class="form-control" id="slaptazodis2" name="slaptazodis2" 
                            required minlength="8"
                            data-testid="input-confirm-password">
+                    <div id="slaptazodis2_hint" style="display:none; font-size:0.82rem; margin-top:4px;" data-testid="text-confirm-password-hint"></div>
                 </div>
                 <button type="submit" class="btn-save" data-testid="button-save-password">Išsaugoti slaptažodį</button>
             </form>
@@ -267,6 +268,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
         var bar = document.getElementById('strengthBar');
         var errorDiv = document.getElementById('slaptazodis_error');
         var hintEl = document.getElementById('slaptazodis_hint');
+        var pw2 = document.getElementById('slaptazodis2');
+        var hint2 = document.getElementById('slaptazodis2_hint');
         if (!pw) return;
 
         function validatePw() {
@@ -291,8 +294,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
             return true;
         }
 
+        function validateConfirm() {
+            if (!pw2 || !hint2) return true;
+            var val = pw2.value;
+            if (val.length === 0) {
+                hint2.style.display = 'none';
+                return true;
+            }
+            if (val !== pw.value) {
+                hint2.textContent = 'Slaptažodžiai nesutampa.';
+                hint2.style.color = '#991b1b';
+                hint2.style.display = 'block';
+                return false;
+            }
+            hint2.textContent = 'Slaptažodžiai sutampa.';
+            hint2.style.color = '#16a34a';
+            hint2.style.display = 'block';
+            return true;
+        }
+
         pw.addEventListener('input', function() {
             validatePw();
+            if (pw2 && pw2.value.length > 0) validateConfirm();
             if (bar) {
                 var v = pw.value;
                 var score = 0;
@@ -308,8 +331,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
             }
         });
 
+        pw2 && pw2.addEventListener('input', validateConfirm);
+
         pw.closest('form').addEventListener('submit', function(e) {
-            if (!validatePw()) e.preventDefault();
+            if (!validatePw() || !validateConfirm()) e.preventDefault();
         });
     })();
     </script>
