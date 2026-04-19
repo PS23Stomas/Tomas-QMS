@@ -52,8 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
     // Slaptažodžio validacija (ilgis ir sutapimas)
     if (empty($naujas)) {
         $klaida = 'Įveskite naują slaptažodį.';
-    } elseif (mb_strlen($naujas) < 4) {
-        $klaida = 'Slaptažodis turi būti bent 4 simbolių.';
+    } elseif (mb_strlen($naujas) < 8) {
+        $klaida = 'Slaptažodis turi būti bent 8 simbolių.';
+    } elseif (!preg_match('/[0-9]/', $naujas)) {
+        $klaida = 'Slaptažodis turi turėti bent vieną skaičių.';
     } elseif ($naujas !== $pakartoti) {
         $klaida = 'Slaptažodžiai nesutampa.';
     } else {
@@ -232,14 +234,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
                 <div class="form-group">
                     <label class="form-label" for="slaptazodis">Naujas slaptažodis</label>
                     <input type="password" class="form-control" id="slaptazodis" name="slaptazodis" 
-                           required autofocus minlength="4"
+                           required autofocus minlength="8"
                            data-testid="input-new-password">
                     <div class="password-strength" id="strengthBar"></div>
+                    <div id="slaptazodis_error" style="display:none; color:#991b1b; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-error"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="slaptazodis2">Pakartokite slaptažodį</label>
                     <input type="password" class="form-control" id="slaptazodis2" name="slaptazodis2" 
-                           required minlength="4"
+                           required minlength="8"
                            data-testid="input-confirm-password">
                 </div>
                 <button type="submit" class="btn-save" data-testid="button-save-password">Išsaugoti slaptažodį</button>
@@ -261,19 +264,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
     (function() {
         var pw = document.getElementById('slaptazodis');
         var bar = document.getElementById('strengthBar');
-        if (!pw || !bar) return;
-        pw.addEventListener('input', function() {
+        var errorDiv = document.getElementById('slaptazodis_error');
+        if (!pw) return;
+
+        function validatePw() {
             var v = pw.value;
-            var score = 0;
-            if (v.length >= 4) score++;
-            if (v.length >= 8) score++;
-            if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-            if (/[0-9]/.test(v)) score++;
-            if (/[^A-Za-z0-9]/.test(v)) score++;
-            bar.className = 'password-strength';
-            if (score <= 1) bar.classList.add('weak');
-            else if (score <= 3) bar.classList.add('medium');
-            else bar.classList.add('strong');
+            if (v.length === 0) { if (errorDiv) errorDiv.style.display = 'none'; return true; }
+            if (v.length < 8) {
+                if (errorDiv) { errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.'; errorDiv.style.display = 'block'; }
+                return false;
+            }
+            if (!/[0-9]/.test(v)) {
+                if (errorDiv) { errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.'; errorDiv.style.display = 'block'; }
+                return false;
+            }
+            if (errorDiv) errorDiv.style.display = 'none';
+            return true;
+        }
+
+        pw.addEventListener('input', function() {
+            validatePw();
+            if (bar) {
+                var v = pw.value;
+                var score = 0;
+                if (v.length >= 8) score++;
+                if (v.length >= 12) score++;
+                if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+                if (/[0-9]/.test(v)) score++;
+                if (/[^A-Za-z0-9]/.test(v)) score++;
+                bar.className = 'password-strength';
+                if (score <= 1) bar.classList.add('weak');
+                else if (score <= 3) bar.classList.add('medium');
+                else bar.classList.add('strong');
+            }
+        });
+
+        pw.closest('form').addEventListener('submit', function(e) {
+            if (!validatePw()) e.preventDefault();
         });
     })();
     </script>

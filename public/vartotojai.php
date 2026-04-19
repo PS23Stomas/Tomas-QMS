@@ -28,12 +28,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Naujo vartotojo kūrimas su el. pašto unikalumo tikrinimu
     if ($action === 'create') {
         $el_pastas = trim($_POST['el_pastas'] ?? '');
+        $raw_slaptazodis = $_POST['slaptazodis'] ?? '';
         $existing = $pdo->prepare("SELECT id FROM vartotojai WHERE el_pastas = :el");
         $existing->execute(['el' => $el_pastas]);
         if ($existing->fetch()) {
             $error = 'Vartotojas su šiuo el. paštu jau egzistuoja.';
+        } elseif (mb_strlen($raw_slaptazodis) < 8) {
+            $error = 'Slaptažodis turi būti bent 8 simbolių.';
+        } elseif (!preg_match('/[0-9]/', $raw_slaptazodis)) {
+            $error = 'Slaptažodis turi turėti bent vieną skaičių.';
         } else {
-            $slaptazodis = password_hash($_POST['slaptazodis'] ?? '', PASSWORD_BCRYPT);
+            $slaptazodis = password_hash($raw_slaptazodis, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("INSERT INTO vartotojai (vardas, pavarde, el_pastas, slaptazodis, role, patvirtintas, patvirtino_id, patvirtinimo_data) VALUES (:vardas, :pavarde, :el_pastas, :slaptazodis, :role, true, :patvirtino_id, CURRENT_TIMESTAMP)");
             $stmt->execute([
                 'vardas' => $_POST['vardas'] ?? '',
@@ -58,36 +63,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (!empty($_POST['slaptazodis'])) {
-            $fields .= ", slaptazodis = :slaptazodis";
-            $params['slaptazodis'] = password_hash($_POST['slaptazodis'], PASSWORD_BCRYPT);
-        }
-
-        $parasas_data = null;
-        if (!empty($_POST['pasalinti_parasa'])) {
-            $fields .= ", parasas = NULL, parasas_tipas = NULL";
-        } elseif (!empty($_FILES['parasas']['tmp_name']) && $_FILES['parasas']['error'] === UPLOAD_ERR_OK) {
-            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = finfo_file($finfo, $_FILES['parasas']['tmp_name']);
-            finfo_close($finfo);
-            if (in_array($mime, $allowed) && $_FILES['parasas']['size'] <= 2 * 1024 * 1024) {
-                $fields .= ", parasas = :parasas, parasas_tipas = :parasas_tipas";
-                $parasas_data = file_get_contents($_FILES['parasas']['tmp_name']);
-                $params['parasas_tipas'] = $mime;
+            $raw_upd_slaptazodis = $_POST['slaptazodis'];
+            if (mb_strlen($raw_upd_slaptazodis) < 8) {
+                $error = 'Slaptažodis turi būti bent 8 simbolių.';
+            } elseif (!preg_match('/[0-9]/', $raw_upd_slaptazodis)) {
+                $error = 'Slaptažodis turi turėti bent vieną skaičių.';
             } else {
-                $error = 'Netinkamas failo formatas arba per didelis failas (maks. 2MB).';
+                $fields .= ", slaptazodis = :slaptazodis";
+                $params['slaptazodis'] = password_hash($raw_upd_slaptazodis, PASSWORD_BCRYPT);
             }
         }
+        if (!$error) {
+            $parasas_data = null;
+            if (!empty($_POST['pasalinti_parasa'])) {
+                $fields .= ", parasas = NULL, parasas_tipas = NULL";
+            } elseif (!empty($_FILES['parasas']['tmp_name']) && $_FILES['parasas']['error'] === UPLOAD_ERR_OK) {
+                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($finfo, $_FILES['parasas']['tmp_name']);
+                finfo_close($finfo);
+                if (in_array($mime, $allowed) && $_FILES['parasas']['size'] <= 2 * 1024 * 1024) {
+                    $fields .= ", parasas = :parasas, parasas_tipas = :parasas_tipas";
+                    $parasas_data = file_get_contents($_FILES['parasas']['tmp_name']);
+                    $params['parasas_tipas'] = $mime;
+                } else {
+                    $error = 'Netinkamas failo formatas arba per didelis failas (maks. 2MB).';
+                }
+            }
 
-        $stmt = $pdo->prepare("UPDATE vartotojai SET $fields WHERE id = :id");
-        if ($parasas_data !== null) {
-            $stmt->bindParam(':parasas', $parasas_data, PDO::PARAM_LOB);
+            if (!$error) {
+                $stmt = $pdo->prepare("UPDATE vartotojai SET $fields WHERE id = :id");
+                if ($parasas_data !== null) {
+                    $stmt->bindParam(':parasas', $parasas_data, PDO::PARAM_LOB);
+                }
+                foreach ($params as $key => $val) {
+                    $stmt->bindValue(':' . ltrim($key, ':'), $val);
+                }
+                $stmt->execute();
+                $message = 'Vartotojas atnaujintas.';
+            }
         }
-        foreach ($params as $key => $val) {
-            $stmt->bindValue(':' . ltrim($key, ':'), $val);
-        }
-        $stmt->execute();
-        $message = 'Vartotojas atnaujintas.';
     } elseif ($action === 'delete') {
         $id = $_POST['id'] ?? null;
         $patvirtinta = ($_POST['trynimo_patvirtinimas'] ?? '') === 'TAIP';
@@ -314,7 +329,8 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">Slaptažodis *</label>
-                    <input type="password" class="form-control" name="slaptazodis" required minlength="6" data-testid="input-user-password">
+                    <input type="password" class="form-control" name="slaptazodis" id="create_slaptazodis" required minlength="8" data-testid="input-user-password">
+                    <div id="create_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-create-password-error"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Rolė</label>
@@ -359,7 +375,8 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">Naujas slaptažodis (palikite tuščią jei nekeičiate)</label>
-                    <input type="password" class="form-control" name="slaptazodis" minlength="6" data-testid="input-user-password-edit">
+                    <input type="password" class="form-control" name="slaptazodis" id="edit_slaptazodis" minlength="8" data-testid="input-user-password-edit">
+                    <div id="edit_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-edit-password-error"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Rolė</label>
@@ -398,6 +415,52 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
+function validatePasswordField(inputId, errorId) {
+    var input = document.getElementById(inputId);
+    var errorDiv = document.getElementById(errorId);
+    if (!input || !errorDiv) return true;
+    var val = input.value;
+    if (val.length === 0) { errorDiv.style.display = 'none'; return true; }
+    if (val.length < 8) {
+        errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.';
+        errorDiv.style.display = 'block';
+        return false;
+    }
+    if (!/[0-9]/.test(val)) {
+        errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.';
+        errorDiv.style.display = 'block';
+        return false;
+    }
+    errorDiv.style.display = 'none';
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var createPw = document.getElementById('create_slaptazodis');
+    if (createPw) {
+        createPw.addEventListener('input', function() {
+            validatePasswordField('create_slaptazodis', 'create_slaptazodis_error');
+        });
+        createPw.closest('form').addEventListener('submit', function(e) {
+            if (!validatePasswordField('create_slaptazodis', 'create_slaptazodis_error')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    var editPw = document.getElementById('edit_slaptazodis');
+    if (editPw) {
+        editPw.addEventListener('input', function() {
+            validatePasswordField('edit_slaptazodis', 'edit_slaptazodis_error');
+        });
+        document.getElementById('editUserForm').addEventListener('submit', function(e) {
+            if (!validatePasswordField('edit_slaptazodis', 'edit_slaptazodis_error')) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+
 function editUser(u) {
     document.getElementById('edit_user_id').value = u.id;
     document.getElementById('edit_user_vardas').value = u.vardas || '';

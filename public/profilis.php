@@ -46,8 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($dabartinis) || empty($naujas) || empty($pakartoti)) {
             $klaida = 'Visi slaptažodžio laukai privalomi.';
-        } elseif (mb_strlen($naujas) < 4) {
-            $klaida = 'Naujas slaptažodis turi būti bent 4 simbolių.';
+        } elseif (mb_strlen($naujas) < 8) {
+            $klaida = 'Naujas slaptažodis turi būti bent 8 simbolių.';
+        } elseif (!preg_match('/[0-9]/', $naujas)) {
+            $klaida = 'Naujas slaptažodis turi turėti bent vieną skaičių.';
         } elseif ($naujas !== $pakartoti) {
             $klaida = 'Nauji slaptažodžiai nesutampa.';
         } else {
@@ -129,16 +131,43 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="naujas_slaptazodis">Naujas slaptažodis</label>
-                    <input type="password" class="form-control" id="naujas_slaptazodis" name="naujas_slaptazodis" required minlength="4"
+                    <input type="password" class="form-control" id="naujas_slaptazodis" name="naujas_slaptazodis" required minlength="8"
                            data-testid="input-new-password">
+                    <div id="naujas_slaptazodis_error" style="display:none; color:#dc2626; font-size:0.82rem; margin-top:4px;" data-testid="text-new-password-error"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="pakartoti_slaptazodis">Pakartokite naują slaptažodį</label>
-                    <input type="password" class="form-control" id="pakartoti_slaptazodis" name="pakartoti_slaptazodis" required minlength="4"
+                    <input type="password" class="form-control" id="pakartoti_slaptazodis" name="pakartoti_slaptazodis" required minlength="8"
                            data-testid="input-repeat-password">
                 </div>
                 <button type="submit" class="btn btn-primary" data-testid="button-change-password">Pakeisti slaptažodį</button>
             </form>
+            <script>
+            (function() {
+                var input = document.getElementById('naujas_slaptazodis');
+                var errorDiv = document.getElementById('naujas_slaptazodis_error');
+                function validate() {
+                    var val = input.value;
+                    if (val.length === 0) { errorDiv.style.display = 'none'; return true; }
+                    if (val.length < 8) {
+                        errorDiv.textContent = 'Slaptažodis turi būti bent 8 simbolių.';
+                        errorDiv.style.display = 'block';
+                        return false;
+                    }
+                    if (!/[0-9]/.test(val)) {
+                        errorDiv.textContent = 'Slaptažodis turi turėti bent vieną skaičių.';
+                        errorDiv.style.display = 'block';
+                        return false;
+                    }
+                    errorDiv.style.display = 'none';
+                    return true;
+                }
+                input.addEventListener('input', validate);
+                input.closest('form').addEventListener('submit', function(e) {
+                    if (!validate()) e.preventDefault();
+                });
+            })();
+            </script>
         </div>
     </div>
 </div>
