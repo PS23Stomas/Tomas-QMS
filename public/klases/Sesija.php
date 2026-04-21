@@ -6,10 +6,14 @@ class Sesija {
 
     const SESIJOS_GALIOJIMAS = 1800; // 30 minučių sekundėmis
 
-    /** Grąžina true, jei užklausa atėjo iš AJAX (fetch/XMLHttpRequest) */
+    /** Grąžina true, jei užklausa atėjo iš AJAX (fetch/XMLHttpRequest arba JSON turinio tipas) */
     private static function isAjax(): bool {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            return true;
+        }
+        $ct = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
+        return str_contains($ct, 'application/json');
     }
 
     /** Grąžina JSON klaidos atsakymą ir baigia vykdymą — naudojama AJAX endpointuose */
