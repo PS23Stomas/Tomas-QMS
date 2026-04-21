@@ -967,6 +967,7 @@ function saveEditModal() {
     formData.append('tekstas', tekstas);
     fetch('/MT/issaugoti_mt_pasa_teksta.php', {
         method: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
         body: formData
     })
     .then(function(r) { return r.json(); })

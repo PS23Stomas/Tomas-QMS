@@ -7,15 +7,16 @@
  * atnaujinamas, jei ne – sukuriamas naujas.
  * Grąžina JSON atsakymą su sėkmės/klaidos žinute.
  */
-require_once __DIR__ . '/../klases/Database.php';
-require_once __DIR__ . '/../klases/Sesija.php';
-require_once __DIR__ . '/../klases/TomoQMS.php';
-
-Sesija::pradzia();
-Sesija::tikrintiPrisijungima();
+require_once __DIR__ . '/../includes/config.php';
 
 // Nustatomas JSON atsakymo tipas
 header('Content-Type: application/json; charset=utf-8');
+
+// AJAX sesiją tikriname rankiškai – redirect'as negali eiti į naršyklę
+if (!isset($_SESSION['vartotojas_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Sesija pasibaigė – prisijunkite iš naujo'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $response = ['success' => false, 'message' => ''];
 
