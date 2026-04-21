@@ -12,11 +12,9 @@ require_once __DIR__ . '/../includes/config.php';
 // Nustatomas JSON atsakymo tipas
 header('Content-Type: application/json; charset=utf-8');
 
-// AJAX sesiją tikriname rankiškai – redirect'as negali eiti į naršyklę
-if (!isset($_SESSION['vartotojas_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Sesija pasibaigė – prisijunkite iš naujo'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+// requireLogin() + Sesija::tikrintiPrisijungima() dabar grąžina JSON
+// AJAX užklausoms vietoje HTTP 302 redirect (žr. Sesija::isAjax())
+requireLogin();
 
 $response = ['success' => false, 'message' => ''];
 

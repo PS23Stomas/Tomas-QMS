@@ -337,6 +337,8 @@ class DBMigracija {
 
     private function atnaujintiElgaRekvizitus(): void {
         try {
+            // Vienkartinis pataisymas: atnaujina TIK žinomus bandymų duomenis.
+            // Jei administratorius pakeitė įmonės duomenis — šis UPDATE nepalies jų.
             $this->conn->exec("
                 UPDATE imones_nustatymai SET
                     pavadinimas  = 'UAB \"ELGA\"',
@@ -346,10 +348,7 @@ class DBMigracija {
                     el_pastas    = 'info@elga.lt',
                     internetas   = 'www.elga.lt'
                 WHERE id = 1
-                  AND (pavadinimas <> 'UAB \"ELGA\"'
-                    OR adresas    <> 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva'
-                    OR telefonas  <> '+370 41 594710'
-                    OR el_pastas  <> 'info@elga.lt')
+                  AND pavadinimas = 'UAB tomas'
             ");
         } catch (PDOException $e) {
         }
