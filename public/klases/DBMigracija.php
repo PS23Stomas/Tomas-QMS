@@ -28,6 +28,7 @@ class DBMigracija {
         $this->sukurtiPretenzijoEmailHistoryLentele();
         $this->sinchronizuotiSekas();
         $this->sukurtiImonesNustatymuLentele();
+        $this->atnaujintiElgaRekvizitus();
         $this->pridetiVartotojoParasoStulpelius();
         $this->pridetiVartotojoPareiguStulpeli();
         $this->pridetiUzsakymoImonesStulpelius();
@@ -330,6 +331,26 @@ class DBMigracija {
             if ($cnt === 0) {
                 $this->conn->exec("INSERT INTO imones_nustatymai (pavadinimas) VALUES ('UAB \"ELGA\"')");
             }
+        } catch (PDOException $e) {
+        }
+    }
+
+    private function atnaujintiElgaRekvizitus(): void {
+        try {
+            $this->conn->exec("
+                UPDATE imones_nustatymai SET
+                    pavadinimas  = 'UAB \"ELGA\"',
+                    adresas      = 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva',
+                    telefonas    = '+370 41 594710',
+                    faksas       = '+370 41 594725',
+                    el_pastas    = 'info@elga.lt',
+                    internetas   = 'www.elga.lt'
+                WHERE id = 1
+                  AND (pavadinimas <> 'UAB \"ELGA\"'
+                    OR adresas    <> 'Pramonės g. 12, LT-78150 Šiauliai, Lietuva'
+                    OR telefonas  <> '+370 41 594710'
+                    OR el_pastas  <> 'info@elga.lt')
+            ");
         } catch (PDOException $e) {
         }
     }

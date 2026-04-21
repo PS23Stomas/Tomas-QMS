@@ -6,6 +6,19 @@ class Sesija {
 
     const SESIJOS_GALIOJIMAS = 1800; // 30 minučių sekundėmis
 
+    /** Grąžina true, jei užklausa atėjo iš AJAX (fetch/XMLHttpRequest) */
+    private static function isAjax(): bool {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /** Grąžina JSON klaidos atsakymą ir baigia vykdymą — naudojama AJAX endpointuose */
+    private static function ajaxKlaida(string $priezastis): void {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => $priezastis], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     public static function pradzia(): void {
         if (session_status() === PHP_SESSION_NONE) {
             ini_set('session.gc_maxlifetime', self::SESIJOS_GALIOJIMAS);
@@ -33,6 +46,9 @@ class Sesija {
                 session_destroy();
                 session_start();
                 $_SESSION['sesija_pasibaige'] = true;
+                if (self::isAjax()) {
+                    self::ajaxKlaida('Sesija pasibaigė – prisijunkite iš naujo');
+                }
                 header('Location: /login.php?sesija_pasibaige=1');
                 exit;
             }
@@ -56,6 +72,9 @@ class Sesija {
 
     public static function tikrintiPrisijungima(): void {
         if (!isset($_SESSION['vartotojas_id'])) {
+            if (self::isAjax()) {
+                self::ajaxKlaida('Sesija pasibaigė – prisijunkite iš naujo');
+            }
             $pasibaige = isset($_SESSION['sesija_pasibaige']) && $_SESSION['sesija_pasibaige'];
             if ($pasibaige) {
                 unset($_SESSION['sesija_pasibaige']);
