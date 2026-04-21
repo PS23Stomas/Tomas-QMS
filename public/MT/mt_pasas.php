@@ -133,6 +133,7 @@ $tipu_aprasai = [
     '15.2.5' => '10/0,4 kV modulinė transformatorinė su vienu iki 1000 kVA galios transformatoriumi (neigilinta) techninius reikalavimus',
     '15.2.9' => '10/0,4 kV modulinė transformatorinė su dviem 800 - 1600 kVA galios transformatoriais (neigilinta) techninius reikalavimus',
     '15.2.11' => '10/0,4 kV modulinė galinė transformatorinė su vienu iki 160 kVA galios transformatoriumi (neigilinta) techninius reikalavimus',
+    '15.2.10'=> '10-0,4 kV įtampos modulinė transformatorinė su vienu iki 630 kva galios transformatoriumi (neįgilinta) techninius reikalavimus',
 ];
 
 $tipas_aprasas = $tipu_aprasai[$atitikmuo_kodas] ?? 'Nenurodytas';
