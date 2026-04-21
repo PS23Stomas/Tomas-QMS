@@ -107,14 +107,41 @@ foreach ($kor_rows as $kr) {
     $korekcijos_data[$kr['field_key']] = $kr['tekstas'];
 }
 
+/**
+ * Grąžina paso lauko tekstą: jei redaktorius išsaugojo korekciją – grąžina ją,
+ * kitu atveju – numatytąją reikšmę iš komponento duomenų.
+ *
+ * @param string $key            Lauko raktas (pvz. '1_1_tipas')
+ * @param string $default        Numatytasis tekstas, kai korekcijos nėra
+ * @param array  $korekcijos_data Visos paso teksto korekcijos (field_key => tekstas)
+ * @return string Rodytinas tekstas
+ */
 function gautiTeksta($key, $default, &$korekcijos_data) {
     return $korekcijos_data[$key] ?? $default;
 }
 
+/**
+ * Tikrina, ar tam tikram paso laukui yra išsaugota redaktoriaus korekcija.
+ * Naudojama CSS klasei 'pakoreguota' pridėti – vartotojas mato, kurie laukai keisti.
+ *
+ * @param string $key            Lauko raktas (pvz. '1_1_tipas')
+ * @param array  $korekcijos_data Visos paso teksto korekcijos (field_key => tekstas)
+ * @return bool true jei korekcija egzistuoja
+ */
 function turiKorekcija($key, &$korekcijos_data) {
     return isset($korekcijos_data[$key]);
 }
 
+/**
+ * Formatuoja komponento eilutę paso lentelei: sujungia gamintojo kodą, gamintoją
+ * ir kiekį į vieną skaitomą tekstą.
+ *
+ * Pvz.: 'ABB S203-B16, ABB (3 vnt.)'
+ *
+ * @param array $komp       Komponento masyvas su raktais: gamintojo_kodas, gamintojas, kiekis
+ * @param bool  $su_kiekiu  Ar rodyti kiekį skliausteliuose (numatyta: true)
+ * @return string Suformatuotas tekstas arba tuščia eilutė, jei nėra duomenų
+ */
 function formatuotiKomponenta($komp, $su_kiekiu = true) {
     $kodas = $komp['gamintojo_kodas'] ?? '';
     $gamintojas = $komp['gamintojas'] ?? '';
@@ -943,6 +970,13 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+/**
+ * Atidaro teksto redagavimo modalą pasirinkto paso lauko korekcijai.
+ * Nuskaito iš mygtuko data atributus (field, label, text) ir įrašo juos
+ * į modalinės formos laukus, kad vartotojas galėtų redaguoti esamą tekstą.
+ *
+ * @param {HTMLElement} btn - Mygtukas su data-field, data-label, data-text atributais
+ */
 function openEditModal(btn) {
     var field = btn.getAttribute('data-field');
     var label = btn.getAttribute('data-label');
@@ -953,10 +987,19 @@ function openEditModal(btn) {
     document.getElementById('editModalOverlay').classList.add('active');
 }
 
+/**
+ * Uždaro teksto redagavimo modalą pašalinant 'active' CSS klasę nuo perdangos elemento.
+ */
 function closeEditModal() {
     document.getElementById('editModalOverlay').classList.remove('active');
 }
 
+/**
+ * Išsaugo paso lauko teksto korekciją per AJAX užklausą į serverį.
+ * Siunčia gaminio_id, field_key, lang ir naują tekstą į issaugoti_mt_pasa_teksta.php.
+ * Sėkmės atveju – uždaro modalą ir perkrauna puslapį, kad rodytų atnaujintą tekstą.
+ * Klaidos atveju – rodo alert su klaidos žinute.
+ */
 function saveEditModal() {
     var field = document.getElementById('editModalField').value;
     var tekstas = document.getElementById('editModalTextarea').value;
@@ -984,10 +1027,22 @@ function saveEditModal() {
     });
 }
 
+/**
+ * Uždaro modalą paspaudus ant pusiau skaidrios perdangos (už modalo ribų).
+ * Patikrinama, ar spustelėtas tiksliai perdangos elementas (ne turinys viduje).
+ */
 document.getElementById('editModalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
 });
 
+/**
+ * Surenka visus saugiklio įrašo laukus nurodytoje sekcijoje ir išsaugo juos per AJAX.
+ * Grupuoja laukus pagal pozicijos numerį (data-poz), sudaro objektų masyvą
+ * ir siunčia į issaugoti_mt_paso_saugiklius.php.
+ * Rodo išsaugojimo būseną ties atitinkamu sekcijai priklausančiu statuso elementu.
+ *
+ * @param {string} sekcija - Saugiklio sekcijos identifikatorius (pvz. '3.5' arba '3.6')
+ */
 function issaugotiSaugiklius(sekcija) {
     var sekcijaKey = sekcija.replace('.', '');
     var inputs = document.querySelectorAll('.saug-input[data-sekcija="' + sekcija + '"]');
