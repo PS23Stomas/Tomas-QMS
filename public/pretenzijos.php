@@ -1375,7 +1375,7 @@ function viewPretenzija(id) {
           hhtml += '<div>' + escH(h.feedback_text).replace(/\n/g, '<br>') + '</div>';
           hhtml += '</div>';
           hhtml += '<div style="margin-top:0.5rem;text-align:right;">';
-          hhtml += '<button type="button" onclick="openTestiModal(' + parseInt(h.id) + ',' + JSON.stringify(escH(h.email_delegated_to)) + ',' + parseInt(currentViewId) + ')" style="background:#736a48;color:white;border:none;border-radius:6px;padding:0.28rem 0.75rem;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;" data-testid="button-testi-pokalbį-' + parseInt(h.id) + '"><i class="bi bi-reply-all me-1"></i>Tęsti pokalbį</button>';
+          hhtml += '<button type="button" onclick="testiClick(this)" data-hid="' + parseInt(h.id) + '" data-email="' + escH(h.email_delegated_to) + '" data-pid="' + parseInt(currentViewId) + '" style="background:#736a48;color:white;border:none;border-radius:6px;padding:0.28rem 0.75rem;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;" data-testid="button-testi-pokalbį-' + parseInt(h.id) + '"><i class="bi bi-reply-all me-1"></i>Tęsti pokalbį</button>';
           hhtml += '</div>';
         }
         hhtml += '</div>';
@@ -1796,6 +1796,10 @@ function sendEmail() {
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
     });
+}
+
+function testiClick(btn) {
+  openTestiModal(parseInt(btn.dataset.hid), btn.dataset.email, parseInt(btn.dataset.pid));
 }
 
 function openTestiModal(historyId, prevEmail, pretenzijaId) {
