@@ -1134,6 +1134,40 @@ include __DIR__ . '/includes/header.php';
   </div>
 </div>
 
+<div id="modalTesti" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;justify-content:center;align-items:center;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;width:95%;max-width:520px;">
+    <div style="background:linear-gradient(135deg,#736a48 0%,#5a5239 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <h5 style="margin:0;font-size:1.1rem;"><i class="bi bi-reply-all me-2"></i>Tęsti pokalbį</h5>
+      <button type="button" onclick="document.getElementById('modalTesti').style.display='none'" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <form onsubmit="event.preventDefault(); sendTesti();">
+      <div style="padding:1.5rem;">
+        <input type="hidden" id="testiHistoryId">
+        <input type="hidden" id="testiPretenzijaId">
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Kam (el. paštas) <span style="color:#e74c3c;">*</span></label>
+          <input type="email" id="testiEmailTo" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="gavėjas@imone.lt" required data-testid="input-testi-email-to">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">CC (kopija, neprivaloma)</label>
+          <input type="text" id="testiEmailCc" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;" placeholder="kopija1@imone.lt, kopija2@imone.lt" data-testid="input-testi-email-cc">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;display:block;margin-bottom:0.3rem;font-size:0.88rem;">Papildomas komentaras <span style="color:#e74c3c;">*</span></label>
+          <textarea id="testiKomentaras" rows="4" style="width:100%;padding:0.4rem 0.75rem;border:1px solid #dee2e6;border-radius:6px;font-size:0.88rem;resize:vertical;" placeholder="Jūsų papildomas komentaras ar klausimas..." required data-testid="textarea-testi-komentaras"></textarea>
+        </div>
+        <div id="testiStatus" style="display:none;margin-bottom:1rem;padding:0.6rem 0.8rem;border-radius:6px;font-size:0.85rem;"></div>
+      </div>
+      <div style="padding:0.75rem 1.5rem;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" onclick="document.getElementById('modalTesti').style.display='none'" style="padding:0.4rem 1rem;border:1px solid #dee2e6;border-radius:6px;background:white;cursor:pointer;font-size:0.88rem;">Atšaukti</button>
+        <button type="submit" id="btnSendTesti" style="padding:0.4rem 1rem;border:none;border-radius:6px;background:#736a48;color:white;cursor:pointer;font-weight:500;font-size:0.88rem;" data-testid="button-send-testi">
+          <i class="bi bi-send me-1"></i>Siųsti
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="modalEdit" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;padding-top:2rem;overflow-y:auto;">
   <div style="background:white;border-radius:12px;width:95%;max-width:800px;margin-bottom:2rem;">
     <div style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;padding:1rem 1.5rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
@@ -1339,6 +1373,9 @@ function viewPretenzija(id) {
           hhtml += '<div style="background:#e8f5e9;padding:0.5rem 0.6rem;border-radius:4px;margin-top:0.4rem;border-left:3px solid #27ae60;">';
           hhtml += '<div style="font-size:0.78rem;color:#6c757d;margin-bottom:0.2rem;">' + escH(h.feedback_by || 'Anonim.') + ' — ' + (h.feedback_at ? new Date(h.feedback_at).toLocaleString('lt-LT') : '') + '</div>';
           hhtml += '<div>' + escH(h.feedback_text).replace(/\n/g, '<br>') + '</div>';
+          hhtml += '</div>';
+          hhtml += '<div style="margin-top:0.5rem;text-align:right;">';
+          hhtml += '<button type="button" onclick="openTestiModal(' + parseInt(h.id) + ',' + JSON.stringify(escH(h.email_delegated_to)) + ',' + parseInt(currentViewId) + ')" style="background:#736a48;color:white;border:none;border-radius:6px;padding:0.28rem 0.75rem;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;" data-testid="button-testi-pokalbį-' + parseInt(h.id) + '"><i class="bi bi-reply-all me-1"></i>Tęsti pokalbį</button>';
           hhtml += '</div>';
         }
         hhtml += '</div>';
@@ -1761,7 +1798,86 @@ function sendEmail() {
     });
 }
 
-document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail').forEach(modal => {
+function openTestiModal(historyId, prevEmail, pretenzijaId) {
+  document.getElementById('testiHistoryId').value = historyId;
+  document.getElementById('testiPretenzijaId').value = pretenzijaId;
+  document.getElementById('testiEmailTo').value = prevEmail;
+  document.getElementById('testiEmailCc').value = '';
+  document.getElementById('testiKomentaras').value = '';
+  const status = document.getElementById('testiStatus');
+  status.style.display = 'none';
+  const btn = document.getElementById('btnSendTesti');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
+  document.getElementById('modalTesti').style.display = 'flex';
+}
+
+function sendTesti() {
+  const historyId = document.getElementById('testiHistoryId').value;
+  const pid = document.getElementById('testiPretenzijaId').value;
+  const emailTo = document.getElementById('testiEmailTo').value.trim();
+  const emailCc = document.getElementById('testiEmailCc').value.trim();
+  const komentaras = document.getElementById('testiKomentaras').value.trim();
+  const status = document.getElementById('testiStatus');
+  const btn = document.getElementById('btnSendTesti');
+
+  if (!emailTo) {
+    status.style.display = 'block';
+    status.style.background = '#fdedec';
+    status.style.color = '#721c24';
+    status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Įveskite gavėjo el. pašto adresą';
+    return;
+  }
+  if (!komentaras) {
+    status.style.display = 'block';
+    status.style.background = '#fdedec';
+    status.style.color = '#721c24';
+    status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Įveskite papildomą komentarą';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Siunčiama...';
+  status.style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('pretenzija_id', pid);
+  fd.append('email_delegated_to', emailTo);
+  fd.append('email_cc', emailCc);
+  fd.append('papildomas_komentaras', komentaras);
+  fd.append('reply_to_history_id', historyId);
+
+  fetch('pretenzijos_siusti.php', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      status.style.display = 'block';
+      if (data.success) {
+        status.style.background = '#d4edda';
+        status.style.color = '#155724';
+        status.innerHTML = '<i class="bi bi-check-circle me-1"></i>' + data.message;
+        setTimeout(() => {
+          document.getElementById('modalTesti').style.display = 'none';
+          viewPretenzija(parseInt(pid));
+        }, 1800);
+      } else {
+        status.style.background = '#fdedec';
+        status.style.color = '#721c24';
+        status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + data.message;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
+      }
+    })
+    .catch(() => {
+      status.style.display = 'block';
+      status.style.background = '#fdedec';
+      status.style.color = '#721c24';
+      status.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Klaida siunčiant';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send me-1"></i>Siųsti';
+    });
+}
+
+document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail, #modalTesti').forEach(modal => {
   modal.addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
   });

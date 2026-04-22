@@ -36,6 +36,7 @@ class DBMigracija {
         $this->pridetiDefektoPdfStulpelius();
         $this->pridetiQtPretenzijaIdStulpeli();
         $this->sukurtiPretenzijoFailuLentele();
+        $this->pridetiPapildomoKomentaroStulpeli();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -454,6 +455,18 @@ class DBMigracija {
             $stmt = $this->conn->query($sql);
             if (!$stmt->fetchColumn()) {
                 $this->conn->exec("ALTER TABLE gaminiai ADD COLUMN dielektriniai_issaugoti BOOLEAN DEFAULT FALSE");
+            }
+        } catch (PDOException $e) {
+        }
+    }
+
+    /** Prideda papildomo_komentaro stulpelį prie pretenzijos_email_history lentelės (pokalbio tęsimui) */
+    private function pridetiPapildomoKomentaroStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'pretenzijos_email_history' AND column_name = 'papildomas_komentaras'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE pretenzijos_email_history ADD COLUMN papildomas_komentaras TEXT");
             }
         } catch (PDOException $e) {
         }

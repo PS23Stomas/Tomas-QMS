@@ -30,7 +30,7 @@ $nStmt = $pdo->prepare("SELECT id, pavadinimas FROM pretenzijos_nuotraukos WHERE
 $nStmt->execute([$id]);
 $nuotraukos = $nStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$hStmt = $pdo->prepare("SELECT * FROM pretenzijos_email_history WHERE pretenzija_id = ? ORDER BY sent_at DESC");
+$hStmt = $pdo->prepare("SELECT * FROM pretenzijos_email_history WHERE pretenzija_id = ? ORDER BY sent_at ASC");
 $hStmt->execute([$id]);
 $history = $hStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -196,34 +196,46 @@ $nl    = fn($s) => nl2br($esc($s));
 
     <?php if (!empty($history)): ?>
     <hr>
-    <div class="section-label mb-2"><i class="bi bi-envelope-check me-1"></i>Siuntimo istorija</div>
-    <?php foreach ($history as $h): ?>
-      <?php $answered = !empty($h['feedback_text']); ?>
-      <div class="border rounded p-2 mb-2 email-history-item <?= $answered ? 'border-success' : '' ?>"
-           style="background:<?= $answered ? '#f0fff4' : '#fff' ?>;">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
-          <div>
-            <strong>Kam:</strong> <?= $esc($h['email_delegated_to'] ?? '') ?>
-            <?php if (!empty($h['email_cc'])): ?>
-              &nbsp;<span class="text-muted">CC: <?= $esc($h['email_cc']) ?></span>
+    <div class="section-label mb-3"><i class="bi bi-chat-left-dots me-1"></i>El. laiškų pokalbio srautas</div>
+    <div style="position:relative;padding-left:1.5rem;">
+      <div style="position:absolute;left:0.55rem;top:0;bottom:0;width:2px;background:#e9ecef;border-radius:2px;"></div>
+      <?php foreach ($history as $idx => $h): ?>
+        <?php $answered = !empty($h['feedback_text']); ?>
+        <div style="position:relative;margin-bottom:1rem;" data-testid="email-history-item-<?= (int)$h['id'] ?>">
+          <div style="position:absolute;left:-1.08rem;top:0.6rem;width:10px;height:10px;border-radius:50%;background:<?= $answered ? '#27ae60' : '#6c757d' ?>;border:2px solid white;box-shadow:0 0 0 2px <?= $answered ? '#27ae60' : '#adb5bd' ?>;"></div>
+          <div class="border rounded p-2" style="background:#f8f9fa;border-color:#dee2e6!important;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-1 mb-1">
+              <div style="font-size:0.88rem;">
+                <i class="bi bi-send me-1 text-primary"></i>
+                <strong>Kam:</strong> <?= $esc($h['email_delegated_to'] ?? '') ?>
+                <?php if (!empty($h['email_cc'])): ?>
+                  &nbsp;<span class="text-muted" style="font-size:0.8rem;">CC: <?= $esc($h['email_cc']) ?></span>
+                <?php endif; ?>
+              </div>
+              <?php if ($answered): ?>
+                <span class="badge bg-success" style="font-size:0.73rem;"><i class="bi bi-check-lg me-1"></i>Atsakyta</span>
+              <?php else: ?>
+                <span class="badge bg-secondary" style="font-size:0.73rem;"><i class="bi bi-clock me-1"></i>Laukiama</span>
+              <?php endif; ?>
+            </div>
+            <div class="text-muted" style="font-size:0.78rem;">Išsiųsta: <?= $esc(substr($h['sent_at'] ?? '', 0, 16)) ?> &mdash; <?= $esc($h['sent_by'] ?? '') ?></div>
+            <?php if (!empty($h['papildomas_komentaras'] ?? '')): ?>
+              <div class="mt-2 p-2 rounded" style="background:#fffbeb;border:1px solid #fbbf24;font-size:0.85rem;">
+                <div class="fw-bold mb-1" style="font-size:0.76rem;color:#92400e;"><i class="bi bi-chat-right-text me-1"></i>PAPILDOMAS KOMENTARAS</div>
+                <div><?= $nl($h['papildomas_komentaras'] ?? '') ?></div>
+              </div>
             <?php endif; ?>
           </div>
           <?php if ($answered): ?>
-            <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Atsakyta</span>
-          <?php else: ?>
-            <span class="badge bg-secondary"><i class="bi bi-clock me-1"></i>Laukiama</span>
+          <div class="mt-1 ms-3 p-2 rounded" style="background:#e8f5e9;border-left:3px solid #27ae60;font-size:0.85rem;">
+            <div class="fw-bold mb-1" style="font-size:0.76rem;color:#155724;"><i class="bi bi-reply me-1"></i>ATSAKYMAS</div>
+            <div><?= $nl($h['feedback_text']) ?></div>
+            <div class="text-muted mt-1" style="font-size:0.76rem;"><?= $esc($h['feedback_by'] ?? '') ?> &mdash; <?= $esc(substr($h['feedback_at'] ?? '', 0, 16)) ?></div>
+          </div>
           <?php endif; ?>
         </div>
-        <div class="text-muted mt-1">Išsiųsta: <?= $esc(substr($h['sent_at'] ?? '', 0, 16)) ?> &mdash; <?= $esc($h['sent_by'] ?? '') ?></div>
-        <?php if ($answered): ?>
-          <div class="mt-2 p-2 rounded" style="background:#e8f5e9;border-left:3px solid #27ae60;">
-            <div class="fw-bold text-success mb-1" style="font-size:0.78rem;">ATSAKYMAS</div>
-            <div><?= $nl($h['feedback_text']) ?></div>
-            <div class="text-muted mt-1" style="font-size:0.78rem;"><?= $esc($h['feedback_by'] ?? '') ?> &mdash; <?= $esc(substr($h['feedback_at'] ?? '', 0, 16)) ?></div>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endforeach; ?>
+      <?php endforeach; ?>
+    </div>
     <?php endif; ?>
 
     <div class="text-center mt-4 mb-2 no-print">

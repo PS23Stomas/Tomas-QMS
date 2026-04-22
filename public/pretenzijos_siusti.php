@@ -13,6 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $pretenzija_id = (int)($_POST['pretenzija_id'] ?? 0);
 $email_to = trim($_POST['email_delegated_to'] ?? '');
 $email_cc = trim($_POST['email_cc'] ?? '');
+$papildomas_komentaras = trim($_POST['papildomas_komentaras'] ?? '');
+$reply_to_history_id = (int)($_POST['reply_to_history_id'] ?? 0);
 
 if ($pretenzija_id <= 0) {
     echo json_encode(['success' => false, 'message' => 'Nenurodytas pretenzijos ID']);
@@ -53,8 +55,8 @@ $subject = "Pretenzija #{$pretenzija_id} — {$tipas_label}";
 $baseUrl = getBaseUrl();
 
 $stmtInsert = $pdo->prepare("
-    INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by)
-    VALUES (:pid, :to, :cc, :subject, :by)
+    INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by, papildomas_komentaras)
+    VALUES (:pid, :to, :cc, :subject, :by, :komentaras)
     RETURNING id
 ");
 $stmtInsert->execute([
@@ -62,7 +64,8 @@ $stmtInsert->execute([
     ':to' => $email_to,
     ':cc' => $email_cc ?: null,
     ':subject' => $subject,
-    ':by' => $prisijunges
+    ':by' => $prisijunges,
+    ':komentaras' => $papildomas_komentaras ?: null
 ]);
 $history_id = $stmtInsert->fetchColumn();
 
@@ -71,6 +74,19 @@ $feedback_url = "{$baseUrl}/pretenzijos_atsakymas.php?id={$history_id}";
 $esc = function($s) { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); };
 
 $imone = getImonesNustatymai();
+
+// Jei tęsiamas pokalbis — gauname prieš tai buvusio atsakymo kontekstą
+$ankstesnis_atsakymas = '';
+if ($reply_to_history_id > 0) {
+    $stmtPrev = $pdo->prepare("SELECT feedback_text, feedback_by, feedback_at, sent_by, sent_at FROM pretenzijos_email_history WHERE id = ? AND pretenzija_id = ?");
+    $stmtPrev->execute([$reply_to_history_id, $pretenzija_id]);
+    $prev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+    if ($prev && !empty($prev['feedback_text'])) {
+        $ankstesnis_atsakymas = $prev['feedback_text'];
+        $ankstesnis_autorius = $prev['feedback_by'] ?? 'Nenurodyta';
+        $ankstesnis_data = !empty($prev['feedback_at']) ? date('Y-m-d H:i', strtotime($prev['feedback_at'])) : '';
+    }
+}
 
 $html_body = '
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -110,6 +126,22 @@ $html_body = '
         </div>' : '') . '
 
         ' . (!empty($p['terminas']) ? '<p style="font-size: 13px;"><strong>Terminas:</strong> ' . $esc($p['terminas']) . '</p>' : '') . '
+
+        ' . (!empty($papildomas_komentaras) ? '
+        <div style="margin-bottom: 15px; padding: 12px; background: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px;">
+            <strong style="font-size: 13px; color: #92400e;">Papildomas komentaras:</strong>
+            <div style="font-size: 13px; line-height: 1.5; margin-top: 5px; color: #1c1917;">
+                ' . nl2br($esc($papildomas_komentaras)) . '
+            </div>
+        </div>' : '') . '
+
+        ' . (!empty($ankstesnis_atsakymas) ? '
+        <div style="margin-bottom: 15px; padding: 12px; background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 0 6px 6px 0;">
+            <strong style="font-size: 12px; color: #166534;">Ankstesnis atsakymas (' . $esc($ankstesnis_autorius ?? '') . ($ankstesnis_data ? ', ' . $esc($ankstesnis_data) : '') . '):</strong>
+            <div style="font-size: 12px; line-height: 1.5; margin-top: 5px; color: #374151;">
+                ' . nl2br($esc($ankstesnis_atsakymas)) . '
+            </div>
+        </div>' : '') . '
 
         <div style="text-align: center; margin: 25px 0 15px 0;">
             <a href="' . $esc($feedback_url) . '"
