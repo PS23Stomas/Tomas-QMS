@@ -55,8 +55,8 @@ $subject = "Pretenzija #{$pretenzija_id} — {$tipas_label}";
 $baseUrl = getBaseUrl();
 
 $stmtInsert = $pdo->prepare("
-    INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by, papildomas_komentaras)
-    VALUES (:pid, :to, :cc, :subject, :by, :komentaras)
+    INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by, papildomas_komentaras, outgoing_text, parent_history_id)
+    VALUES (:pid, :to, :cc, :subject, :by, :komentaras, :outgoing_text, :parent_history_id)
     RETURNING id
 ");
 $stmtInsert->execute([
@@ -65,7 +65,9 @@ $stmtInsert->execute([
     ':cc' => $email_cc ?: null,
     ':subject' => $subject,
     ':by' => $prisijunges,
-    ':komentaras' => $papildomas_komentaras ?: null
+    ':komentaras' => $papildomas_komentaras ?: null,
+    ':outgoing_text' => $papildomas_komentaras ?: null,
+    ':parent_history_id' => $reply_to_history_id > 0 ? $reply_to_history_id : null
 ]);
 $history_id = $stmtInsert->fetchColumn();
 

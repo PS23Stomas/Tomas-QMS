@@ -37,8 +37,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'email_history') {
     $pid = (int)($_GET['pretenzija_id'] ?? 0);
     if (!$pid) { echo json_encode([]); exit; }
     $st = $pdo->prepare("SELECT id, email_delegated_to, email_cc, email_subject, sent_by, sent_at,
-        feedback_text, feedback_at, feedback_by
-        FROM pretenzijos_email_history WHERE pretenzija_id = ? ORDER BY sent_at DESC");
+        feedback_text, feedback_at, feedback_by, outgoing_text, parent_history_id
+        FROM pretenzijos_email_history WHERE pretenzija_id = ? ORDER BY sent_at ASC");
     $st->execute([$pid]);
     echo json_encode($st->fetchAll(PDO::FETCH_ASSOC));
     exit;
@@ -59,8 +59,9 @@ if (isset($_GET['msg']) && isset($msg_map[$_GET['msg']])) {
 
 function pretenzijosRedirect($msg) {
     $params = ['msg' => $msg];
-    if (!empty($_GET['tipas'])) $params['tipas'] = $_GET['tipas'];
+    if (!empty($_GET['tipas']))    $params['tipas']    = $_GET['tipas'];
     if (!empty($_GET['statusas'])) $params['statusas'] = $_GET['statusas'];
+    if (!empty($_GET['savait']))   $params['savait']   = $_GET['savait'];
     header('Location: /pretenzijos.php?' . http_build_query($params));
     exit;
 }
@@ -374,19 +375,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Filtravimo parametrai iš GET užklausos
-$filtras_tipas = $_GET['tipas'] ?? '';
+$filtras_tipas    = $_GET['tipas']    ?? '';
 $filtras_statusas = $_GET['statusas'] ?? '';
+$filtras_savait   = $_GET['savait']   ?? '';
 
-$where = [];
-$params = [];
+$where_base  = [];
+$params_base = [];
 
 if ($filtras_tipas && isset($tipai[$filtras_tipas])) {
-    $where[] = "p.tipas = :tipas";
-    $params[':tipas'] = $filtras_tipas;
+    $where_base[] = "p.tipas = :tipas";
+    $params_base[':tipas'] = $filtras_tipas;
 }
 if ($filtras_statusas && isset($statusai[$filtras_statusas])) {
-    $where[] = "p.statusas = :statusas";
-    $params[':statusas'] = $filtras_statusas;
+    $where_base[] = "p.statusas = :statusas";
+    $params_base[':statusas'] = $filtras_statusas;
+}
+
+// Savaitiniai "kibirai" savaitės navigacijai
+$where_base_sql = $where_base ? 'WHERE ' . implode(' AND ', $where_base) : '';
+$savait_buckets = [];
+try {
+    $savait_stmt = $pdo->prepare("
+        SELECT
+            EXTRACT(ISOYEAR FROM p.sukurta::date)::int AS metai,
+            EXTRACT(WEEK    FROM p.sukurta::date)::int  AS savait_nr,
+            COUNT(*) AS kiekis
+        FROM pretenzijos p
+        LEFT JOIN uzsakymai u ON u.id = p.uzsakymo_id
+        $where_base_sql
+        GROUP BY 1, 2
+        ORDER BY 1 DESC, 2 DESC
+    ");
+    $savait_stmt->execute($params_base);
+    $savait_buckets = $savait_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $savait_buckets = [];
+}
+
+// Savaitės filtro datos
+$where  = $where_base;
+$params = $params_base;
+$sav_nuo = null;
+$sav_iki = null;
+if ($filtras_savait && preg_match('/^(\d{4})-(0?[1-9]|[1-4]\d|5[0-3])$/', $filtras_savait, $m)) {
+    $monday = new DateTime();
+    $monday->setISODate((int)$m[1], (int)$m[2], 1);
+    $sav_nuo = $monday->format('Y-m-d');
+    $sav_iki = (clone $monday)->modify('+7 days')->format('Y-m-d');
+    $where[]            = "p.sukurta::date >= :sav_nuo AND p.sukurta::date < :sav_iki";
+    $params[':sav_nuo'] = $sav_nuo;
+    $params[':sav_iki'] = $sav_iki;
 }
 
 $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -559,7 +597,49 @@ include __DIR__ . '/includes/header.php';
     padding: 0.4rem 0.75rem;
     font-size: 0.88rem;
   }
-  
+
+  .savait-filtrai {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.4rem;
+    padding: 0.55rem 1.25rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .savait-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 11px;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    background: #fff;
+    color: #495057;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .savait-pill:hover { background: #e9ecef; border-color: #adb5bd; }
+  .savait-pill.aktyvus { background: #c0392b; border-color: #c0392b; color: #fff; }
+  .savait-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(0,0,0,.12);
+  }
+  .savait-pill.aktyvus .savait-badge { background: rgba(255,255,255,.3); }
+
   .btn-add {
     background: #e74c3c;
     color: white;
@@ -856,7 +936,29 @@ include __DIR__ . '/includes/header.php';
     </button>
     <?php endif; ?>
   </div>
-  
+
+  <?php if (!empty($savait_buckets)): ?>
+  <div class="savait-filtrai" data-testid="weekly-nav">
+    <?php foreach ($savait_buckets as $b):
+      $key     = sprintf('%d-%02d', (int)$b['metai'], (int)$b['savait_nr']);
+      $aktyvus = ($filtras_savait === $key);
+      $onclick = $aktyvus ? '' : $key;
+      $monday  = new DateTime();
+      $monday->setISODate((int)$b['metai'], (int)$b['savait_nr'], 1);
+      $sunday  = (clone $monday)->modify('+6 days');
+      $title   = $monday->format('Y-m-d') . ' – ' . $sunday->format('Y-m-d');
+    ?>
+      <button class="savait-pill<?= $aktyvus ? ' aktyvus' : '' ?>"
+              onclick="applyFilter('savait', <?= htmlspecialchars(json_encode($onclick)) ?>)"
+              title="<?= htmlspecialchars($title) ?>"
+              data-testid="week-pill-<?= htmlspecialchars($key) ?>">
+        S<?= (int)$b['savait_nr'] ?>
+        <span class="savait-badge"><?= (int)$b['kiekis'] ?></span>
+      </button>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
   <div class="pretenzijos-list">
   <?php if (empty($pretenzijos)): ?>
     <div class="empty-state">
@@ -1354,33 +1456,64 @@ function viewPretenzija(id) {
         section.innerHTML = '';
         return;
       }
-      let hhtml = '';
+
+      // Sukuriame medžio struktūrą iš parent_history_id
+      const byId = {};
+      history.forEach(h => { byId[h.id] = h; });
+      const children = {};
       history.forEach(h => {
-        const hasF = !!h.feedback_text;
-        const badge = hasF 
+        if (h.parent_history_id && byId[h.parent_history_id]) {
+          if (!children[h.parent_history_id]) children[h.parent_history_id] = [];
+          children[h.parent_history_id].push(h);
+        }
+      });
+      const roots = history.filter(h => !h.parent_history_id || !byId[h.parent_history_id]);
+
+      function renderEmailItem(h, depth) {
+        const hasF    = !!h.feedback_text;
+        const hid     = parseInt(h.id, 10);
+        const isReply = depth > 0;
+        const badge   = hasF
           ? '<span style="background:#d4edda;color:#155724;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;">Atsakyta</span>'
           : '<span style="background:#fff3cd;color:#856404;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.72rem;font-weight:600;">Laukiama</span>';
-        hhtml += '<div style="background:#f8f9fa;padding:0.6rem 0.8rem;border-radius:6px;margin-top:0.5rem;border:1px solid #e9ecef;font-size:0.85rem;">';
-        hhtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">';
-        hhtml += '<span><i class="bi bi-send me-1"></i><strong>' + escH(h.email_delegated_to) + '</strong></span>';
-        hhtml += badge;
-        hhtml += '</div>';
-        hhtml += '<div style="color:#6c757d;font-size:0.8rem;">';
-        hhtml += 'Siuntė: ' + escH(h.sent_by || '-') + ' | ' + (h.sent_at ? new Date(h.sent_at).toLocaleString('lt-LT') : '-');
-        if (h.email_cc) hhtml += ' | CC: ' + escH(h.email_cc);
-        hhtml += '</div>';
-        if (hasF) {
-          hhtml += '<div style="background:#e8f5e9;padding:0.5rem 0.6rem;border-radius:4px;margin-top:0.4rem;border-left:3px solid #27ae60;">';
-          hhtml += '<div style="font-size:0.78rem;color:#6c757d;margin-bottom:0.2rem;">' + escH(h.feedback_by || 'Anonim.') + ' — ' + (h.feedback_at ? new Date(h.feedback_at).toLocaleString('lt-LT') : '') + '</div>';
-          hhtml += '<div>' + escH(h.feedback_text).replace(/\n/g, '<br>') + '</div>';
-          hhtml += '</div>';
-          hhtml += '<div style="margin-top:0.5rem;text-align:right;">';
-          hhtml += '<button type="button" onclick="testiClick(this)" data-hid="' + parseInt(h.id) + '" data-email="' + escH(h.email_delegated_to) + '" data-pid="' + parseInt(currentViewId) + '" style="background:#736a48;color:white;border:none;border-radius:6px;padding:0.28rem 0.75rem;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;" data-testid="button-testi-pokalbį-' + parseInt(h.id) + '"><i class="bi bi-reply-all me-1"></i>Tęsti pokalbį</button>';
-          hhtml += '</div>';
+        const indent  = isReply ? 'border-left:3px solid #3498db;margin-left:' + (depth * 18) + 'px;' : '';
+        const replyMark = isReply ? '<span style="color:#3498db;font-size:0.76rem;font-weight:600;margin-right:0.3rem;">↪ Atsakymas</span>' : '';
+
+        let html = '<div style="background:#f8f9fa;padding:0.6rem 0.8rem;border-radius:6px;margin-top:0.5rem;border:1px solid #e9ecef;font-size:0.85rem;' + indent + '">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">';
+        html += '<span>' + replyMark + '<i class="bi bi-send me-1"></i><strong>' + escH(h.email_delegated_to) + '</strong>';
+        if (h.email_cc) html += ' <span style="color:#6c757d;font-size:0.8rem;">CC: ' + escH(h.email_cc) + '</span>';
+        html += '</span>' + badge + '</div>';
+        html += '<div style="color:#6c757d;font-size:0.8rem;">Siuntė: ' + escH(h.sent_by || '-') + ' | ' + (h.sent_at ? new Date(h.sent_at).toLocaleString('lt-LT') : '-') + '</div>';
+
+        // Išsiųstas tekstas (outgoing_text) — mėlyname bloke
+        if (h.outgoing_text) {
+          html += '<div style="background:#e8f0fe;padding:0.5rem 0.6rem;border-radius:4px;margin-top:0.4rem;border-left:3px solid #3498db;">';
+          html += '<div style="font-size:0.72rem;color:#1a73e8;font-weight:700;margin-bottom:0.2rem;">ŽINUTĖ</div>';
+          html += '<div>' + escH(h.outgoing_text).replace(/\n/g, '<br>') + '</div>';
+          html += '</div>';
         }
-        hhtml += '</div>';
-      });
-      section.innerHTML = hhtml;
+
+        // Atsakymas — žaliame bloke
+        if (hasF) {
+          html += '<div style="background:#e8f5e9;padding:0.5rem 0.6rem;border-radius:4px;margin-top:0.4rem;border-left:3px solid #27ae60;">';
+          html += '<div style="font-size:0.78rem;color:#6c757d;margin-bottom:0.2rem;">' + escH(h.feedback_by || 'Anonim.') + ' — ' + (h.feedback_at ? new Date(h.feedback_at).toLocaleString('lt-LT') : '') + '</div>';
+          html += '<div>' + escH(h.feedback_text).replace(/\n/g, '<br>') + '</div>';
+          html += '</div>';
+          html += '<div style="margin-top:0.5rem;text-align:right;">';
+          html += '<button type="button" onclick="testiClick(this)" data-hid="' + hid + '" data-email="' + escH(h.email_delegated_to) + '" data-pid="' + parseInt(currentViewId) + '" style="background:#736a48;color:white;border:none;border-radius:6px;padding:0.28rem 0.75rem;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;" data-testid="button-testi-pokalbį-' + hid + '"><i class="bi bi-reply-all me-1"></i>Tęsti pokalbį</button>';
+          html += '</div>';
+        }
+        html += '</div>';
+
+        // Rekursyviai atvaizduojame vaikinius atsakymus
+        if (children[hid]) {
+          children[hid].forEach(child => { html += renderEmailItem(child, depth + 1); });
+        }
+        return html;
+      }
+
+      section.innerHTML = roots.map(h => renderEmailItem(h, 0)).join('');
     })
     .catch(() => {
       const section = document.getElementById('emailHistorySection');
