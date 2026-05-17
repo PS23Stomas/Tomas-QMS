@@ -474,16 +474,23 @@ class TomoQMS {
         $url = getenv('QUALITY_TOMAS_DATABASE_URL');
         if (!$url) return null;
         if ($qtConn !== null) return $qtConn;
+        $qtConn = self::createFreshQTConnection();
+        return $qtConn;
+    }
+
+    private static function createFreshQTConnection(): ?PDO {
+        $url = getenv('QUALITY_TOMAS_DATABASE_URL');
+        if (!$url) return null;
         try {
             $parts = parse_url($url);
             if (!$parts || !isset($parts['host'], $parts['user'], $parts['pass'], $parts['path'])) return null;
             $dsn = 'pgsql:host=' . $parts['host'] . ';port=' . ($parts['port'] ?? 5432) . ';dbname=' . ltrim($parts['path'], '/');
             if (strpos($url, 'sslmode=require') !== false) $dsn .= ';sslmode=require';
-            $qtConn = new PDO($dsn, $parts['user'], $parts['pass'], [
+            $conn = new PDO($dsn, $parts['user'], $parts['pass'], [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
-            return $qtConn;
+            return $conn;
         } catch (Exception $e) {
             error_log('QualityTomas prisijungimo klaida: ' . $e->getMessage());
             return null;
@@ -822,6 +829,13 @@ class TomoQMS {
             }
 
             if ($progressCallback) $progressCallback(92, $viso_uzsakymu, 'Fazė 3: importuojamos pretenzijos...');
+
+            $qt = self::createFreshQTConnection();
+            if (!$qt) {
+                $rezultatas['klaidos'][] = 'Fazė 3: nepavyko atnaujinti ryšio su QT DB pretenzijoms';
+                if ($progressCallback) $progressCallback(100, $viso_uzsakymu, 'Baigta (pretenzijos: ryšio klaida)');
+                return $rezultatas;
+            }
 
             $qt_uzs_id_to_local = [];
             foreach ($mt_uzsakymai as $uzs) {
