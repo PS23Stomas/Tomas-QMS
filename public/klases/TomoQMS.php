@@ -930,8 +930,8 @@ class TomoQMS {
                             $localConn->prepare($upd_sql)->execute($upd_params);
                             $local_pret_id = (int)$existing_pret_id;
                         } else {
-                            $ins_cols = "tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka, uzsakymo_id, gaminio_id, data, prioritetas";
-                            $ins_vals = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+                            $ins_cols = "tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka, uzsakymo_id, gaminio_id, data, prioritetas, perziuros_token";
+                            $ins_vals = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, md5(random()::text || clock_timestamp()::text)";
                             $ins_params = $common_params;
                             array_splice($ins_params, 10, 0, [$p['sukurta'] ?? date('Y-m-d H:i:s'), $p['atnaujinta'] ?? date('Y-m-d H:i:s')]);
                             $ins_params[] = $pret_data;
