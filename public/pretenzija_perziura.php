@@ -8,19 +8,21 @@
 header('Content-Type: text/html; charset=utf-8');
 require_once __DIR__ . '/includes/config.php';
 
-$id = (int)($_GET['id'] ?? 0);
-if (!$id) {
-    die('<p>Neteisingas pretenzijos ID.</p>');
+$token = trim($_GET['token'] ?? '');
+if (!$token || !preg_match('/^[a-f0-9]{32,64}$/', $token)) {
+    http_response_code(404);
+    die('<p>Pretenzija nerasta arba nuoroda negaliojanti.</p>');
 }
 
 $stmt = $pdo->prepare("
     SELECT p.*, u.uzsakymo_numeris
     FROM pretenzijos p
     LEFT JOIN uzsakymai u ON u.id = p.uzsakymo_id
-    WHERE p.id = ?
+    WHERE p.perziuros_token = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$token]);
 $p = $stmt->fetch(PDO::FETCH_ASSOC);
+$id = $p['id'] ?? 0;
 
 if (!$p) {
     die('<p>Pretenzija nerasta.</p>');

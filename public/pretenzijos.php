@@ -45,7 +45,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'email_history') {
 }
 
 if (isset($_GET['view']) && ctype_digit($_GET['view'])) {
-    header('Location: /pretenzija_perziura.php?id=' . (int)$_GET['view']);
+    $tokStmt = $pdo->prepare("SELECT perziuros_token FROM pretenzijos WHERE id = ? LIMIT 1");
+    $tokStmt->execute([(int)$_GET['view']]);
+    $tok = $tokStmt->fetchColumn();
+    if ($tok) {
+        header('Location: /pretenzija_perziura.php?token=' . urlencode($tok));
+    } else {
+        header('Location: /pretenzijos.php');
+    }
     exit;
 }
 
@@ -93,11 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     INSERT INTO pretenzijos (
                         tipas, aprasymas, uzsakymo_id, uzsakymo_numeris_ranka, terminas, gavimo_data, sukure_vardas,
                         aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas,
-                        uzfiksavo_padalinys, uzfiksavo_asmuo, sukure_id
+                        uzfiksavo_padalinys, uzfiksavo_asmuo, sukure_id, perziuros_token
                     ) VALUES (
                         :tipas, :aprasymas, :uzsakymo_id, :uzsakymo_numeris_ranka, :terminas, :gavimo_data, :sukure,
                         :aptikimo_vieta, :gaminys_info, :atsakingas_padalinys, :siulomas_sprendimas,
-                        :uzfiksavo_padalinys, :uzfiksavo_asmuo, :sukure_id
+                        :uzfiksavo_padalinys, :uzfiksavo_asmuo, :sukure_id, md5(random()::text || clock_timestamp()::text)
                     )
                 ");
                 $stmt->execute([
@@ -437,7 +444,7 @@ $sql = "
            p.atsakingas_padalinys, p.siulomas_sprendimas, p.uzfiksavo_padalinys,
            p.uzfiksavo_asmuo, p.priezastis, p.veiksmai, p.terminas, p.gavimo_data,
            p.uzbaigimo_data, p.sukure_vardas, p.uzsakymo_numeris_ranka,
-           p.defekto_pdf_pavadinimas,
+           p.defekto_pdf_pavadinimas, p.perziuros_token,
            u.uzsakymo_numeris
     FROM pretenzijos p
     LEFT JOIN uzsakymai u ON u.id = p.uzsakymo_id
@@ -1307,10 +1314,11 @@ function escH(s) { const d = document.createElement('div'); d.textContent = s ||
 function escNl(s) { return s ? escH(s).replace(/\n/g, '<br>') : '-'; }
 
 let currentViewId = null;
+let currentViewToken = null;
 
 function copyPretLink() {
-  if (!currentViewId) return;
-  const url = window.location.origin + '/pretenzija_perziura.php?id=' + currentViewId;
+  if (!currentViewToken) return;
+  const url = window.location.origin + '/pretenzija_perziura.php?token=' + currentViewToken;
   const btn = document.getElementById('btnCopyLink');
   const txt = document.getElementById('copyLinkText');
   
@@ -1339,6 +1347,7 @@ function viewPretenzija(id) {
   if (!p) return;
   
   currentViewId = id;
+  currentViewToken = p.perziuros_token || '';
   document.getElementById('btnViewPdf').href = 'pretenzijos_pdf.php?id=' + id;
   
   const st = statusai[p.statusas] || statusai['nauja'];

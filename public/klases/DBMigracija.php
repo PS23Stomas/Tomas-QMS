@@ -38,6 +38,7 @@ class DBMigracija {
         $this->sukurtiPretenzijoFailuLentele();
         $this->pridetiPapildomoKomentaroStulpeli();
         $this->pataisytiKomponentuVarchar();
+        $this->pridetiPerziurosTokena();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -479,6 +480,17 @@ class DBMigracija {
         } catch (PDOException $e) {}
         try {
             $this->conn->exec("ALTER TABLE komponentai ALTER COLUMN gamintojas TYPE TEXT");
+        } catch (PDOException $e) {}
+    }
+
+    private function pridetiPerziurosTokena(): void {
+        try {
+            $exists = $this->conn->query("SELECT column_name FROM information_schema.columns WHERE table_name='pretenzijos' AND column_name='perziuros_token'")->fetchColumn();
+            if (!$exists) {
+                $this->conn->exec("ALTER TABLE pretenzijos ADD COLUMN perziuros_token VARCHAR(64)");
+            }
+            $this->conn->exec("UPDATE pretenzijos SET perziuros_token = md5(id::text || '-' || EXTRACT(EPOCH FROM COALESCE(sukurta, now()))::text || '-' || random()::text) WHERE perziuros_token IS NULL OR perziuros_token = ''");
+            $this->conn->exec("CREATE UNIQUE INDEX IF NOT EXISTS pretenzijos_perziuros_token_idx ON pretenzijos(perziuros_token)");
         } catch (PDOException $e) {}
     }
 }
