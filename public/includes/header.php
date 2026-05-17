@@ -243,7 +243,10 @@
                                         <div class="user-name">
                                             <?= h(($user['vardas'] ?? '') . ' ' . ($user['pavarde'] ?? '')) ?>
                                         </div>
-                                        <div class="user-role"><?= h($user['role'] ?? 'user') ?></div>
+                                        <div class="user-role"><?php
+                                            $roleLabels = ['admin' => 'Administratorius', 'user' => 'Vartotojas',                                                     'skaitytojas' => 'Skaitytojas'];
+                                            echo h($roleLabels[$user['role'] ?? 'user'] ?? $user['role'] ??                                                             'Vartotojas');
+                                        ?></div>
                                     </div>
                                 </div>
 
