@@ -17,6 +17,14 @@ $gaminio_pavadinimas = $_GET['gaminio_pavadinimas'] ?? '';
 $uzsakymo_id = $_GET['uzsakymo_id'] ?? '';
 $lang = $_GET['lang'] ?? 'lt';
 
+// Užsakymo įmonės duomenys (gali perrašyti globalius nustatymus)
+$uzsakymo_imone = [];
+if ($uzsakymo_id) {
+    $uzs_stmt = $conn->prepare("SELECT imone_pavadinimas, imone_adresas, imone_telefonas, imone_faksas, imone_el_pastas, imone_internetas FROM uzsakymai WHERE id = ? LIMIT 1");
+    $uzs_stmt->execute([(int)$uzsakymo_id]);
+    $uzsakymo_imone = $uzs_stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
+
 if (!$gaminio_id) {
     header('Location: /uzsakymai.php');
     exit;
@@ -536,7 +544,18 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="paso-page" id="paso-print-area">
 
-    <?php $imone = getImonesNustatymai(); ?>
+    <?php
+    $imone_global = getImonesNustatymai();
+    $imone = [
+        'pavadinimas' => (!empty($uzsakymo_imone['imone_pavadinimas'])) ? $uzsakymo_imone['imone_pavadinimas'] : $imone_global['pavadinimas'],
+        'adresas'     => (!empty($uzsakymo_imone['imone_adresas']))     ? $uzsakymo_imone['imone_adresas']     : $imone_global['adresas'],
+        'telefonas'   => (!empty($uzsakymo_imone['imone_telefonas']))   ? $uzsakymo_imone['imone_telefonas']   : $imone_global['telefonas'],
+        'faksas'      => (!empty($uzsakymo_imone['imone_faksas']))      ? $uzsakymo_imone['imone_faksas']      : $imone_global['faksas'],
+        'el_pastas'   => (!empty($uzsakymo_imone['imone_el_pastas']))   ? $uzsakymo_imone['imone_el_pastas']   : $imone_global['el_pastas'],
+        'internetas'  => (!empty($uzsakymo_imone['imone_internetas']))  ? $uzsakymo_imone['imone_internetas']  : $imone_global['internetas'],
+        'logo'        => $imone_global['logo'] ?? null,
+    ];
+    ?>
     <div class="paso-company-header">
         <div class="company-name"><?= h($imone['pavadinimas']) ?></div>
         <div class="company-details">
