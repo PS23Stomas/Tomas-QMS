@@ -304,7 +304,11 @@ a {
     border: none;
     color: var(--text);
     cursor: pointer;
-    padding: 4px;
+    padding: 10px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .page-title {

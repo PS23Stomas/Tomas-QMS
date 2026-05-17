@@ -66,14 +66,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Šoninės juostos atidarymas paspaudus meniu mygtuką
     if (menuToggle && sidebar) {
-        menuToggle.addEventListener('click', function() {
-            sidebar.classList.add('open');
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.toggle('open');
         });
     }
 
     // Šoninės juostos uždarymas paspaudus uždarymo mygtuką
     if (sidebarClose && sidebar) {
-        sidebarClose.addEventListener('click', function() {
+        sidebarClose.addEventListener('click', function(e) {
+            e.stopPropagation();
             sidebar.classList.remove('open');
         });
     }
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Šoninės juostos uždarymas paspaudus bet kur už jos ribų
     document.addEventListener('click', function(e) {
         if (sidebar && sidebar.classList.contains('open')) {
-            if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+            if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
                 sidebar.classList.remove('open');
             }
         }
