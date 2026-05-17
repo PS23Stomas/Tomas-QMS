@@ -37,6 +37,7 @@ class DBMigracija {
         $this->pridetiQtPretenzijaIdStulpeli();
         $this->sukurtiPretenzijoFailuLentele();
         $this->pridetiPapildomoKomentaroStulpeli();
+        $this->pataisytiKomponentuVarchar();
     }
 
     /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
@@ -470,5 +471,14 @@ class DBMigracija {
             }
         } catch (PDOException $e) {
         }
+    }
+
+    private function pataisytiKomponentuVarchar(): void {
+        try {
+            $this->conn->exec("ALTER TABLE komponentai ALTER COLUMN gamintojo_kodas TYPE TEXT");
+        } catch (PDOException $e) {}
+        try {
+            $this->conn->exec("ALTER TABLE komponentai ALTER COLUMN gamintojas TYPE TEXT");
+        } catch (PDOException $e) {}
     }
 }
