@@ -656,7 +656,7 @@ require_once __DIR__ . '/../includes/header.php';
         $text_14 = gautiTeksta('1_4', $orig_14, $korekcijos_data);
         $klase_14 = turiKorekcija('1_4', $korekcijos_data) ? 'koreguota' : (empty($komp_14['gamintojo_kodas']) ? 'highlight' : '');
         ?>
-        <?php $label_14 = gautiTeksta('label_1_4', 'Galios transformatoriaus narvelio Ts komplektuojami lydymieji įdėklai (tipas, vardinė srovė, gamintojas)', $korekcijos_data); ?>
+        <?php $label_14 = gautiTeksta('label_1_4', 'Galios transformatoriaus apsaugos komplektacija: vakuuminis jungtuvas, apsaugų blokas, srovės transformatoriai ir relės nuostatos', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.4</td>
             <td class="desc-col"><?= htmlspecialchars($label_14) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_4" data-label="1.4 aprašymas" data-text="<?= htmlspecialchars($label_14, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
