@@ -687,9 +687,6 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
     <?php endforeach; ?>
   </div>
 
-  <div class="chart-container" style="margin-bottom:8px;">
-    <canvas id="compChart"></canvas>
-  </div>
 </div>
 
 <?php else: ?>
@@ -911,7 +908,7 @@ function switchTab(tabId) {
   window.history.replaceState({}, '', url);
 
   if (tabId === '30d' && !window._weeklyChartInit) initWeeklyChart();
-  if (tabId === 'ketv' && !window._compChartInit) initCompChart();
+
   if (tabId === 'stat' && !window._statChartInit) initStatChart();
 }
 
@@ -939,29 +936,6 @@ function initWeeklyChart() {
   });
 }
 
-var _compChartInit = false;
-function initCompChart() {
-  <?php if ($kp_rodyti): ?>
-  var ctx = document.getElementById('compChart');
-  if (!ctx) return;
-  _compChartInit = true;
-  new Chart(ctx.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ['Uzsakymai', 'Gaminiai', 'Bandymu punktai', 'Defektai'],
-      datasets: [
-        { label: <?= json_encode($kp_q1['periodas']) ?>, data: [<?= $kp_q1['uzsakymai'] ?>, <?= $kp_q1['gaminiai'] ?>, <?= $kp_q1['bandymai'] ?>, <?= $kp_q1['defektai'] ?>], backgroundColor: 'rgba(37, 99, 235, 0.7)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1, borderRadius: 4 },
-        { label: <?= json_encode($kp_q2['periodas']) ?>, data: [<?= $kp_q2['uzsakymai'] ?>, <?= $kp_q2['gaminiai'] ?>, <?= $kp_q2['bandymai'] ?>, <?= $kp_q2['defektai'] ?>], backgroundColor: 'rgba(16, 185, 129, 0.7)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1, borderRadius: 4 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true, font: { size: 12, family: "'Inter', sans-serif" } } } },
-      scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
-    }
-  });
-  <?php endif; ?>
-}
 
 var _statChartInit = false;
 function initStatChart() {
