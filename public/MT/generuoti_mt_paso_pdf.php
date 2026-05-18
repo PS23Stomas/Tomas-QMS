@@ -226,59 +226,59 @@ $html = '
 <style>
 body {
     font-family: "DejaVu Sans", Arial, sans-serif;
-    font-size: 11px;
-    line-height: 1.4;
+    font-size: 10px;
+    line-height: 1.3;
     color: #000;
 }
 .paso-company-header {
     text-align: center;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    margin-bottom: 7px;
+    padding-bottom: 6px;
     border-bottom: 2px solid #000;
 }
-.company-name { font-size: 15px; margin-bottom: 2px; }
+.company-name { font-size: 13px; margin-bottom: 2px; }
 .company-name span { font-weight: 700; }
-.company-details { font-size: 10px; color: #333; line-height: 1.5; }
-.paso-meta-line { font-size: 11px; margin: 6px 0; }
-.paso-eso-line { font-size: 11px; margin: 5px 0 10px 0; }
+.company-details { font-size: 9px; color: #333; line-height: 1.4; }
+.paso-meta-line { font-size: 10px; margin: 4px 0; }
+.paso-eso-line { font-size: 10px; margin: 3px 0 6px 0; }
 .eso-code { font-weight: 600; }
 .paso-main-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 10px;
     margin-bottom: 0;
 }
 .paso-main-table td, .paso-main-table th {
     border: 1px solid #000;
-    padding: 3px 5px;
+    padding: 2px 4px;
     vertical-align: top;
 }
 .section-header {
     background: #c6efce;
     font-weight: 700;
-    font-size: 11px;
-    padding: 4px 5px;
+    font-size: 10px;
+    padding: 3px 4px;
 }
 .nr-col { width: 35px; text-align: left; font-weight: 400; white-space: nowrap; }
 .desc-col { }
 .saugikliu-sub {
     width: 100%;
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 9px;
     margin: 0;
 }
 .saugikliu-sub td {
     border: 1px solid #000;
-    padding: 2px 3px;
+    padding: 1px 2px;
     text-align: center;
     vertical-align: middle;
-    min-width: 20px;
+    min-width: 18px;
 }
 .sub-header { background: #f0f0f0; font-weight: 600; }
-.paso-info-section { font-size: 11px; line-height: 1.5; margin-top: 10px; }
-.paso-info-section p { margin: 3px 0; }
-.sig-table { width: 100%; margin-top: 30px; }
-.sig-table td { vertical-align: bottom; padding: 5px; }
+.paso-info-section { font-size: 10px; line-height: 1.3; margin-top: 6px; }
+.paso-info-section p { margin: 2px 0; }
+.sig-table { width: 100%; margin-top: 10px; }
+.sig-table td { vertical-align: bottom; padding: 3px; }
 .sig-title { font-weight: 600; }
 .sig-name { font-weight: 600; }
 .sig-subtitle { font-size: 9px; color: #666; }
