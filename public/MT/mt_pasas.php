@@ -751,8 +751,8 @@ require_once __DIR__ . '/../includes/header.php';
         <tr>
             <td class="nr-col">2.3</td>
             <td class="desc-col"><?= htmlspecialchars($label_23) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_2_3" data-label="2.3 aprašymas" data-text="<?= htmlspecialchars($label_23, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
-            <td class="val-col <?= empty($transformatoriai_kva) ? 'highlight' : '' ?>">
-                <?= htmlspecialchars($transformatoriai_kva ?: 'Nenurodyta') ?><?= !empty($galingumas_kva) ? ' (' . htmlspecialchars($galingumas_kva) . ' kVA)' : '' ?>
+            <td class="val-col <?= empty($transformatoriu_aprasas) ? 'highlight' : '' ?>">
+                <?= htmlspecialchars($transformatoriu_aprasas ?: 'Nenurodyta') ?><?= !empty($galingumas_kva) ? ' (' . htmlspecialchars($galingumas_kva) . ' kVA)' : '' ?>
             </td>
         </tr>
 
