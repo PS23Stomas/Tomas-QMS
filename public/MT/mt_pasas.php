@@ -293,6 +293,18 @@ require_once __DIR__ . '/../includes/header.php';
     background: #e9ecef;
     color: #333;
 }
+.edit-btn-label {
+    float: none;
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+    color: #aaa;
+    font-size: 10px;
+}
+.edit-btn-label:hover {
+    color: #0056b3;
+    background: #e3f0ff;
+}
 .saugikliu-sub {
     width: 100%;
     border-collapse: collapse;
@@ -599,9 +611,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_11 = gautiTeksta('1_1', $orig_11, $korekcijos_data);
         $klase_11 = turiKorekcija('1_1', $korekcijos_data) ? 'koreguota' : (empty($komp_11) ? 'highlight' : '');
         ?>
+        <?php $label_11 = gautiTeksta('label_1_1', '12 kV kabelių movos:', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.1</td>
-            <td class="desc-col">12 kV kabelių movos:</td>
+            <td class="desc-col"><?= htmlspecialchars($label_11) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_1" data-label="1.1 aprašymas" data-text="<?= htmlspecialchars($label_11, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_11 ?>">
                 <?= nl2br(htmlspecialchars($text_11 ?: 'Duomenys nesuvesti')) ?>
                 <button type="button" class="edit-btn no-print" data-field="1_1" data-label="1.1 - 12 kV kabelių movos" data-text="<?= htmlspecialchars($text_11, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -613,9 +626,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_12 = gautiTeksta('1_2', $orig_12, $korekcijos_data);
         $klase_12 = turiKorekcija('1_2', $korekcijos_data) ? 'koreguota' : (empty($komp_12['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_12 = gautiTeksta('label_1_2', '12 kV viršįtampių ribotuvai (gamintojas, tipas)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.2</td>
-            <td class="desc-col">12 kV viršįtampių ribotuvai (gamintojas, tipas)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_12) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_2" data-label="1.2 aprašymas" data-text="<?= htmlspecialchars($label_12, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_12 ?>">
                 <?= htmlspecialchars($text_12 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="1_2" data-label="1.2 - Viršįtampių ribotuvai" data-text="<?= htmlspecialchars($text_12, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -627,9 +641,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_13 = gautiTeksta('1_3', $orig_13, $korekcijos_data);
         $klase_13 = turiKorekcija('1_3', $korekcijos_data) ? 'koreguota' : (empty($komp_13['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_13 = gautiTeksta('label_1_3', '12 kV skirstykla (gamintojas, modelis, narvelių konfigūracija)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.3</td>
-            <td class="desc-col">12 kV skirstykla (gamintojas, modelis, narvelių konfigūracija)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_13) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_3" data-label="1.3 aprašymas" data-text="<?= htmlspecialchars($label_13, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_13 ?>">
                 <?= htmlspecialchars($text_13 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="1_3" data-label="1.3 - Skirstykla" data-text="<?= htmlspecialchars($text_13, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -641,18 +656,20 @@ require_once __DIR__ . '/../includes/header.php';
         $text_14 = gautiTeksta('1_4', $orig_14, $korekcijos_data);
         $klase_14 = turiKorekcija('1_4', $korekcijos_data) ? 'koreguota' : (empty($komp_14['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_14 = gautiTeksta('label_1_4', 'Galios transformatoriaus narvelio Ts komplektuojami lydymieji įdėklai (tipas, vardinė srovė, gamintojas)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.4</td>
-            <td class="desc-col">Galios transformatoriaus narvelio Ts komplektuojami lydymieji įdėklai (tipas, vardinė srovė, gamintojas)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_14) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_4" data-label="1.4 aprašymas" data-text="<?= htmlspecialchars($label_14, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_14 ?>">
                 <?= htmlspecialchars($text_14 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="1_4" data-label="1.4 - Lydymieji įdėklai" data-text="<?= htmlspecialchars($text_14, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
             </td>
         </tr>
 
+        <?php $label_15 = gautiTeksta('label_1_5', '12 kV skirstyklos linijiniai narveliai gamintojo variklinėmis pavaromis su valdymo iš TSPĮ galimybe', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.5</td>
-            <td class="desc-col">12 kV skirstyklos linijiniai narveliai gamintojo variklinėmis pavaromis su valdymo iš TSPĮ galimybe</td>
+            <td class="desc-col"><?= htmlspecialchars($label_15) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_5" data-label="1.5 aprašymas" data-text="<?= htmlspecialchars($label_15, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col">Taip</td>
         </tr>
 
@@ -661,9 +678,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_16 = gautiTeksta('1_6', $orig_16, $korekcijos_data);
         $klase_16 = turiKorekcija('1_6', $korekcijos_data) ? 'koreguota' : (empty($komp_15['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_16 = gautiTeksta('label_1_6', 'Trumpo jungimo indikatorius', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.6</td>
-            <td class="desc-col">Trumpo jungimo indikatorius</td>
+            <td class="desc-col"><?= htmlspecialchars($label_16) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_6" data-label="1.6 aprašymas" data-text="<?= htmlspecialchars($label_16, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_16 ?>">
                 <?= htmlspecialchars($text_16 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="1_6" data-label="1.6 - Trumpo jungimo indikatorius" data-text="<?= htmlspecialchars($text_16, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -675,9 +693,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_17 = gautiTeksta('1_7', $orig_17, $korekcijos_data);
         $klase_17 = turiKorekcija('1_7', $korekcijos_data) ? 'koreguota' : (empty($komp_16['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_17 = gautiTeksta('label_1_7', 'Įtampos indikatorius', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.7</td>
-            <td class="desc-col">Įtampos indikatorius</td>
+            <td class="desc-col"><?= htmlspecialchars($label_17) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_7" data-label="1.7 aprašymas" data-text="<?= htmlspecialchars($label_17, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_17 ?>">
                 <?= htmlspecialchars($text_17 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="1_7" data-label="1.7 - Įtampos indikatorius" data-text="<?= htmlspecialchars($text_17, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -689,9 +708,10 @@ require_once __DIR__ . '/../includes/header.php';
         $kabelio_tekstas = ($kiek_liniju > 0) ? $kiek_liniju . ' kompl. 3x240 mm2 kabeliui' : 'Duomenys nesuvesti';
         $klase_18 = ($kiek_liniju == 0) ? 'highlight' : '';
         ?>
+        <?php $label_18 = gautiTeksta('label_1_8', 'Kabelių įvedimo per pamatą angų sandarinimo medžiagos', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">1.8</td>
-            <td class="desc-col">Kabelių įvedimo per pamatą angų sandarinimo medžiagos</td>
+            <td class="desc-col"><?= htmlspecialchars($label_18) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_1_8" data-label="1.8 aprašymas" data-text="<?= htmlspecialchars($label_18, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_18 ?>"><?= htmlspecialchars($kabelio_tekstas) ?></td>
         </tr>
 
@@ -702,9 +722,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_21 = gautiTeksta('2_1', $orig_21, $korekcijos_data);
         $klase_21 = turiKorekcija('2_1', $korekcijos_data) ? 'koreguota' : (empty($komp_21['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_21 = gautiTeksta('label_2_1', '0,4 kV jungtys (galios transformatorius-0,4 kV skirstykla)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">2.1</td>
-            <td class="desc-col">0,4 kV jungtys (galios transformatorius-0,4 kV skirstykla)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_21) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_2_1" data-label="2.1 aprašymas" data-text="<?= htmlspecialchars($label_21, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_21 ?>">
                 <?= htmlspecialchars($text_21 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="2_1" data-label="2.1 - 0,4 kV jungtys" data-text="<?= htmlspecialchars($text_21, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -716,18 +737,20 @@ require_once __DIR__ . '/../includes/header.php';
         $text_22 = gautiTeksta('2_2', $orig_22, $korekcijos_data);
         $klase_22 = turiKorekcija('2_2', $korekcijos_data) ? 'koreguota' : (empty($komp_22['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_22 = gautiTeksta('label_2_2', '10 kV jungtys (galios transformatorius-12 kV skirst. įrenginys)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">2.2</td>
-            <td class="desc-col">10 kV jungtys (galios transformatorius-12 kV skirst. įrenginys)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_22) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_2_2" data-label="2.2 aprašymas" data-text="<?= htmlspecialchars($label_22, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_22 ?>">
                 <?= htmlspecialchars($text_22 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="2_2" data-label="2.2 - 10 kV jungtys" data-text="<?= htmlspecialchars($text_22, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
             </td>
         </tr>
 
+        <?php $label_23 = gautiTeksta('label_2_3', 'Transformatorių skaičius ir maksimali transformatorių galia kVA', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">2.3</td>
-            <td class="desc-col">Transformatorių skaičius ir maksimali transformatorių galia kVA</td>
+            <td class="desc-col"><?= htmlspecialchars($label_23) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_2_3" data-label="2.3 aprašymas" data-text="<?= htmlspecialchars($label_23, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= empty($transformatoriai_kva) ? 'highlight' : '' ?>">
                 <?= htmlspecialchars($transformatoriai_kva ?: 'Nenurodyta') ?><?= !empty($galingumas_kva) ? ' (' . htmlspecialchars($galingumas_kva) . ' kVA)' : '' ?>
             </td>
@@ -740,9 +763,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_31 = gautiTeksta('3_1', $orig_31, $korekcijos_data);
         $klase_31 = turiKorekcija('3_1', $korekcijos_data) ? 'koreguota' : (empty($komp_31['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_31 = gautiTeksta('label_3_1', 'Įvadinis saugiklių-kirtiklių blokas TKS, (tipas, vnt., gamintojas)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.1</td>
-            <td class="desc-col">Įvadinis saugiklių-kirtiklių blokas TKS, (tipas, vnt., gamintojas)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_31) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_1" data-label="3.1 aprašymas" data-text="<?= htmlspecialchars($label_31, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_31 ?>">
                 <?= htmlspecialchars($text_31 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_1" data-label="3.1 - TKS blokas" data-text="<?= htmlspecialchars($text_31, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -754,9 +778,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_32 = gautiTeksta('3_2', $orig_32, $korekcijos_data);
         $klase_32 = turiKorekcija('3_2', $korekcijos_data) ? 'koreguota' : (empty($komp_32['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_32 = gautiTeksta('label_3_2', 'Įvadinis saugiklio lydusis įdėklas (gamintojas, tipas)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.2</td>
-            <td class="desc-col">Įvadinis saugiklio lydusis įdėklas (gamintojas, tipas)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_32) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_2" data-label="3.2 aprašymas" data-text="<?= htmlspecialchars($label_32, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_32 ?>">
                 <?= htmlspecialchars($text_32 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_2" data-label="3.2 - Įvadinis lydusis" data-text="<?= htmlspecialchars($text_32, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -768,9 +793,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_33 = gautiTeksta('3_3', $orig_33, $korekcijos_data);
         $klase_33 = turiKorekcija('3_3', $korekcijos_data) ? 'koreguota' : (empty($komp_33['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_33 = gautiTeksta('label_3_3', 'Linijinis saugiklių-kirtiklių blokas (gamintojas, tipas, vnt.)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.3</td>
-            <td class="desc-col">Linijinis saugiklių-kirtiklių blokas (gamintojas, tipas, vnt.)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_33) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_3" data-label="3.3 aprašymas" data-text="<?= htmlspecialchars($label_33, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_33 ?>">
                 <?= htmlspecialchars($text_33 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_3" data-label="3.3 - Linijinis blokas" data-text="<?= htmlspecialchars($text_33, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -782,9 +808,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_34 = gautiTeksta('3_4', $orig_34, $korekcijos_data);
         $klase_34 = turiKorekcija('3_4', $korekcijos_data) ? 'koreguota' : (empty($komp_34['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_34 = gautiTeksta('label_3_4', '0,4 kV saugiklių lydieji įdėklai', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.4</td>
-            <td class="desc-col">0,4 kV saugiklių lydieji įdėklai</td>
+            <td class="desc-col"><?= htmlspecialchars($label_34) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_4" data-label="3.4 aprašymas" data-text="<?= htmlspecialchars($label_34, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_34 ?>">
                 <?= htmlspecialchars($text_34 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_4" data-label="3.4 - Lydieji įdėklai" data-text="<?= htmlspecialchars($text_34, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -804,9 +831,10 @@ require_once __DIR__ . '/../includes/header.php';
             $label_35 = 'Š1-0,4 (ir Š3-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:';
         }
         ?>
+        <?php $label_35 = gautiTeksta('label_3_5', $label_35, $korekcijos_data); ?>
         <tr>
             <td class="nr-col" style="vertical-align: top;">3.5</td>
-            <td class="desc-col" style="vertical-align: top;"><?= htmlspecialchars($label_35) ?></td>
+            <td class="desc-col" style="vertical-align: top;"><?= htmlspecialchars($label_35) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_5" data-label="3.5 aprašymas" data-text="<?= htmlspecialchars($label_35, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col" style="padding: 0; position: relative;">
                 <table class="saugikliu-sub" id="saugikliai-35-table">
                     <tr class="sub-header">
@@ -844,9 +872,10 @@ require_once __DIR__ . '/../includes/header.php';
         }
         $poz_36 = array_merge(range(202, 206), range(401, 404));
         ?>
+        <?php $label_36 = gautiTeksta('label_3_6', 'Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:', $korekcijos_data); ?>
         <tr>
             <td class="nr-col" style="vertical-align: top;">3.6</td>
-            <td class="desc-col" style="vertical-align: top;">Š2-0,4 (ir Š4-0,4 pagal schemą) sekcijos komplektuojamų saugiklių-lydžiųjų įdėklų gabaritas, nominalas:</td>
+            <td class="desc-col" style="vertical-align: top;"><?= htmlspecialchars($label_36) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_6" data-label="3.6 aprašymas" data-text="<?= htmlspecialchars($label_36, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col" style="padding: 0; position: relative;">
                 <table class="saugikliu-sub" id="saugikliai-36-table">
                     <tr class="sub-header">
@@ -882,9 +911,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_39 = gautiTeksta('3_9', $orig_39, $korekcijos_data);
         $klase_39 = turiKorekcija('3_9', $korekcijos_data) ? 'koreguota' : (empty($komp_39['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_39 = gautiTeksta('label_3_9', '0,4 kV sekcinis komutacinis aparatas (gamintojas, tipas, vardinė srovė, gr. Nr.)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.9</td>
-            <td class="desc-col">0,4 kV sekcinis komutacinis aparatas (gamintojas, tipas, vardinė srovė, gr. Nr.)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_39) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_9" data-label="3.9 aprašymas" data-text="<?= htmlspecialchars($label_39, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_39 ?>">
                 <?= htmlspecialchars($text_39 ?: 'Nėra, -') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_9" data-label="3.9 - Sekcinis aparatas" data-text="<?= htmlspecialchars($text_39, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -896,9 +926,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_310 = gautiTeksta('3_10', $orig_310, $korekcijos_data);
         $klase_310 = turiKorekcija('3_10', $korekcijos_data) ? 'koreguota' : (empty($komp_310['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_310 = gautiTeksta('label_3_10', 'Sekcinio saugiklio įdėklas (gamintojas, tipas)', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.10</td>
-            <td class="desc-col">Sekcinio saugiklio įdėklas (gamintojas, tipas)</td>
+            <td class="desc-col"><?= htmlspecialchars($label_310) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_10" data-label="3.10 aprašymas" data-text="<?= htmlspecialchars($label_310, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_310 ?>">
                 <?= htmlspecialchars($text_310 ?: 'Nėra') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_10" data-label="3.10 - Sekcinio saugiklio įdėklas" data-text="<?= htmlspecialchars($text_310, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -910,9 +941,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_311 = gautiTeksta('3_11', $orig_311, $korekcijos_data);
         $klase_311 = turiKorekcija('3_11', $korekcijos_data) ? 'koreguota' : (empty($komp_311['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_311 = gautiTeksta('label_3_11', 'Komercinė apskaita', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.11</td>
-            <td class="desc-col">Komercinė apskaita</td>
+            <td class="desc-col"><?= htmlspecialchars($label_311) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_11" data-label="3.11 aprašymas" data-text="<?= htmlspecialchars($label_311, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_311 ?>">
                 <?= htmlspecialchars($text_311 ?: 'Nėra') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_11" data-label="3.11 - Komercinė apskaita" data-text="<?= htmlspecialchars($text_311, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
@@ -924,9 +956,10 @@ require_once __DIR__ . '/../includes/header.php';
         $text_312 = gautiTeksta('3_12', $orig_312, $korekcijos_data);
         $klase_312 = turiKorekcija('3_12', $korekcijos_data) ? 'koreguota' : (empty($komp_312['gamintojo_kodas']) ? 'highlight' : '');
         ?>
+        <?php $label_312 = gautiTeksta('label_3_12', 'Kontrolinė apskaita', $korekcijos_data); ?>
         <tr>
             <td class="nr-col">3.12</td>
-            <td class="desc-col">Kontrolinė apskaita</td>
+            <td class="desc-col"><?= htmlspecialchars($label_312) ?><button type="button" class="edit-btn edit-btn-label no-print" data-field="label_3_12" data-label="3.12 aprašymas" data-text="<?= htmlspecialchars($label_312, ENT_QUOTES) ?>" onclick="openEditModal(this)">Red.</button></td>
             <td class="val-col <?= $klase_312 ?>">
                 <?= htmlspecialchars($text_312 ?: 'Duomenys nesuvesti') ?>
                 <button type="button" class="edit-btn no-print" data-field="3_12" data-label="3.12 - Kontrolinė apskaita" data-text="<?= htmlspecialchars($text_312, ENT_QUOTES, 'UTF-8') ?>" onclick="openEditModal(this)">Red.</button>
