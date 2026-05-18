@@ -260,7 +260,7 @@ body {
     padding: 4px 5px;
 }
 .nr-col { width: 35px; text-align: left; font-weight: 400; white-space: nowrap; }
-.desc-col { width: 52%; }
+.desc-col { }
 .saugikliu-sub {
     width: 100%;
     border-collapse: collapse;
@@ -308,7 +308,7 @@ body {
 </div>
 
 <table class="paso-main-table">
-    <colgroup><col style="width:35px;"><col style="width:52%;"><col></colgroup>
+    <colgroup><col style="width:35px;"><col style="width:42%;"><col></colgroup>
     <tr><td colspan="3" class="section-header">1. 12 kV įtampos skyrius:</td></tr>
     <tr><td class="nr-col">1.1</td><td class="desc-col">12 kV kabelių movos:</td><td>' . nl2br(htmlspecialchars($text_11 ?: 'Duomenys nesuvesti')) . '</td></tr>
     <tr><td class="nr-col">1.2</td><td class="desc-col">12 kV viršįtampių ribotuvai (gamintojas, tipas)</td><td>' . htmlspecialchars($text_12 ?: 'Duomenys nesuvesti') . '</td></tr>
