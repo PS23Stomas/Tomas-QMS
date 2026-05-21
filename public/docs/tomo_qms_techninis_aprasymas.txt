@@ -225,6 +225,17 @@ Lentelė: pretenzijos_nuotraukos
 - tipas           VARCHAR — MIME tipas
 - turinys         BYTEA — nuotraukos binarinis turinys
 
+Lentelė: pretenzijos_failai
+- id              SERIAL PRIMARY KEY
+- pretenzija_id   INTEGER → FK pretenzijos(id) ON DELETE CASCADE
+- pavadinimas     VARCHAR(500) NOT NULL — failo pavadinimas
+- tipas           VARCHAR(255) — MIME tipas (pvz. application/pdf, message/rfc822)
+- turinys         BYTEA NOT NULL — failo binarinis turinys
+- ikelta          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+Pastaba: skirta daugybiniams priedams (PDF, .msg) prie pretenzijų —
+atskira nuo pretenzijos_nuotraukos (kuri saugo tik paveikslėlius).
+Indeksas: idx_pretenzijos_failai_pid ON pretenzijos_failai(pretenzija_id)
+
 Lentelė: pretenzijos_email_history
 - id                  SERIAL PRIMARY KEY
 - pretenzija_id       INTEGER → FK pretenzijos(id) ON DELETE CASCADE
@@ -315,47 +326,87 @@ login.php                      — prisijungimo puslapis
 logout.php                     — atsijungimas (sesija + remember token valymas)
 moduliai.php                   — gamybos modulių pasirinkimas
 uzsakymai.php                  — užsakymų valdymas (CRUD)
+gaminiai.php                   — gaminių valdymas (CRUD)
+uzsakovai.php                  — užsakovų (klientų) valdymas (CRUD)
+objektai.php                   — objektų (statybos aikštelių) valdymas (CRUD)
 pretenzijos.php                — pretenzijų valdymas (CRUD + UI)
 prietaisai.php                 — matavimo prietaisų valdymas
 profilis.php                   — vartotojo profilio nustatymai
 vartotojai.php                 — vartotojų administravimas (tik admin)
 imones_nustatymai.php          — įmonės nustatymų valdymas (tik admin)
 index.php                      — rodiklių skydelis (dashboard)
+ketvirciu_palyginimas.php      — ketvirčių palyginimo puslapis (atskiras, ne dashboard)
 sinchronizuoti.php             — sinchronizacijos paleidimas
 sync_log.php                   — sinchronizacijos žurnalas
 sablonas_funkciniai.php        — funkcinių bandymų šablonų valdymas
+issaugoti_sablona.php          — šablono eilutės išsaugojimo AJAX tvarkyklė
 slaptazodis_atstatymas.php     — slaptažodžio atstatymas (el. paštu)
 slaptazodis_keitimas.php       — slaptažodžio keitimas
 db_diagrama.php                — DB schemos vizualizacija
 router.php                     — URL maršrutizatorius
 
 4.3 MT modulio failai
-mt_funkciniai_bandymai.php     — funkcinių bandymų pildymo forma
-MT/mt_dielektriniai.php        — dielektrinių bandymų protokolas
-MT/mt_sumontuoti_komponentai.php — sumontuotų komponentų valdymas
-MT/mt_pasas.php                — gaminio paso generavimo sąsaja
+mt_funkciniai_bandymai.php          — funkcinių bandymų pildymo forma
+gaminiu_langai_mt.php               — MT gaminio navigacijos plytelės (tiles)
+MT/mt_dielektriniai.php             — dielektrinių bandymų protokolas
+MT/mt_sumontuoti_komponentai.php    — sumontuotų komponentų valdymas
+MT/mt_pasas.php                     — gaminio paso generavimo sąsaja
+
+MT modulio AJAX/išsaugojimo tvarkyklės:
+MT/issaugoti_mt_dielektriniai.php   — dielektrinių bandymų duomenų išsaugojimas
+MT/issaugoti_mt_komponentus.php     — sumontuotų komponentų išsaugojimas
+MT/issaugoti_mt_pasa_teksta.php     — paso teksto korekcijų AJAX išsaugojimas
+MT/issaugoti_mt_paso_saugiklius.php — saugiklių įdėklų išsaugojimas iš paso puslapio
+MT/issaugoti_mt_saugiklius.php      — saugiklių įdėklų išsaugojimas iš dielektrinių formos
+MT/issaugoti_prietaisus.php         — bandymų matavimo prietaisų išsaugojimas
+MT/issaugoti_protokolo_nr.php       — gaminio protokolo numerio išsaugojimas
+MT/istrinti_dielektriniu_lentele.php — dielektrinių bandymų rinkinio trynimas
+
+MT modulio saugiklių dalinio vaizdo failai:
+MT/mt_saugikliai_blokas.php         — saugiklių įdėklų valdymo blokas
+MT/mt_saugikliai_3_5_vienas.php     — sekcija 3.5, vieno transformatoriaus konfigūracija
+MT/mt_saugikliai_3_5_dviejosek.php  — sekcija 3.5, dviejų sekcijų konfigūracija
+MT/mt_saugikliai_3_6_dviejosek.php  — sekcija 3.6, dviejų transformatorių konfigūracija
 
 4.4 PDF generavimo failai
-MT/generuoti_mt_paso_pdf.php       — gaminio paso PDF
-MT/generuoti_mt_dielektriniu_pdf.php — dielektrinių bandymų PDF
-MT/generuoti_mt_funkciniu_pdf.php  — funkcinių bandymų PDF
-kokybe_30d_pdf.php                 — 30 dienų kokybės ataskaita PDF
-kokybe_isplestine_pdf.php          — išplėstinė kokybės ataskaita PDF
-generuoti_ketvirciu_pdf.php        — ketvirčių palyginimo PDF
-pretenzijos_pdf.php                — pretenzijos PDF
+MT/generuoti_mt_paso_pdf.php         — gaminio paso PDF generavimas (mPDF)
+MT/generuoti_mt_dielektriniu_pdf.php — dielektrinių bandymų PDF generavimas (mPDF)
+MT/generuoti_mt_funkciniu_pdf.php    — funkcinių bandymų PDF generavimas (mPDF)
+MT/mt_paso_pdf.php                   — paso PDF peržiūra/atsisiuntimas iš DB
+MT/mt_dielektriniu_pdf.php           — dielektrinių bandymų PDF peržiūra/atsisiuntimas iš DB
+MT/mt_funkciniu_pdf.php              — funkcinių bandymų PDF peržiūra/atsisiuntimas iš DB
+kokybe_30d_pdf.php                   — 30 dienų kokybės ataskaita PDF
+kokybe_isplestine_pdf.php            — išplėstinė kokybės ataskaita PDF
+generuoti_ketvirciu_pdf.php          — ketvirčių palyginimo PDF
+pretenzijos_pdf.php                  — pretenzijos PDF (PR 28/2 forma)
+pretenzijos_pdf_gen.php              — bendras PDF generavimo pagalbinis failas
+                                       (teikia generatePretenzijaPdf() funkciją,
+                                       naudojamas ir siuntimui, ir atsisiuntimui)
 
 4.5 Viešieji endpoint'ai (be autentikacijos)
 pretenzija_perziura.php        — viešas pretenzijos peržiūros puslapis
-pretenzijos_atsakymas.php      — viešas feedback puslapis
-pretenzijos_nuotrauka.php      — nuotraukos iš BYTEA grąžinimas
+pretenzijos_atsakymas.php      — viešas feedback puslapis (gavėjas atsako į pretenziją)
+pretenzijos_nuotrauka.php      — pretenzijos nuotraukos iš BYTEA grąžinimas
 pretenzija_defekto_pdf.php     — defekto PDF iš BYTEA grąžinimas
+defekto_nuotrauka.php          — funkcinių bandymų defekto nuotraukos grąžinimas
+                                 (su sesija, GET: gaminio_id + eil_nr, palaiko ?thumb)
 
 4.6 AJAX endpoint'ai
-pretenzijos_siusti.php         — pretenzijos el. laiško siuntimas (JSON)
-siusti_defekta.php             — defekto pranešimo siuntimas (JSON)
-issaugoti_mt_bandyma.php       — funkcinių bandymų išsaugojimas
-api/delete_defekto_nuotrauka.php — defekto nuotraukos trynimas
-api/quick_add.php              — greitas duomenų pridėjimas
+pretenzijos_siusti.php           — pretenzijos el. laiško siuntimas (JSON)
+siusti_defekta.php               — defekto pranešimo siuntimas (JSON)
+issaugoti_mt_bandyma.php         — funkcinių bandymų eilutės išsaugojimas (JSON)
+sesijos_atnaujinimas.php         — sesijos keepalive: atnaujina paskutine_veikla
+                                   ir aktyvus_vartotojai, grąžina {ok:true} arba
+                                   HTTP 401 {ok:false, expired:true} jei sesija pasibaigė
+pretenzijos_failai_api.php       — daugybinių priedų valdymas (JSON):
+                                   GET ?veiksmas=sarasas — grąžina failų sąrašą
+                                   POST ?veiksmas=trinti — ištrina failą pagal failo_id
+pretenzijos_failas_atsisiusti.php — pretenzijos priedo atsisiuntimas pagal ID
+api/delete_defekto_nuotrauka.php — defekto nuotraukos trynimas (POST, JSON)
+api/quick_add.php                — greitas užsakovo arba objekto pridėjimas (POST, JSON)
+api/vartotojo_parasas.php        — vartotojo parašo paveikslėlio grąžinimas
+                                   (GET: id, grąžina image/jpeg arba image/png,
+                                   talpykla 1 val., naudojama PDF dokumentuose)
 
 4.7 Statistikos failai
 mt_statistika.php              — MT gedimų statistika
@@ -375,7 +426,7 @@ MTPasasKomponentai.php         — paso komponentų atvaizdavimas
 4.9 Bendri failai
 includes/header.php            — šoninė navigacija ir antraštė
 includes/config.php            — konfigūracija ir requireLogin()
-css/style.css                  — pagrindinis stiliaus failas (2300+ eilučių)
+css/style.css                  — pagrindinis stiliaus failas (2570+ eilučių, 48 sekcijos)
 js/app.js                      — kliento JavaScript
 
 5. AUTENTIKACIJA IR SAUGUMAS
