@@ -1,4 +1,29 @@
 <?php
+/**
+ * API: Greitasis užsakovo arba objekto pridėjimas
+ *
+ * Šis API galinis taškas leidžia darbuotojui sukurti naują užsakovą (klientą)
+ * arba objektą (statybos vietą) tiesiai iš užsakymo kūrimo formos,
+ * nepalieka puslapio ir nereikia atidaryti atskiro administravimo lango.
+ *
+ * Pavyzdys: kūriant naują užsakymą, jei reikalingo kliento sąraše nėra,
+ * vartotojas įveda jo pavadinimą ir paspaudžia "Pridėti" — šis API
+ * jį sukuria ir grąžina naują ID, kurį forma tuoj pat pasirenka.
+ *
+ * Priima: POST užklausą su JSON arba form duomenimis:
+ *   - type  — "uzsakovas" (klientas) arba "objektas" (statybos vieta)
+ *   - name  — pavadinimas (pvz. "UAB Statybų centras")
+ *
+ * Apsauga nuo dublikatų:
+ *   Prieš kuriant tikrinama ar toks įrašas jau egzistuoja (neatsižvelgiant
+ *   į didžiąsias/mažąsias raides ir tarpus). Jei egzistuoja — grąžinamas
+ *   esamo įrašo ID vietoje klaidos, kad forma galėtų jį pasirinkti.
+ *
+ * Grąžina JSON:
+ *   { "success": true, "id": 42, "name": "UAB Statybų centras" }
+ *   { "success": false, "error": "...", "existing_id": 7 }  — jei dublikatas
+ *   { "success": false, "error": "..." }                    — kitos klaidos
+ */
 require_once __DIR__ . '/../includes/config.php';
 requireLogin();
 

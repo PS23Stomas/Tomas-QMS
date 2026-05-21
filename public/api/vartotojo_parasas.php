@@ -1,4 +1,29 @@
 <?php
+/**
+ * API: Vartotojo parašo paveikslėlio gavimas
+ *
+ * Šis API galinis taškas grąžina vartotojo parašo paveikslėlį tiesiai
+ * iš duomenų bazės. Parašas saugomas kaip binariniai duomenys (BYTEA)
+ * lentelėje vartotojai, lauke "parasas".
+ *
+ * Parašas naudojamas PDF dokumentuose (funkcinių bandymų protokolas,
+ * dielektrinių bandymų protokolas, MT pasas) — po dokumentu automatiškai
+ * įterpiamas atsakingo darbuotojo parašas.
+ *
+ * Priima: GET užklausą su parametru:
+ *   - id  — vartotojo ID iš lentelės vartotojai
+ *
+ * Kaip veikia:
+ *   1. Nuskaito parašo binarynius duomenis ir jų MIME tipą iš DB
+ *   2. Nustato teisingą Content-Type antraštę (pvz. image/jpeg arba image/png)
+ *   3. Siunčia paveikslėlio duomenis tiesiai į naršyklę
+ *   4. Nustato talpyklą 1 valandai (Cache-Control: max-age=3600) —
+ *      toks pat parašas nereikia kaskart siųsti iš naujo
+ *
+ * Grąžina:
+ *   Paveikslėlio duomenis (image/jpeg arba image/png) — jei parašas rastas
+ *   HTTP 404 — jei vartotojas neturi parašo arba ID neteisingas
+ */
 require_once __DIR__ . '/../includes/config.php';
 requireLogin();
 

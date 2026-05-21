@@ -1,4 +1,25 @@
 <?php
+/**
+ * API: Defekto nuotraukos ištrynimas iš funkcinių bandymų įrašo
+ *
+ * Šis API galinis taškas ištrina defekto nuotrauką iš duomenų bazės.
+ * Defekto nuotrauka — tai darbuotojo nufotografuota gedimo vieta gaminyje
+ * (pvz. netinkamas suvirinimas, pažeista izoliacija), kuri įkeliama
+ * pildant funkcinių bandymų protokolą.
+ *
+ * Priima: POST užklausą su JSON arba form duomenimis:
+ *   - gaminio_id  — kurio gaminio bandymo eilutė
+ *   - eil_nr      — kurios eilutės nuotrauka trinama (1–21)
+ *
+ * Kaip veikia:
+ *   Nustato defekto_nuotrauka ir defekto_nuotraukos_pavadinimas laukus į NULL
+ *   lentelėje funkciniai_bandymai. Pati nuotrauka saugoma duomenų bazėje
+ *   (ne failo sistemoje), todėl NULL pakanka ją "ištrinti".
+ *
+ * Grąžina JSON:
+ *   { "success": true }                        — nuotrauka sėkmingai ištrinta
+ *   { "success": false, "error": "..." }       — klaidos atveju
+ */
 require_once __DIR__ . '/../includes/config.php';
 requireLogin();
 
