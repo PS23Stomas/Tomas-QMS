@@ -1,4 +1,30 @@
 <?php
+/**
+ * Pagrindinis kokybės rodiklių skydelis (Dashboard)
+ *
+ * Tai pagrindinis sistemos puslapis po prisijungimo. Rodo tris skirtukus (tabs):
+ *
+ *   1. „30 dienų rodikliai" (tab=30d) — paskutinių 30 dienų suvestinė:
+ *        - Patikrintų gaminių skaičius, viso neatitikimų, neatitikimų %
+ *        - Aktyvūs nepataisyti defektai
+ *        - TOP 5 dažniausios klaidos
+ *        - Savaitinė gaminių / defektų diagrama (Chart.js)
+ *
+ *   2. „Ketvirčių palyginimas" (tab=ketv) — dviejų pasirinktų ketvirčių
+ *      palyginimas šalia vienas kito (peradresuoja į ketvirciu_palyginimas.php)
+ *
+ *   3. „Darbuotojų statistika" (tab=darb) — kiekvieno darbuotojo mėnesio
+ *      veiklos rodikliai (peradresuoja į darbuotoju_statistika.php)
+ *
+ * Modulių sistema:
+ *   - Jei nėra ?grupe= parametro ir sesijoje nėra aktyvaus modulio →
+ *     nukreipiama į moduliai.php pasirinkti
+ *   - ?grupe=MT arba ?grupe=USN nustato aktyvų modulį sesijoje
+ *   - $filtro_grupe kintamasis filtruoja visas DB užklausas
+ *
+ * Duomenų bazės lentelės: funkciniai_bandymai, gaminiai, gaminio_tipai,
+ *   uzsakymai, gaminiu_rusys, vartotojai.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

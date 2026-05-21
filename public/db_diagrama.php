@@ -1,4 +1,22 @@
 <?php
+/**
+ * Duomenų bazės schemos vizualizacijos puslapis (tik admin)
+ *
+ * Generuoja interaktyvią duomenų bazės struktūros diagramą tiesiai naršyklėje.
+ * Diagrama rodo visas lenteles, jų stulpelius (tipas, NULL, numatytoji reikšmė,
+ * PK žymė) ir ryšius tarp lentelių (FOREIGN KEY nuorodos).
+ *
+ * Kaip veikia:
+ *   1. Iš PostgreSQL information_schema nuskaitomos visos lentelės
+ *   2. Kiekvienai lentelei nuskaitomi stulpeliai ir PK informacija
+ *   3. Nuskaitomos visos FK priklausomybės (kuri lentelė → kuri lentelė)
+ *   4. Duomenys perduodami į JavaScript (JSON), kuris piešia diagramą
+ *      naudodamas drag-and-drop mazgų išdėstymą
+ *
+ * Prieiga: tik vartotojai su admin role.
+ * Naudojama: kūrėjų ir administratorių reikmėms — greitai pamatyti
+ * duomenų bazės struktūrą be išorinio įrankio (pgAdmin ir pan.).
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

@@ -1,4 +1,29 @@
 <?php
+/**
+ * Įmonės nustatymų valdymo puslapis (tik admin)
+ *
+ * Leidžia administratoriui redaguoti įmonės duomenis, kurie naudojami
+ * visų PDF dokumentų antraštėse (paso, funkcinių bandymų, dielektrinių bandymų,
+ * pretenzijų PDF ir kt.) bei el. laiškuose.
+ *
+ * Valdomi laukai:
+ *   - Įmonės pavadinimas, adresas, telefonas, faksas, el. paštas, interneto svetainė
+ *   - Logotipas (paveikslėlis — saugomas BYTEA formatu imones_nustatymai lentelėje)
+ *
+ * Papildoma funkcija — per-order įmonės duomenų perrašymas:
+ *   Kiekvienam užsakymui galima nurodyti skirtingus įmonės duomenis
+ *   (pvz. filialas arba kita juridinė forma). Šie duomenys išsaugomi
+ *   uzsakymai lentelės imone_* stulpeliuose.
+ *
+ * Kaip veikia POST veiksmai:
+ *   action=update       — atnaujina pagrindinius įmonės nustatymus
+ *   action=update_logo  — įkelia naują logotipą (JPEG/PNG → BYTEA)
+ *   action=delete_logo  — ištrina logotipą (nustato NULL)
+ *   action=update_order_imone — išsaugo per-order įmonės duomenis konkrečiam užsakymui
+ *
+ * Prieiga: tik vartotojai su admin role.
+ * Duomenys nuskaitomi per getImonesNustatymai() funkciją (config.php, su talpykla).
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

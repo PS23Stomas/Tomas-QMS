@@ -1,4 +1,27 @@
 <?php
+/**
+ * 30 dienų kokybės rodiklių ataskaitos PDF generatorius
+ *
+ * Generuoja PDF ataskaitą su paskutinių 30 dienų kokybės suvestine.
+ * Ataskaita identiškai atspindi tai, ką rodo index.php „30 dienų" skirtukas,
+ * tačiau išvedama kaip PDF dokumentas (tinkama spausdinimui ar archyvui).
+ *
+ * Ataskaitos turinys:
+ *   - Patikrintų gaminių skaičius
+ *   - Viso neatitikimų (defektų) skaičius
+ *   - Neatitikimų procentas (defektai / tikrinimo taškai × 100)
+ *   - Aktyvūs nepataisyti defektai
+ *   - TOP 5 dažniausių defektų lentelė
+ *   - Savaitinė suvestinė (lentelė su gaminių ir defektų skaičiumi per savaitę)
+ *
+ * Priima GET parametrus:
+ *   - grupe — modulio filtras (pvz. 'MT', 'USN'), numatyta 'MT'
+ *
+ * PDF generavimas: mPDF biblioteka.
+ * Duomenų šaltinis: funkciniai_bandymai + gaminiai + gaminio_tipai + uzsakymai.
+ *
+ * Naudojama: index.php „30 dienų" skirtuke paspaudus „Eksportuoti PDF"
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();

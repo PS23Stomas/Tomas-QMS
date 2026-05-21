@@ -1,4 +1,22 @@
 <?php
+/**
+ * Darbuotojų mėnesinės veiklos statistikos puslapis
+ *
+ * Rodo kiekvieno darbuotojo produktyvumo rodiklius pasirinktam mėnesiui:
+ *   - Patikrintų gaminių skaičius
+ *   - Tikrintų bandymų taškų skaičius
+ *   - Rastų defektų skaičius
+ *   - Defektų procentas (defektai / taškai × 100)
+ *
+ * Filtravimas: GET parametrai ?metai=2024&menuo=6
+ * Numatytoji reikšmė: einamieji metai ir mėnuo.
+ *
+ * Duomenų šaltinis: funkciniai_bandymai + gaminiai + gaminio_tipai + uzsakymai
+ * Filtruojama tik pagal MT modulio gaminių rūšį (grupe = 'MT').
+ *
+ * Naudojama: index.php → „Darbuotojų statistika" skirtukas (tab),
+ *            taip pat pasiekiama tiesiogiai per /darbuotoju_statistika.php
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

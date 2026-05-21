@@ -1,4 +1,28 @@
 <?php
+/**
+ * Išplėstinės statistikos ataskaitos PDF generatorius
+ *
+ * Generuoja PDF ataskaitą su išsamia kokybės statistika pagal
+ * vartotojo pasirinktus filtrus. Skirtingai nuo 30 dienų ataskaitos,
+ * ši leidžia laisvai pasirinkti laikotarpį ir filtruoti pagal užsakymą.
+ *
+ * Ataskaitos turinys:
+ *   - Bendra statistika (gaminiai, bandymų taškai, defektai, defektų %)
+ *   - Defektų sąrašas su gaminio numeriu, reikalavimu ir aprašymu
+ *   - Darbuotojų veiklos rodikliai pasirinktu laikotarpiu
+ *
+ * Filtravimo GET parametrai:
+ *   - grupe           — modulio filtras (pvz. 'MT'), numatyta 'MT'
+ *   - uzsakymo_numeris — filtruoti pagal konkretų užsakymą (pvz. '16467')
+ *   - periodas        — 'visi' | '1m' | '3m' | '6m' | '1y' arba laisvas
+ *   - menuo           — konkretus mėnuo formatu 'YYYY-MM' (pvz. '2024-06')
+ *   - nuo, iki        — datos intervalas formatu 'YYYY-MM-DD'
+ *
+ * PDF generavimas: mPDF biblioteka.
+ * Duomenų šaltinis: funkciniai_bandymai + gaminiai + gaminio_tipai + uzsakymai.
+ *
+ * Naudojama: mt_statistika.php puslapyje paspaudus „Eksportuoti PDF"
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();

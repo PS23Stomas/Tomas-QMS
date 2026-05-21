@@ -1,4 +1,24 @@
 <?php
+/**
+ * Ketvirčių palyginimo ataskaitos PDF generatorius
+ *
+ * Generuoja PDF ataskaitą, lyginančią du pasirinktus ketvirčius
+ * (pvz. 2024 Q1 vs 2024 Q3). Ataskaita apima:
+ *   - Užsakymų, gaminių, bandymų taškų ir defektų skaičiai abiem ketvirčiams
+ *   - Defektų procentas ir pokytis tarp ketvirčių (▲ / ▼)
+ *   - TOP 5 dažniausių defektų lentelė kiekvienam ketvirčiui
+ *   - Geriausių darbuotojų reitingas
+ *
+ * Priima GET parametrus:
+ *   - kp_q1_metai, kp_q1_ketvirtis — pirmasis ketvirčio laikotarpis
+ *   - kp_q2_metai, kp_q2_ketvirtis — antrasis ketvirčio laikotarpis
+ *   - grupe — modulio filtras (pvz. 'MT', 'USN'), numatyta 'MT'
+ *
+ * PDF generavimas: mPDF biblioteka (vendor/autoload.php).
+ * Jei parametrai nenurodyti — rodoma klaida ir nutraukiama (die).
+ *
+ * Naudojama: ketvirciu_palyginimas.php puslapyje paspaudus „Eksportuoti PDF"
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 requireLogin();

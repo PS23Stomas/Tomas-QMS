@@ -1,4 +1,28 @@
 <?php
+/**
+ * Gamybos modulių pasirinkimo ir valdymo puslapis
+ *
+ * Šis puslapis rodo visus sistemoje esančius gamybos modulius
+ * (pvz. MT, USN, SI-04, GVX, 10kV) ir leidžia vartotojui pasirinkti,
+ * su kuriuo moduliu jis nori dirbti.
+ *
+ * Pasirinktas modulis išsaugomas sesijoje:
+ *   $_SESSION['aktyvus_modulis']     — modulio ID
+ *   $_SESSION['aktyvus_modulis_pav'] — modulio pavadinimas (pvz. 'MT')
+ *   $_SESSION['aktyvus_grupe']       — tas pats pavadinimas (naudojamas filtrams)
+ *
+ * Admin veiksmai (tik admin rolė):
+ *   action=sukurti — sukuria naują modulį (lentelė gaminiu_rusys)
+ *                    su dublikatų patikrinimu (tas pats pavadinimas neleidžiamas)
+ *   action=istrinti — ištrina modulį pagal ID
+ *                     (apsauga: negalima ištrinti jei yra susijusių užsakymų)
+ *
+ * Navigacija po pasirinkimo:
+ *   Paspaudus modulį → nukreipiama į /uzsakymai.php?grupe=MT (ar kt.),
+ *   kur rodomi tik to modulio užsakymai.
+ *
+ * Duomenų bazės lentelė: gaminiu_rusys (id, pavadinimas)
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
