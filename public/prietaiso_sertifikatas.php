@@ -1,6 +1,21 @@
 <?php
 /**
- * Prietaiso kalibravimo sertifikato PDF peržiūra/atsisiuntimas
+ * Prietaiso kalibravimo sertifikato PDF peržiūra ir atsisiuntimas
+ *
+ * Nuskaito kalibravimo sertifikato PDF failą iš duomenų bazės ir
+ * grąžina jį naršyklei peržiūrai arba atsisiuntimui.
+ * Sertifikatas saugomas prietaisai.sertifikato_pdf lauke (BYTEA).
+ *
+ * Priima GET parametrą:
+ *   - id — prietaiso ID iš prietaisai lentelės
+ *
+ * Veikimas:
+ *   Nustato Content-Type: application/pdf ir Content-Disposition: inline
+ *   (PDF atidaromas naršyklėje, ne atsiunčiamas). Failo pavadinimas
+ *   paimamas iš prietaisai.sertifikato_pdf_pavadinimas lauko.
+ *
+ * Prieiga: reikalauja prisijungimo.
+ * Naudojama: prietaisai.php puslapyje prie kiekvieno prietaiso „PDF" nuorodos.
  */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();

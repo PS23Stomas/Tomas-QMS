@@ -1,4 +1,24 @@
 <?php
+/**
+ * Funkcinių bandymų tikrinimo šablono valdymo puslapis (tik admin)
+ *
+ * Šablonas — tai sąrašas tikrinimo reikalavimų (pvz. „Varžtų priveržimas",
+ * „Izoliacijos patikrinimas"), kurie automatiškai įkeliami kiekvienam
+ * naujam gaminiui pradedant pildyti funkcinių bandymų protokolą.
+ *
+ * Puslapis leidžia:
+ *   - Peržiūrėti esamą šabloną (eilės nr. + pavadinimas)
+ *   - Redaguoti reikalavimų pavadinimus tiesiogiai lentelėje
+ *   - Pakeisti eilučių tvarką (drag-and-drop arba rankiniu būdu)
+ *   - Išsaugoti pakeitimus (POST → issaugoti_sablona.php)
+ *
+ * Modulių palaikymas:
+ *   ?grupe=MT (arba USN ir kt.) — kiekvienas modulis turi savo šabloną,
+ *   filtruojama pagal gaminiu_rusis_id stulpelį funkciniu_sablonas lentelėje.
+ *
+ * Prieiga: tik vartotojai su admin rolė.
+ * Duomenų bazės lentelė: funkciniu_sablonas (id, eil_nr, pavadinimas, gaminiu_rusis_id)
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Sesija.php';

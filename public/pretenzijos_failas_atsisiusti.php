@@ -1,4 +1,23 @@
 <?php
+/**
+ * Pretenzijos priedo (failo) atsisiuntimas
+ *
+ * Nuskaito priedą iš duomenų bazės pagal ID ir siunčia jį naršyklei
+ * kaip atsisiunčiamą failą. Priedas gali būti PDF arba .msg formato
+ * (Outlook el. laiško failas).
+ *
+ * Priima GET parametrą:
+ *   - id — priedo ID iš pretenzijos_failai lentelės
+ *
+ * Kaip veikia:
+ *   1. Nuskaito pavadinimas, tipas, turinys iš pretenzijos_failai WHERE id = ?
+ *   2. Nustato Content-Type pagal tipas lauką (pvz. application/pdf)
+ *   3. Nustato Content-Disposition: attachment — naršyklė siūlo išsaugoti
+ *   4. Siunčia binarynius duomenis (BYTEA → stream_get_contents jei resource)
+ *
+ * Prieiga: reikalauja prisijungimo (requireLogin).
+ * Naudojama: pretenzijos.php puslapyje prie priedų sąrašo „Atsisiųsti" mygtuko.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

@@ -1,4 +1,32 @@
 <?php
+/**
+ * Sinchronizacijos paleidimo AJAX tvarkyklė
+ *
+ * Inicijuoja duomenų sinchronizaciją tarp vietinės DB ir nuotolinių sistemų.
+ * Visos operacijos vykdomos per TomoQMS klasę.
+ *
+ * Palaikomi POST parametrai (vienas iš):
+ *   importas=1         — importuoja duomenis iš quality_tomas DB į vietinę DB
+ *                        (užsakymai, gaminiai, funkciniai bandymai, komponentai,
+ *                         pretenzijos su nuotraukomis ir el. pašto istorija)
+ *   masinis=1          — eksportuoja visus gaminius į TomoQMS DB
+ *   uzsakymo_id=X      — eksportuoja tik konkretaus užsakymo gaminius
+ *
+ * Importo fazės (TomoQMS::importuotiILocalDB()):
+ *   1. Užsakymai ir užsakovai / objektai iš quality_tomas
+ *   2. Gaminiai, funkciniai bandymai, komponentai
+ *   3. Pretenzijos su nuotraukomis ir el. pašto istorija
+ *   Naudoja batch užklausas (3 didelės SELECT užuot po vieną) — greičiau.
+ *
+ * Eksporto veikimas (TomoQMS::sinchronizuotiGamini()):
+ *   Kiekvienam gaminiui: DELETE esami + INSERT nauji duomenys (pilnas perrašymas)
+ *   Sinchronizuojami: funkciniai, komponentai, dielektriniai, saugikliai,
+ *   prietaisai, protokolų nr., paso tekstas, PDF failai.
+ *
+ * Grąžina JSON:
+ *   { "success": true, "pranesimai": [...] }   — sėkmės atveju
+ *   { "success": false, "message": "..." }     — klaidos atveju
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/klases/TomoQMS.php';
 requireLogin();

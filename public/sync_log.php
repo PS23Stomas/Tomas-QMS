@@ -1,4 +1,28 @@
 <?php
+/**
+ * Sinchronizacijos žurnalo peržiūros puslapis
+ *
+ * Rodo visų sinchronizacijos operacijų žurnalą — kas buvo sinchronizuota,
+ * kada, kiek įrašų ir ar sėkmingai. Žurnalas padeda diagnozuoti
+ * sinchronizacijos klaidas tarp vietinės DB ir TomoQMS sistemos.
+ *
+ * Žurnalo stulpeliai:
+ *   - data          — sinchronizacijos data ir laikas
+ *   - veiksmas      — operacijos tipas (pvz. 'importas', 'eksportas')
+ *   - lentele       — sinchronizuota lentelė (pvz. 'funkciniai_bandymai')
+ *   - uzsakymo_numeris — susijęs užsakymas (jei taikoma)
+ *   - irasu_kiekis  — kiek įrašų sinchronizuota
+ *   - statusas      — 'ok' (žalias) arba 'klaida' (raudonas)
+ *   - klaida        — klaidos pranešimas (jei statusas = 'klaida')
+ *   - vartotojas    — kas inicijavo sinchronizaciją
+ *
+ * Filtravimas: GET ?statusas=ok|klaida — rodyti tik tam tikro statuso įrašus.
+ * Puslapiavimas: 50 įrašų per puslapį (?page=N).
+ *
+ * Duomenų šaltinis: sync_log lentelė NUOTOLINĖJE TomoQMS DB
+ *   (TOMO_QMS_DATABASE_URL), ne vietinėje DB.
+ * Naudojama: sinchronizuoti.php po sinchronizacijos paspaudžiamas „Žurnalas".
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 require_once __DIR__ . '/klases/TomoQMS.php';

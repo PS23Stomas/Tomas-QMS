@@ -1,4 +1,29 @@
 <?php
+/**
+ * Defekto pranešimo el. laiško siuntimo AJAX tvarkyklė
+ *
+ * Siunčia el. laišką apie funkcinių bandymų metu rastus defektus
+ * atsakingam darbuotojui ar padaliniui. Naudoja Emailas klasę ir Resend API.
+ *
+ * Priima POST duomenis:
+ *   - gaminio_id   — gaminio ID (nuskaityti defektai iš funkciniai_bandymai)
+ *   - el_pastas    — gavėjo el. pašto adresas
+ *   - pranesimas   — papildomas pranešimo tekstas (neprivalomas)
+ *
+ * El. laiško turinys:
+ *   Lentelė su visais neatliktais / neatitinkančiais tikrinimo punktais
+ *   (isvada = 'neatitinka' arba 'nepadaryta') — reikalavimas, defekto aprašymas,
+ *   kas atliko, gaminio numeris.
+ *
+ * Po sėkmingo siuntimo išsaugoma funkciniai_bandymai.issiusta_kam laukelyje —
+ * rodoma forma kaip „Pranešta: ..." žymė.
+ *
+ * Grąžina JSON:
+ *   { "success": true, "message": "Pranešimas išsiųstas" }
+ *   { "success": false, "message": "..." }
+ *
+ * Naudojama: mt_funkciniai_bandymai.php puslapyje prie „Siųsti pranešimą" mygtuko.
+ */
 require_once __DIR__ . '/klases/Database.php';
 require_once __DIR__ . '/klases/Emailas.php';
 require_once __DIR__ . '/klases/Sesija.php';

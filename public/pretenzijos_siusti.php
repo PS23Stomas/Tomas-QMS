@@ -1,4 +1,32 @@
 <?php
+/**
+ * Pretenzijos el. laiško siuntimo AJAX tvarkyklė
+ *
+ * Siunčia pretenzijos pranešimą el. paštu pasirinktiems gavėjams.
+ * Naudoja Emailas klasę ir Resend API.
+ *
+ * Priima POST JSON arba form duomenis:
+ *   - pretenzija_id      — pretenzijos ID
+ *   - email_to           — pagrindinis gavėjas (gauna su „Pateikti atsakymą" mygtuku)
+ *   - email_cc           — CC gavėjų sąrašas (gauna be feedback mygtuko)
+ *   - subject            — el. laiško tema
+ *   - pranesimas         — laiško tekstas
+ *   - prisegti_pdf       — ar pridėti PDF priedą ('1' arba '0')
+ *
+ * Priedų logika:
+ *   Jei pretenzija turi defekto PDF → jis pridedamas kaip priedas.
+ *   Jei ne → generuojamas pretenzijos PDF per generatePretenzijaPdf()
+ *   ir pridedamas kaip priedas. Taip gavėjas visada gauna PDF dokumentą.
+ *
+ * Registravimas: kiekvienas išsiųstas laiškas įrašomas į
+ *   pretenzijos_email_history lentelę (siuntėjas, gavėjas, CC, tema, data).
+ *
+ * Grąžina JSON:
+ *   { "success": true }
+ *   { "success": false, "message": "..." }
+ *
+ * Naudojama: pretenzijos.php puslapio „Siųsti" modalinio lango forma.
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/klases/Emailas.php';
 requireLogin();

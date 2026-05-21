@@ -1,4 +1,23 @@
 <?php
+/**
+ * Pretenzijos atsakymo (feedback) puslapis (VIEŠAS)
+ *
+ * Šis puslapis leidžia pretenzijos el. laiško gavėjui pateikti atsakymą
+ * (feedback) negrįžtant į sistemą ir neprisijungiant. Gavėjas gauna
+ * el. laišką su nuoroda į šį puslapį.
+ *
+ * Identifikavimas: URL parametras ?id=X, kur X yra pretenzijos_email_history.id.
+ * Atsakymas išsaugomas pretenzijos_email_history.feedback_text lauke.
+ *
+ * Kaip veikia:
+ *   1. Nuskaitomas el. laiško istorijos įrašas pagal ?id=
+ *   2. Rodoma forma su pretenzijos trumpu aprašymu ir atsakymo lauku
+ *   3. Po POST — išsaugoma feedback_text, feedback_at, feedback_by
+ *   4. Siunčiamas el. laiškas pretenzijos kūrėjui apie gautą atsakymą
+ *
+ * Prieiga: VIEŠAS puslapis (nereikalauja prisijungimo) —
+ *   naudojamas tik iš el. laiško nuorodos.
+ */
 session_start();
 
 $database_url = getenv('DATABASE_URL');

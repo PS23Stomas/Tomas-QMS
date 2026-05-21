@@ -1,4 +1,25 @@
 <?php
+/**
+ * Pretenzijos priedų (failų) valdymo AJAX API
+ *
+ * Valdo daugybinių priedų sąrašą ir trynimą prie pretenzijos.
+ * Priedai — tai PDF arba .msg failai (pvz. el. laiškai Outlook formatu),
+ * kurie pridedami prie pretenzijos ir naudojami kaip priedai siunčiant el. laišką.
+ * Saugomi lentelėje pretenzijos_failai (BYTEA formatu).
+ *
+ * Parametrai (GET arba POST):
+ *   - pretenzija_id — privalomas, pretenzijos ID
+ *   - veiksmas      — veiksmo tipas:
+ *       'sarasas' (GET)  — grąžina priedų sąrašą (id, pavadinimas, tipas, ikelta)
+ *       'trinti'  (POST) — ištrina priedą pagal failo_id
+ *
+ * Grąžina JSON:
+ *   { "success": true, "failai": [...] }         — sąrašo atveju
+ *   { "success": true }                           — sėkmingo trynimo atveju
+ *   { "success": false, "message": "..." }        — klaidų atveju
+ *
+ * Naudojama: pretenzijos.php puslapyje (redagavimo režimas) per fetch() AJAX.
+ */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
 

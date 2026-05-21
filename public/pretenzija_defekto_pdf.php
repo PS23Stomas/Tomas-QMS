@@ -1,4 +1,24 @@
 <?php
+/**
+ * Pretenzijos defekto PDF peržiūra ir atsisiuntimas (VIEŠAS)
+ *
+ * Grąžina defekto PDF dokumentą tiesiai naršyklei iš duomenų bazės.
+ * Defekto PDF — tai prie pretenzijos pridėtas išorinis PDF failas
+ * (pvz. nuskaitytas defekto aktas, gamintojo sertifikatas ir pan.),
+ * saugomas pretenzijos lentelės laukuose:
+ *   - defekto_pdf_turinys   — BYTEA, binarinis PDF turinys
+ *   - defekto_pdf_pavadinimas — failo pavadinimas atsisiuntimui
+ *
+ * Priima GET parametrą:
+ *   - id — pretenzijos ID iš pretenzijos lentelės
+ *
+ * Veikimas:
+ *   Nuskaito PDF iš DB ir siunčia su Content-Type: application/pdf.
+ *   Inline peržiūra naršyklėje (ne atsisiuntimas) — vartotojas mato PDF.
+ *
+ * Prieiga: VIEŠAS puslapis (nereikalauja prisijungimo) —
+ *   naudojamas kaip nuoroda el. laiškuose gavėjams.
+ */
 require_once __DIR__ . '/includes/config.php';
 
 $pdo = Database::getConnection();

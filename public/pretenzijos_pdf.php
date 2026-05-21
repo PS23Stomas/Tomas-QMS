@@ -1,4 +1,26 @@
 <?php
+/**
+ * Pretenzijos PDF dokumento peržiūra naršyklėje
+ *
+ * Sugeneruoja ir iš karto parodo pretenzijos PDF dokumentą (PR 28/2 forma)
+ * tiesiai naršyklėje (inline peržiūra, ne atsisiuntimas).
+ *
+ * Priima GET parametrą:
+ *   - id — pretenzijos ID iš pretenzijos lentelės
+ *
+ * PDF generavimas:
+ *   Naudoja generatePretenzijaPdf() funkciją iš pretenzijos_pdf_gen.php,
+ *   kuri agreguoja visus reikalingus duomenis (pretenzijos info, nuotraukos,
+ *   įmonės duomenys) ir generuoja PDF per mPDF biblioteką.
+ *
+ * Grąžina:
+ *   PDF dokumentą su Content-Type: application/pdf ir Content-Disposition: inline
+ *   HTTP 400 — jei nenurodytas arba neteisingas ID
+ *   HTTP 404 — jei pretenzija nerasta
+ *
+ * Prieiga: reikalauja prisijungimo.
+ * Naudojama: pretenzijos.php puslapyje prie „PDF" mygtuko kiekvienai pretenzijai.
+ */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 

@@ -1,4 +1,27 @@
 <?php
+/**
+ * Bendras pretenzijos PDF generavimo pagalbinis failas
+ *
+ * Teikia funkciją generatePretenzijaPdf(), kurią naudoja du skirtingi
+ * failai — taip išvengiama kodo dubliavimo:
+ *   - pretenzijos_pdf.php      — tiesioginė peržiūra naršyklėje
+ *   - pretenzijos_siusti.php   — PDF generavimas el. laiško priedui
+ *
+ * Funkcija generatePretenzijaPdf(PDO $pdo, int $id, ...): ?string
+ *   Parametrai:
+ *     - $pdo    — PDO duomenų bazės prisijungimas
+ *     - $id     — pretenzijos ID
+ *     - $p      — pasirinktinai jau nuskaitytas pretenzijos masyvas
+ *                 (vengiama pakartotinės DB užklausos)
+ *     - $photos — pasirinktinai jau nuskaitytos nuotraukos
+ *   Grąžina:
+ *     - string — sugeneruoti PDF binariniai duomenys
+ *     - null   — jei pretenzija nerasta
+ *
+ * PDF forma: PR 28/2 (vidinė neatitikimo ataskaitos forma).
+ * Generavimas: mPDF biblioteka (vendor/autoload.php).
+ * Naudojamas įmonės logotipas ir duomenys iš imones_nustatymai lentelės.
+ */
 require_once __DIR__ . '/../vendor/autoload.php';
 
 function generatePretenzijaPdf(PDO $pdo, int $id, ?array $p = null, ?array $photos = null): ?string {
