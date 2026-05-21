@@ -52,6 +52,9 @@
  * 45. Breadcrumb navigacija (.breadcrumb, .breadcrumb-sep) — header.php (navigacijos kelias viršutinėje juostoje)
  * 46. Skip-to-content (.skip-to-content)                 — header.php (prieinamumo nuoroda ekrano skaitytojams)
  * 47. Formų validacijos indikatoriai (.form-hint)        — Visi puslapiai (privalomų laukų ženklinimas ir validacija)
+ * 48. Mobiliosios adaptacijos išplėtimas                 — uzsakovai.php, objektai.php, vartotojai.php,
+ *                                                          imones_nustatymai.php, sablonas_funkciniai.php,
+ *                                                          pretenzijos.php, pretenzija_perziura.php
  */
 
 /* ==========================================================================
@@ -325,6 +328,8 @@ a {
     display: flex;
     flex-direction: column;
 }
+/* Specialus atvejis: kai turinio srityje yra užsakymų kortelė (#ordersCard),
+   išjungiame turinio slinkimą — slinkimas vyksta tik pačioje lentelėje (žr. sek. 44) */
 .content-area:has(#ordersCard) {
     overflow: hidden;
 }
@@ -554,11 +559,12 @@ table tbody tr:last-child td {
 }
 
 select.form-control {
-    appearance: none;
+    appearance: none; /* Pašalina naršyklės numatytąją rodyklę (▼), kad galėtume piešti savą */
+    /* Rodyklės ikona užkoduota tiesiai CSS'e kaip SVG (data URI) — nereikia atskiro failo */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
-    padding-right: 30px;
+    padding-right: 30px; /* Vieta rodyklės ikonai, kad tekstas jos neuždengtų */
 }
 
 textarea.form-control {
@@ -1012,14 +1018,16 @@ textarea.form-control {
    Naudojama: index.php (dashboard) – dažniausių defektų reitingas
    su automatine numeracija (CSS counter)
    ========================================================================== */
+/* CSS skaitliukas automatiškai numeruoja sąrašo elementus (1., 2., 3. ...)
+   be JavaScript — counter-reset pradeda skaičiavimą, counter-increment didina */
 .top-defektai-list {
     list-style: none;
-    counter-reset: defektai;
+    counter-reset: defektai; /* Inicializuojame skaitliuką "defektai" = 0 */
     margin-top: 8px;
 }
 
 .top-defektai-list li {
-    counter-increment: defektai;
+    counter-increment: defektai; /* Kiekvienai eilutei: defektai++ */
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1034,7 +1042,7 @@ textarea.form-control {
 }
 
 .top-defektai-list li::before {
-    content: counter(defektai) ".";
+    content: counter(defektai) "."; /* Rodo "1.", "2.", "3." prieš kiekvieną elementą */
     font-weight: 600;
     color: var(--text-secondary);
     min-width: 20px;
@@ -1762,6 +1770,9 @@ textarea.form-control {
     }
 
     #ordersTable tbody tr td::before {
+        /* Mobiliems: automatiškai rodo stulpelio antraštę prieš reikšmę.
+           Pvz.: td su data-label="Užsakovas" rodo "UŽSAKOVAS  Elga UAB"
+           Antraštė paimama tiesiai iš HTML atributo — nereikia dubliuoti teksto CSS'e */
         content: attr(data-label);
         font-weight: 600;
         color: var(--text-secondary);
@@ -2388,9 +2399,13 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   MOBILIOSIOS ADAPTACIJOS IŠPLĖTIMAS
-   Apima: uzsakovai, objektai, vartotojai, imones_nustatymai,
-          sablonas_funkciniai, pretenzijos modalai, pretenzija_perziura
+   48. MOBILIOSIOS ADAPTACIJOS IŠPLĖTIMAS
+   Naudojama: uzsakovai.php, objektai.php, vartotojai.php,
+              imones_nustatymai.php, sablonas_funkciniai.php,
+              pretenzijos.php, pretenzija_perziura.php
+   Apima: bendras kortelių lentelių stiliai mažiems ekranams (.generic-card-table),
+          vartotojų lentelių mobiliosios kortelės, pretenzijų modalų tinkleliai,
+          šablono ir įmonės nustatymų puslapių mobilusis pritaikymas.
    ========================================================================== */
 
 /* --- Bendras kortelių lentelės stilius mažiems ekranams (uzsakovai, objektai) --- */
