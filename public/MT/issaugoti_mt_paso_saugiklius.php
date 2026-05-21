@@ -1,13 +1,18 @@
 <?php
 /**
- * MT paso saugiklių įdėklų AJAX išsaugojimas
+ * Paso saugiklių įdėklų duomenų AJAX išsaugojimas
  *
- * AJAX galinis taškas, skirtas saugiklių įdėklų duomenų išsaugojimui
- * tiesiai iš paso puslapio (mt_pasas.php).
- * Naudoja tą pačią logiką kaip issaugoti_mt_saugiklius.php:
- *   1. Ištrina esamus įrašus pagal gaminio_id ir sekciją
- *   2. Įterpia naujus iš gautų duomenų
- * Grąžina JSON atsakymą.
+ * Šis failas priima saugiklių įdėklų duomenis iš MT paso puslapio
+ * ir juos išsaugo duomenų bazėje be viso puslapio perkrovimo (AJAX).
+ *
+ * Saugikliai — tai elektros grandinės apsaugos elementai (lyginamieji
+ * įdėklai). Kiekvienai pozicijai nurodomas gabaritas (dydis) ir nominalas
+ * (srovės riba, pvz. "25A").
+ *
+ * Veikimo principas: pirma ištrinami visi seni tos sekcijos duomenys,
+ * tada įrašomi nauji — taip užtikrinama, kad nebebus senų likučių.
+ *
+ * Grąžina JSON: {"success": true} arba {"success": false, "message": "..."}
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

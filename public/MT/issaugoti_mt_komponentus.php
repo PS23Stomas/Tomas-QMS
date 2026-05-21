@@ -1,11 +1,19 @@
 <?php
 /**
- * MT komponentų išsaugojimo tvarkyklė - vienos eilutės ir masinis išsaugojimas
+ * Sumontuotų komponentų išsaugojimo tvarkyklė
  *
- * Apdoroja komponentų formos duomenis iš mt_sumontuoti_komponentai.php.
- * Palaiko du režimus:
- *   1. Vienos eilutės išsaugojimas (kai paspaustas konkretus eilutės mygtukas)
- *   2. Masinis visų eilučių išsaugojimas (trynimas + pakartotinis įrašymas su transakcija)
+ * Šis failas priima komponentų lentelės duomenis ir juos išsaugo duomenų bazėje.
+ * Komponentai — tai visos detalės, sumontuotos gaminyje (pvz. transformatorius,
+ * kirtikliai, izoliatoriai ir kt.). Kiekvienam komponentui saugomas:
+ * gamintojo kodas, kiekis, aprašymas ir gamintojas.
+ *
+ * Palaiko DU išsaugojimo būdus:
+ * 1. Vienos eilutės išsaugojimas — kai vartotojas paspaudžia konkretaus
+ *    komponento "Išsaugoti" mygtuką (greitesnė operacija)
+ * 2. Masinis išsaugojimas — kai vartotojas paspaudžia "Išsaugoti viską"
+ *    (ištrina visus esamus ir įrašo iš naujo per transakcija)
+ *
+ * Po išsaugojimo nukreipia atgal į komponentų puslapį.
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

@@ -1,4 +1,21 @@
 <?php
+/**
+ * Funkcinių bandymų protokolo PDF generavimas ir išsaugojimas
+ *
+ * Šis failas atsakingas už funkcinių bandymų protokolo PDF dokumento sukūrimą.
+ * Funkciniai bandymai — tai 21 gamybos žingsnių patikros sąrašas, kuriame
+ * darbuotojai pažymi kiekvieną žingsnį kaip "Tinka" arba "Netinka" ir
+ * aprašo rastus defektus.
+ *
+ * Kaip veikia:
+ * 1. Gauna gaminio ID iš formos arba URL
+ * 2. Nuskaito visus funkcinių bandymų įrašus iš duomenų bazės
+ * 3. Sugeneruoja PDF dokumentą su visais rezultatais naudodamas mPDF
+ * 4. Išsaugo PDF į duomenų bazę (gaminiai lentelės mt_funkciniu_pdf laukas)
+ * 5. Grąžina PDF naršyklei peržiūrai arba atsisiuntimui
+ *
+ * Jei gaminio ID nenurodytas — nukreipia į užsakymų sąrašą.
+ */
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../klases/TomoQMS.php';

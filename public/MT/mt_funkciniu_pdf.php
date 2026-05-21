@@ -1,4 +1,17 @@
 <?php
+/**
+ * Funkcinių bandymų protokolo PDF peržiūra ir atsisiuntimas
+ *
+ * Šis failas ištraukia anksčiau sugeneruotą funkcinių bandymų protokolo
+ * PDF dokumentą iš duomenų bazės ir grąžina jį naršyklei.
+ *
+ * Veikimo būdai:
+ * - Be "atsisiusti" parametro — PDF atidarytas naršyklėje (inline peržiūra)
+ * - Su "?atsisiusti" parametru — PDF atsiunčiamas kaip failas į kompiuterį
+ *
+ * Jei PDF dar nebuvo sugeneruotas (nėra duomenų bazėje) — grąžina 404 klaidą.
+ * Jei gaminio ID nenurodytas — grąžina 400 klaidą.
+ */
 require_once __DIR__ . '/../includes/config.php';
 
 requireLogin();

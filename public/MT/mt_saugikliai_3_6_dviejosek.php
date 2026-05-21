@@ -1,4 +1,17 @@
 <?php
+/**
+ * Saugiklių įdėklų sekcija 3.6 — dviejų transformatorių konfigūracija (S2 ir S4 sekcijos)
+ *
+ * Šis failas įtraukiamas iš mt_saugikliai_blokas.php, kai gaminyje yra
+ * DU transformatoriai (pvz. "MT 8x10-2x250(630)").
+ *
+ * Sekcija 3.6 apima S2-0,4 ir S4-0,4 saugiklių sekcijas su pozicijomis:
+ * - S2: pozicijos 201–206 (6 pozicijos)
+ * - S4: pozicijos 401–404 (4 pozicijos)
+ *
+ * Sugeneruoja HTML lentelės eilutę su visų pozicijų įvesties laukais.
+ * Duomenys išsaugomi per issaugoti_mt_saugiklius.php.
+ */
 $sekcija_36 = '3.6';
 $stmt_36 = $conn->prepare("SELECT * FROM saugikliu_ideklai WHERE gaminio_id = :gaminio_id AND sekcija = :sekcija ORDER BY pozicijos_numeris ASC");
 $stmt_36->execute([':gaminio_id' => $gaminio_id, ':sekcija' => $sekcija_36]);

@@ -1,6 +1,20 @@
 <?php
 /**
- * MT gaminio paso generavimo puslapis - komponentų susiejimas, teksto korekcijos, spausdinimas
+ * MT gaminio paso peržiūros ir generavimo puslapis
+ *
+ * MT pasas — tai oficialus techninis dokumentas, kurį gamintojas pateikia
+ * klientui kartu su gaminiu (transformatorine). Jame aprašyti visi sumontuoti
+ * komponentai, bandymų rezultatai ir techniniai parametrai.
+ *
+ * Šiame puslapyje vartotojas gali:
+ * - Peržiūrėti paso turinį (lietuviškai arba angliškai)
+ * - Redaguoti paso tekstą tiesiai ekrane (teksto korekcijos)
+ * - Suvesti saugiklių įdėklų duomenis (sekcijos 3.5 ir 3.6)
+ * - Pakeisti paso atitikties kodą
+ * - Sugeneruoti PDF dokumentą (mygtukas "Generuoti paso PDF")
+ * - Atsisiųsti arba peržiūrėti jau sugeneruotą paso PDF
+ *
+ * Paso kalba parenkama per URL parametrą "?lang=lt" arba "?lang=en".
  */
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../klases/MTPasasKomponentai.php';

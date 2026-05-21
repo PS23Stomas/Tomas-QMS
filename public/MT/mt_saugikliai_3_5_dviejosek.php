@@ -1,3 +1,16 @@
+<!-- ===================================================================
+     DALINIS FAILAS: Saugiklių įdėklų sekcija 3.5 — dviejų transformatorių konfigūracija
+
+     Šis failas įtraukiamas iš mt_saugikliai_blokas.php, kai gaminyje yra
+     DU transformatoriai (pvz. "MT 8x10-2x250(630)").
+
+     Sekcija 3.5 apima S1-0,4 ir S3-0,4 saugiklių sekcijas su pozicijomis:
+     - S1: pozicijos 101–106 (6 pozicijos)
+     - S3: pozicijos 301–304 (4 pozicijos)
+
+     Kiekvienai pozicijai įvedamas gabaritas ir nominalas (pvz. "D02", "25A").
+     Duomenys išsaugomi per issaugoti_mt_saugiklius.php.
+=================================================================== -->
 <tr>
     <td style="width: 5%;">3.5</td>
     <td colspan="2">

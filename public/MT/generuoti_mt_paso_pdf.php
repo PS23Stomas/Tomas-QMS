@@ -1,7 +1,20 @@
 <?php
 /**
- * MT gaminio paso PDF generavimas ir išsaugojimas į duomenų bazę
- * Naudoja mPDF biblioteką HTML konvertavimui į PDF formatą
+ * MT gaminio paso PDF generavimas ir išsaugojimas
+ *
+ * MT pasas — tai oficialus dokumentas (tarsi "gimimo liudijimas"), kuriame
+ * aprašyti visi MT transformatorinėje sumontuoti komponentai, bandymų rezultatai
+ * ir kiti techniniai duomenys. Dokumentas pateikiamas klientui kartu su gaminiu.
+ *
+ * Kaip veikia:
+ * 1. Gauna gaminio ID iš formos arba URL
+ * 2. Nuskaito gaminio duomenis, komponentus ir paso teksto korekcijas
+ * 3. Sugeneruoja paso HTML šabloną su visais duomenimis
+ * 4. Konvertuoja HTML į PDF naudodamas mPDF biblioteką
+ * 5. Išsaugo PDF į duomenų bazę (gaminiai lentelės mt_paso_pdf laukas)
+ * 6. Grąžina PDF naršyklei peržiūrai arba atsisiuntimui
+ *
+ * Taip pat atnaujina gaminio duomenis Tomo QMS išorinėje sistemoje.
  */
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../klases/MTPasasKomponentai.php';

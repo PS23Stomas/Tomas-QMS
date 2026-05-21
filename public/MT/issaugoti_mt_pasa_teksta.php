@@ -1,11 +1,19 @@
 <?php
 /**
- * MT paso teksto korekcijų AJAX tvarkyklė - teksto redagavimas su UPSERT logika
+ * MT paso teksto korekcijų AJAX išsaugojimo tvarkyklė
  *
- * AJAX galinis taškas (endpoint), skirtas paso teksto korekcijų išsaugojimui.
- * Naudojama UPSERT logika: jei įrašas su gaminio_id + field_key + lang egzistuoja –
- * atnaujinamas, jei ne – sukuriamas naujas.
- * Grąžina JSON atsakymą su sėkmės/klaidos žinute.
+ * Šis failas priima teksto pakeitimus iš MT paso puslapio ir juos išsaugo.
+ * "Teksto korekcija" — tai kai vartotojas nori pakeisti paso dokumento
+ * tekstą tiesiai paso peržiūros ekrane (pvz. ištaisyti klientui skirto
+ * dokumento frazę) be viso puslapio perkrovimo.
+ *
+ * Kiekviena korekcija identifikuojama trimis dalykais:
+ * - gaminio_id — kurio gaminio paso tekstas keičiamas
+ * - field_key  — kuris laukas keičiamas (pvz. "pastabos_lt")
+ * - lang       — kokia kalba ("lt" arba "en")
+ *
+ * Jei tokia korekcija jau egzistuoja — atnaujinama. Jei ne — sukuriama nauja.
+ * Grąžina JSON atsakymą: {"success": true} arba {"success": false, "message": "..."}
  */
 require_once __DIR__ . '/../includes/config.php';
 

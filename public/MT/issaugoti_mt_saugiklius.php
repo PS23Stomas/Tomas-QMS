@@ -1,11 +1,17 @@
 <?php
 /**
- * MT saugiklių idėklų išsaugojimo tvarkyklė - sekcinis trynimas ir pakartotinis įrašymas
+ * Saugiklių įdėklų formos duomenų išsaugojimo tvarkyklė
  *
- * Apdoroja saugiklių idėklų formos duomenis.
- * Naudojamas sekcinis trynimo + pakartotinio įrašymo šablonas su transakcija:
- *   1. Trinami visi esami įrašai pagal gaminio ID ir sekciją
- *   2. Įterpiami nauji įrašai iš formos duomenų
+ * Šis failas priima saugiklių įdėklų lentelės duomenis ir juos išsaugo.
+ * Saugikliai — tai elektros grandinės apsaugos elementai (lyginamieji įdėklai).
+ * Kiekvienai pozicijai nurodomas gabaritas (pvz. "D02") ir nominalas (pvz. "25A").
+ *
+ * Išsaugojimas vyksta pagal sekciją (3.5 arba 3.6):
+ * 1. Pirmiausia ištrinami visi seni tos sekcijos įrašai
+ * 2. Tada įrašomi nauji iš formos duomenų
+ * Visa operacija atliekama per transakciją — jei kas nepavyktų, niekas neišsaugoma.
+ *
+ * Po išsaugojimo nukreipia atgal į dielektrinių bandymų puslapį.
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

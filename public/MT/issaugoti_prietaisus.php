@@ -1,10 +1,17 @@
 <?php
 /**
- * Bandymų prietaisų išsaugojimo tvarkyklė - naujo pridėjimas arba esamo atnaujinimas
+ * Bandymams naudotų matavimo prietaisų išsaugojimo tvarkyklė
  *
- * Apdoroja prietaisų formos duomenis.
- * Jei pateiktas prietaiso ID (prietaiso_id > 0) – atnaujinamas esamas įrašas (UPDATE).
- * Jei prietaiso ID nėra – sukuriamas naujas įrašas (INSERT).
+ * Šis failas priima matavimo prietaiso duomenis ir juos išsaugo duomenų bazėje.
+ * Matavimo prietaisai — tai įrenginiai, naudojami atliekant dielektrinius bandymus
+ * (pvz. megaohmmetrai, aukštos įtampos šaltiniai). Kiekvienam prietaisui saugoma:
+ * tipas, serijos numeris, kalibravo data, galiojimo data ir sertifikato numeris.
+ *
+ * Išsaugojimo logika:
+ * - Jei prietaiso ID pateiktas — ATNAUJINAMAS esamas prietaiso įrašas
+ * - Jei prietaiso ID nėra — SUKURIAMAS naujas prietaiso įrašas
+ *
+ * Po išsaugojimo nukreipia atgal į dielektrinių bandymų puslapį.
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

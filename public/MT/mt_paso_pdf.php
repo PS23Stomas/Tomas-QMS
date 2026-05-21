@@ -1,6 +1,16 @@
 <?php
 /**
- * MT paso PDF peržiūra/atsisiuntimas iš duomenų bazės
+ * MT paso PDF peržiūra ir atsisiuntimas
+ *
+ * Šis failas ištraukia anksčiau sugeneruotą MT paso PDF dokumentą
+ * iš duomenų bazės ir grąžina jį naršyklei.
+ *
+ * Veikimo būdai:
+ * - Be "atsisiusti" parametro — paso PDF atidarytas naršyklėje (inline peržiūra)
+ * - Su "?atsisiusti" parametru — paso PDF atsiunčiamas kaip failas į kompiuterį
+ *
+ * Jei paso PDF dar nebuvo sugeneruotas — grąžina 404 klaidą.
+ * Jei gaminio ID nenurodytas — grąžina 400 klaidą.
  */
 require_once __DIR__ . '/../includes/config.php';
 

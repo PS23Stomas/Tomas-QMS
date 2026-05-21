@@ -1,9 +1,14 @@
 <?php
 /**
- * Protokolo numerio išsaugojimo tvarkyklė - gaminio protokolo Nr. atnaujinimas
+ * Gaminio protokolo numerio išsaugojimo tvarkyklė
  *
- * Atnaujina gaminiai lentelės protokolo_nr lauką pagal gaminio ID.
- * Po sėkmingo išsaugojimo nukreipia atgal į gaminio langų puslapį.
+ * Šis failas išsaugo gaminio protokolo numerį duomenų bazėje.
+ * Protokolo numeris — tai unikalus bandymų protokolo identifikatorius
+ * (pvz. "P-2024-MT-001"), kuris spausdinamas ant PDF dokumentų.
+ *
+ * Priima POST duomenis: gaminio_id ir protokolo_nr.
+ * Jei kurio nors trūksta — sustoja su klaida.
+ * Po sėkmingo išsaugojimo nukreipia atgal į gaminio puslapį.
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

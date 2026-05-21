@@ -1,11 +1,21 @@
 <?php
 /**
- * Saugikliu bloko valdymas pagal transformatoriu kieki
- * Pvz.: "MT 8x10-2x250(630)" -> transformatoriu kiekis = 2
+ * Saugiklių įdėklų bloko valdymo koordinatorius
  *
- * Logika:
- * - 1x tipas: rodoma tik 3.5 lentele (pozicijos 1-15)
- * - 2x tipas: rodomos abi lenteles 3.5 (poz. 101-106, 301-304) ir 3.6 (poz. 201-206, 401-404)
+ * Šis failas sprendžia, kurią saugiklių lentelę rodyti, atsižvelgiant į
+ * gaminyje esančių transformatorių kiekį. Transformatorių kiekis nustatomas
+ * automatiškai iš gaminio pavadinimo.
+ *
+ * Pavadinimo analizės pavyzdžiai:
+ * - "MT 630/10"         → 1 transformatorius → rodoma tik 3.5 lentelė (poz. 1–15)
+ * - "MT 8x10-2x250(630)" → 2 transformatoriai → rodomos abi lentelės:
+ *                           3.5 (poz. 101–106 ir 301–304)
+ *                           3.6 (poz. 201–206 ir 401–404)
+ *
+ * Įtraukiami daliniai failai (HTML šablonai):
+ * - mt_saugikliai_3_5_vienas.php   — 1 transformatoriaus sekcija 3.5
+ * - mt_saugikliai_3_5_dviejosek.php — 2 transformatorių sekcija 3.5
+ * - mt_saugikliai_3_6_dviejosek.php — 2 transformatorių sekcija 3.6
  */
 
 if (!isset($gaminio_pavadinimas) || empty($gaminio_pavadinimas)) {

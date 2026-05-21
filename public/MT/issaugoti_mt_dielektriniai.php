@@ -1,10 +1,21 @@
 <?php
 /**
- * MT dielektrinių bandymų išsaugojimo tvarkyklė - žemos įtampos bandymai ir įžeminimas
+ * Dielektrinių bandymų duomenų išsaugojimo tvarkyklė
  *
- * Apdoroja dielektrinių bandymų formos duomenis iš mt_dielektriniai.php.
- * Naudojamas trynimo + pakartotinio įrašymo šablonas su duomenų bazės transakcija.
- * Išsaugomi: žemos įtampos bandymai ir įžeminimo tikrinimo duomenys.
+ * Šis failas priima dielektrinių bandymų formos duomenis ir juos išsaugo duomenų bazėje.
+ * Dielektriniai bandymai — tai elektros patikros, kuriomis tikrinama ar gaminyje
+ * esanti izoliacija (apsauga nuo srovės) yra saugi ir atitinka standartus.
+ *
+ * Išsaugomi šie duomenų blokai:
+ * - Vidutinės įtampos (10 kV) kabelių bandymų rezultatai
+ * - Žemos įtampos (0,4 kV) grandinių izoliacijos bandymų rezultatai
+ * - Įžeminimo grandinių pasipriešinimo tikrinimo duomenys
+ *
+ * Kaip veikia: prieš išsaugant naujus duomenis, visi seni duomenys ištrinami
+ * ir įrašomi iš naujo — tai užtikrina, kad nebus senų likučių.
+ * Visa operacija atliekama kaip viena transakcija (jei kas nors nepavyksta — nieko neišsaugoma).
+ *
+ * Po išsaugojimo nukreipia atgal į dielektrinių bandymų puslapį.
  */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';

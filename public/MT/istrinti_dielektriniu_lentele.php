@@ -1,4 +1,21 @@
 <?php
+/**
+ * Dielektrinių bandymų duomenų trynimo tvarkyklė
+ *
+ * Šis failas ištrina pasirinktą dielektrinių bandymų lentelės duomenų rinkinį.
+ * Naudojama kai vartotojas nori pradėti pildyti lentelę iš naujo arba
+ * ištaisyti klaidingai įvestus duomenis.
+ *
+ * Galimi trinami duomenų rinkiniai (parametras "lentele"):
+ * - "saugikliai"       — ištrina saugiklių įdėklų duomenis
+ * - "vidutines_itampos" — ištrina vidutinės įtampos (10 kV) bandymų duomenis
+ * - "mazos_itampos"    — ištrina žemos įtampos (0,4 kV) bandymų duomenis
+ * - "izeminimas"       — ištrina įžeminimo tikrinimo duomenis
+ * - "prietaisai"       — ištrina bandymams naudotų prietaisų sąrašą
+ * - "visi"             — ištrina VISUS aukščiau išvardytus duomenis vienu metu
+ *
+ * Po trynimo nukreipia atgal į dielektrinių bandymų puslapį.
+ */
 require_once __DIR__ . '/../klases/Database.php';
 require_once __DIR__ . '/../klases/Sesija.php';
 
