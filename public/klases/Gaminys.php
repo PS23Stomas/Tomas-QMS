@@ -1,15 +1,34 @@
 <?php
 /**
- * Gaminio (produkto) valdymo klasė - CRUD operacijos ir tipų valdymas
+ * Gaminio valdymo klasė
+ *
+ * Gaminys — tai vienas pagamintas produktas (pvz. viena MT transformatorinė).
+ * Kiekvienas gaminys priklauso užsakymui ir turi: numerį, tipą, protokolo numerį
+ * bei PDF dokumentų kopijas (pasas, dielektrinių bandymų protokolas, funkcinių bandymų protokolas).
+ *
+ * Ši klasė atsakinga už:
+ * - Gaminių kūrimą, paiešką, atnaujinimą ir trynimą
+ * - Gaminio tipų valdymą (pvz. "MT 630/10", "USN-250")
+ * - Ryšio tarp gaminio ir jo užsakymo palaikymą
+ *
+ * Naudojama: uzsakymai.php, MT/*.php, sinchronizuoti.php ir kitur.
  */
 class Gaminys {
+    /** Duomenų bazės ryšys */
     private $conn;
 
+    /**
+     * Sukuria gaminio objektą.
+     * Jei duomenų bazės ryšys nepateiktas — naudojamas globalus ryšys.
+     */
     public function __construct($db = null) {
         $this->conn = $db ?? Database::getConnection();
     }
 
-    /** Gauna užsakymo ID pagal užsakymo numerį */
+    /**
+     * Grąžina užsakymo ID pagal užsakymo numerį (pvz. "2024-001").
+     * Jei užsakymas nerastas — grąžina 0.
+     */
     public static function gautiUzsakymoId(PDO $pdo, string $numeris): int {
         $stmt = $pdo->prepare("SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ? LIMIT 1");
         $stmt->execute([$numeris]);
@@ -17,19 +36,32 @@ class Gaminys {
         return $result['id'] ?? 0;
     }
 
-    /** Gauna gaminio tipų sąrašą (id ir pavadinimas), surikiuotą pagal abėcėlę */
+    /**
+     * Grąžina gaminio tipų sąrašą (ID ir pavadinimas), surikiuotą pagal abėcėlę.
+     * Naudojama formuose kai reikia pasirinkti gaminio tipą iš sąrašo.
+     */
     public static function gautiGaminioTipus(PDO $pdo): array {
         $stmt = $pdo->query("SELECT id, gaminio_tipas FROM gaminio_tipai ORDER BY gaminio_tipas ASC");
         return $stmt->fetchAll();
     }
 
-    /** Gauna visų gaminio tipų pilną informaciją */
+    /**
+     * Grąžina visų gaminio tipų pilną informaciją (ID, pavadinimas, grupė, atitikmenų kodas).
+     * Skiriasi nuo gautiGaminioTipus() tuo, kad grąžina VISUS stulpelius.
+     */
     public static function gautiVisusTipus(PDO $pdo): array {
         $stmt = $pdo->query("SELECT * FROM gaminio_tipai ORDER BY gaminio_tipas ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Prideda naują gaminio tipą su grupe. Grąžina null sėkmės atveju arba klaidos pranešimą */
+    /**
+     * Prideda naują gaminio tipą su nurodytu pavadinimu ir grupe.
+     * Grąžina null jei viskas gerai, arba klaidos pranešimą jei nepavyko.
+     *
+     * @param string $tipas  Gaminio tipo pavadinimas (pvz. "MT 630/10 kV")
+     * @param string $grupe  Gaminio grupė (pvz. "MT", "USN", "SI-04")
+     * @return string|null   null = sėkmė, tekstas = klaidos pranešimas
+     */
     public static function pridetiTipa(PDO $pdo, string $tipas, string $grupe): ?string {
         try {
             $stmt = $pdo->prepare("INSERT INTO gaminio_tipai (gaminio_tipas, grupe) VALUES (?, ?)");
@@ -40,7 +72,11 @@ class Gaminys {
         }
     }
 
-    /** Tikrina, ar visi užsakymo gaminiai turi priskiritus gaminio numerius */
+    /**
+     * Tikrina ar visi užsakymo gaminiai turi priskirtus gaminio numerius.
+     * Gaminio numeris — tai unikalus serijos numeris (pvz. "MT-2024-001-001").
+     * Grąžina true jei VISI gaminiai turi numerius, false jei bent vienas neturi.
+     */
     public static function tikrintiNumerius(PDO $pdo, int $uzsakymo_id): bool {
         $stmt = $pdo->prepare("SELECT gaminio_numeris FROM gaminiai WHERE uzsakymo_id = ?");
         $stmt->execute([$uzsakymo_id]);
@@ -51,7 +87,10 @@ class Gaminys {
         return true;
     }
 
-    /** Gauna visus gaminius pagal užsakymo ID su gaminio tipo pavadinimu */
+    /**
+     * Grąžina visus gaminius pagal užsakymo ID kartu su gaminio tipo pavadinimu.
+     * Gaminiai surikiuoti pagal gaminio numerį didėjančia tvarka.
+     */
     public static function gautiPagalUzsakyma(PDO $pdo, int $uzsakymo_id): array {
         $stmt = $pdo->prepare("
             SELECT g.*, gt.gaminio_tipas 
@@ -64,7 +103,16 @@ class Gaminys {
         return $stmt->fetchAll();
     }
 
-    /** Įrašo arba atnaujina pilną gaminio pavadinimą pagal užsakymo numerį */
+    /**
+     * Įrašo arba atnaujina gaminio tipo pavadinimą pagal užsakymo numerį.
+     *
+     * Kaip veikia:
+     * 1. Suranda užsakymą pagal numerį
+     * 2. Jei užsakymas neturi gaminio — sukuria naują tuščią gaminį
+     * 3. Atnaujina gaminio tipo pavadinimą (arba sukuria naują tipą jei tokio nėra)
+     *
+     * @return bool true jei pavyko, false jei užsakymas nerastas
+     */
     public function irasytiPilnaPavadinima(string $uzsakymo_numeris, string $pavadinimas): bool {
         $sqlUzsak = "SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)";
         $stmtUzsak = $this->conn->prepare($sqlUzsak);
@@ -117,7 +165,10 @@ class Gaminys {
         return $stmtUpdate->execute([$tipas_id, $uzsakymo_id]);
     }
 
-    /** Gauna gaminio tipo pavadinimą pagal gaminio ID */
+    /**
+     * Grąžina gaminio tipo pavadinimą pagal gaminio ID.
+     * Jei gaminio tipas nerastas — grąžina "Nežinomas".
+     */
     public function gautiPavadinimaPagalGaminioId($gaminio_id) {
         $sql = "SELECT gt.gaminio_tipas 
                 FROM gaminiai g 
@@ -129,7 +180,11 @@ class Gaminys {
         return $rez['gaminio_tipas'] ?? 'Nežinomas';
     }
 
-    /** Gauna pilną gaminio pavadinimą pagal užsakymo numerį */
+    /**
+     * Grąžina gaminio tipo pavadinimą pagal užsakymo numerį.
+     * Ieško naujausiame to užsakymo gaminyje.
+     * Jei nerastas — grąžina tuščią eilutę.
+     */
     public function gautiPilnaPavadinima($uzsakymo_numeris) {
         $sql = "SELECT id FROM uzsakymai WHERE TRIM(uzsakymo_numeris) = TRIM(?)";
         $stmt = $this->conn->prepare($sql);
@@ -153,7 +208,10 @@ class Gaminys {
         return trim($pav);
     }
 
-    /** Gauna paskutinį (naujausią) gaminį pagal užsakymo numerį */
+    /**
+     * Grąžina paskutinį (naujausią pagal ID) gaminį iš nurodyto užsakymo.
+     * Jei užsakymas nerastas arba neturi gaminių — grąžina null.
+     */
     public function gautiPaskutiniGamini($uzsakymo_numeris) {
         $sql = "SELECT id FROM uzsakymai WHERE uzsakymo_numeris = ?";
         $stmt = $this->conn->prepare($sql);
@@ -170,7 +228,11 @@ class Gaminys {
         return $rez ?: null;
     }
 
-    /** Gauna gaminį pagal jo ID */
+    /**
+     * Grąžina gaminio duomenis pagal jo ID.
+     * Grąžina pagrindinius laukus (be didelių BYTEA PDF duomenų).
+     * Jei nerastas arba ID tuščias — grąžina null.
+     */
     public function gautiPagalId($id) {
         if (!$id) return null;
         $sql = "SELECT id, uzsakymo_id, gaminio_numeris, gaminio_tipas_id, protokolo_nr, atitikmuo_kodas, mt_paso_failas, mt_dielektriniu_failas, mt_funkciniu_failas FROM gaminiai WHERE id = ?";
@@ -180,7 +242,11 @@ class Gaminys {
         return $rez ?: null;
     }
 
-    /** Sukuria naują gaminį su užsakymo ID, gaminio numeriu ir tipo ID */
+    /**
+     * Sukuria naują gaminį duomenų bazėje.
+     * Reikalingas užsakymo ID, gaminio numeris ir gaminio tipo ID.
+     * Grąžina true jei pavyko, false jei klaida.
+     */
     public function sukurti($uzsakymo_id, $gaminio_numeris, $gaminio_tipas_id) {
         try {
             $sql = "INSERT INTO gaminiai (uzsakymo_id, gaminio_numeris, gaminio_tipas_id)
@@ -193,7 +259,13 @@ class Gaminys {
         }
     }
 
-    /** Atnaujina gaminio duomenis pagal ID su nurodytais laukeliais */
+    /**
+     * Atnaujina gaminio duomenis pagal jo ID.
+     * Galima perduoti bet kokį laukų rinkinį kaip masyvą ['laukas' => 'reikšmė'].
+     * Jei laukų masyvas tuščias — nieko nedaro ir grąžina false.
+     *
+     * Pavyzdys: $gaminys->updateGamini(5, ['protokolo_nr' => 'P-2024-001'])
+     */
     public function updateGamini($id, $laukeliai = []) {
         if (empty($laukeliai)) return false;
 
@@ -211,7 +283,11 @@ class Gaminys {
         return $stmt->execute($reiksmes);
     }
 
-    /** Ištrina gaminį pagal jo ID */
+    /**
+     * Ištrina gaminį iš duomenų bazės pagal jo ID.
+     * Dėmesio: kartu ištrinami ir susiję duomenys (komponentai, bandymai ir kt.)
+     * nes duomenų bazėje nustatyti CASCADE trynimo ryšiai.
+     */
     public function istrintiGamini($id) {
         $sql = "DELETE FROM gaminiai WHERE id = ?";
         $stmt = $this->conn->prepare($sql);

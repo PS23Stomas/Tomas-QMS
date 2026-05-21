@@ -1,19 +1,50 @@
 <?php
 /**
- * Komponento atvaizdavimo klasė - MT sumontuotų komponentų lentelės eilutės generavimas
+ * Komponento atvaizdavimo klasė
+ *
+ * Komponentas — tai viena gaminyje (pvz. MT transformatorinėje) sumontuota detalė.
+ * Kiekvienas komponentas turi: kodą (pvz. "ABB-123"), kiekį, aprašymą ir gamintoją.
+ *
+ * Ši klasė atsakinga už tai, kad komponentų lentelėje ekrane atrodytų tinkamai —
+ * sugeneruoja HTML eilutę su visais redagavimo laukais (pasirinkimo sąrašai, kiekis ir t.t.).
+ *
+ * Naudojama MT komponentų puslapyje (komponentai.php).
  */
 class Komponentas {
+    /** Komponento eilės numeris duomenų bazėje */
     private int $id;
+
+    /** Gamintojo kodas (pvz. "3NAX3230-0B") */
     private string $kodas;
+
+    /** Kiek vienetų sumontuota gaminyje */
     private int $kiekis;
+
+    /** Trumpas aprašymas (pvz. "Galios transformatorius") */
     private string $aprasymas;
+
+    /** Gamintojo pavadinimas (pvz. "Siemens") */
     private string $gamintojas;
+
+    /** Ar šis komponentas pažymėtas kaip parinktas projektui */
     private bool $parinkta;
+
+    /** Ar šis komponentas jau įrašytas / užrakintas (tada fonas pilkas) */
     private bool $irasyta;
+
+    /** Visų galimų kodų sąrašas pasirinkimui išskleidžiamame meniu */
     private array $kodai;
+
+    /** Visų žinomų gamintojų sąrašas pasirinkimui išskleidžiamame meniu */
     private array $visiGamintojai;
 
-    /** Inicializuoja komponento duomenis iš masyvo, su pasirenkamais kodų ir gamintojų sąrašais */
+    /**
+     * Sukuria komponento objektą iš duomenų masyvo.
+     *
+     * @param array $data           Komponento duomenys iš duomenų bazės
+     * @param array $kodai          Visi galimi kodai (rodyti išskleidžiamame sąraše)
+     * @param array $visiGamintojai Visi galimi gamintojai (rodyti išskleidžiamame sąraše)
+     */
     public function __construct(array $data, array $kodai = [], array $visiGamintojai = []) {
         $this->id = (int)($data['id'] ?? 0);
         $this->kodas = $data['kodas'] ?? '';
@@ -26,12 +57,23 @@ class Komponentas {
         $this->visiGamintojai = $visiGamintojai;
     }
 
-    /** Grąžina, ar komponentas yra parinktas projektui */
+    /**
+     * Grąžina ar šis komponentas pažymėtas kaip parinktas projektui.
+     * Naudojama filtruojant, kurie komponentai rodomi paso dokumentuose.
+     */
     public function isParinkta(): bool {
         return $this->parinkta;
     }
 
-    /** Sugeneruoja HTML lentelės eilutę su komponento redagavimo laukais */
+    /**
+     * Sugeneruoja HTML lentelės eilutę su visais komponento redagavimo laukais.
+     *
+     * Rezultate bus: eilės numeris, kodo pasirinkimas, kiekio laukelis,
+     * aprašymo laukelis, gamintojo pasirinkimas ir išsaugojimo mygtukas.
+     * Jei komponentas jau įrašytas — eilutės fonas bus pilkas.
+     *
+     * @return string HTML <tr>...</tr> eilutė, paruošta įdėti į lentelę
+     */
     public function render(): string {
         $id = $this->id;
         $kodas = htmlspecialchars($this->kodas);

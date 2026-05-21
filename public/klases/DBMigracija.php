@@ -1,15 +1,34 @@
 <?php
 /**
- * Duomenų bazės migracijos klasė - automatinis lentelių kūrimas ir laukų taisymas
+ * Duomenų bazės migracijos klasė
+ *
+ * Migracija — tai tarsi "remontas" duomenų bazėje.
+ * Kai programa atnaujinama ir reikia naujų lentelių ar stulpelių,
+ * ši klasė automatiškai juos sukuria — be rankinio darbo.
+ *
+ * Kaip veikia: kiekvieną kartą paleidus serverį, paleisti() metodas
+ * peržiūri visas reikalingas lenteles ir stulpelius. Jei ko nors trūksta —
+ * sukuria. Jei viskas yra — nieko nedaro. Taip sistema visada būna atnaujinta.
+ *
+ * Visi metodai yra saugūs pakartotiniam paleidimui (idempotentiniai) —
+ * tai reiškia, kad nors kvieski 100 kartų, duomenys nesidubliuos.
  */
 class DBMigracija {
+    /** Duomenų bazės ryšys */
     private $conn;
 
+    /**
+     * Sukuria migracijos objektą su duomenų bazės ryšiu.
+     */
     public function __construct(PDO $conn) {
         $this->conn = $conn;
     }
 
-    /** Paleidžia visas migracijas: sukuria trūkstamas lenteles, prideda stulpelius ir pataiso varchar laukus */
+    /**
+     * Paleidžia VISAS migracijas iš eilės.
+     * Ši funkcija kviečiama automatiškai kiekvieno puslapio pradžioje
+     * per config.php. Jei duomenų bazė jau atnaujinta — viskas vyksta greitai.
+     */
     public function paleisti(): void {
         $this->pervadintiMtLenteles();
         $this->sukurtiTrukstamasLenteles();
@@ -41,7 +60,11 @@ class DBMigracija {
         $this->pridetiPerziurosTokena();
     }
 
-    /** Sukuria trūkstamas duomenų bazės lenteles (bandymai_prietaisai) */
+    /**
+     * Sukuria bandymai_prietaisai lentelę, jei jos dar nėra.
+     * Šioje lentelėje saugoma informacija apie matavimo prietaisus,
+     * naudotus atliekant bandymus (tipas, serijos numeris, sertifikatas).
+     */
     private function sukurtiTrukstamasLenteles(): void {
         try {
             $this->conn->exec("
@@ -59,7 +82,11 @@ class DBMigracija {
         }
     }
 
-    /** Prideda vidutinės įtampos stulpelius prie dielektriniai_bandymai lentelės */
+    /**
+     * Prideda vidutinės įtampos bandymų stulpelius į dielektriniai_bandymai lentelę.
+     * Šie stulpeliai reikalingi aukštos įtampos (10 kV) bandymų duomenims saugoti:
+     * grandinės pavadinimas, įtampa, bandymo schema, trukmė ir kt.
+     */
     private function pridetiDielektriniuVidutinesStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'dielektriniai_bandymai' AND column_name = 'tipas'";
@@ -76,7 +103,11 @@ class DBMigracija {
         }
     }
 
-    /** Sukuria funkcinių bandymų šablono lentelę su numatytais reikalavimais */
+    /**
+     * Sukuria funkciniu_sablonas lentelę ir užpildo ją 21 numatytuoju reikalavimu,
+     * jei ji dar tuščia. Šablono reikalavimai — tai gamybos žingsniai, kuriuos
+     * reikia patikrinti gaminant kiekvieną MT transformatorinę.
+     */
     private function sukurtiFunkciniuSablona(): void {
         try {
             $this->conn->exec("
@@ -107,7 +138,11 @@ class DBMigracija {
         }
     }
 
-    /** Prideda mt_paso_pdf ir mt_paso_failas stulpelius į gaminiai lentelę */
+    /**
+     * Prideda mt_paso_pdf ir mt_paso_failas stulpelius į gaminiai lentelę.
+     * Juose saugoma sugeneruoto MT paso PDF failo turinis (dvejetainiai duomenys)
+     * ir failo pavadinimas.
+     */
     private function pridetiMtPasoStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'mt_paso_pdf'";
@@ -120,7 +155,10 @@ class DBMigracija {
         }
     }
 
-    /** Prideda mt_dielektriniu_pdf ir mt_dielektriniu_failas stulpelius į gaminiai lentelę */
+    /**
+     * Prideda mt_dielektriniu_pdf ir mt_dielektriniu_failas stulpelius į gaminiai lentelę.
+     * Juose saugoma sugeneruoto dielektrinių bandymų protokolo PDF failo turinis ir pavadinimas.
+     */
     private function pridetiMtDielektriniuStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'mt_dielektriniu_pdf'";
@@ -133,7 +171,11 @@ class DBMigracija {
         }
     }
 
-    /** Prideda defekto nuotraukų stulpelius į funkciniai_bandymai lentelę */
+    /**
+     * Prideda defekto nuotraukų stulpelius į funkciniai_bandymai lentelę.
+     * Kai atliekant funkcinį bandymą randamas defektas, galima įkelti jo nuotrauką —
+     * ji saugoma duomenų bazėje dvejetainiu formatu (BYTEA).
+     */
     private function pridetiDefektoNuotraukuStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'defekto_nuotrauka'";
@@ -146,7 +188,10 @@ class DBMigracija {
         }
     }
 
-    /** Prideda mt_funkciniu_pdf ir mt_funkciniu_failas stulpelius į gaminiai lentelę */
+    /**
+     * Prideda mt_funkciniu_pdf ir mt_funkciniu_failas stulpelius į gaminiai lentelę.
+     * Juose saugoma sugeneruoto funkcinių bandymų protokolo PDF failo turinis ir pavadinimas.
+     */
     private function pridetiMtFunkciniuPdfStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'mt_funkciniu_pdf'";
@@ -159,7 +204,11 @@ class DBMigracija {
         }
     }
 
-    /** Prideda pataisyta stulpelį į funkciniai_bandymai lentelę */
+    /**
+     * Prideda pataisyta stulpelį į funkciniai_bandymai lentelę.
+     * Šiame stulpelyje saugoma informacija ar rastas defektas buvo ištaisytas
+     * ir kas jį ištaisė.
+     */
     private function pridetiPataisytaStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'pataisyta'";
@@ -171,6 +220,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda issiusta_kam stulpelį į funkciniai_bandymai lentelę.
+     * Saugo informaciją kam buvo išsiųstas pranešimas apie šį defektą
+     * (pvz. "Jonas Jonaitis, jonas@elga.lt").
+     */
     private function pridetiIssiustaKamStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'issiusta_kam'";
@@ -182,6 +236,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda gaminiu_rusis_id stulpelį į funkciniu_sablonas lentelę.
+     * Tai leidžia turėti SKIRTINGUS šablonų reikalavimų sąrašus kiekvienai
+     * gaminių rūšiai (MT, USN, SI-04 ir kt.), o ne vieną bendrą.
+     */
     private function pridetiSablonoGrupesStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniu_sablonas' AND column_name = 'gaminiu_rusis_id'";
@@ -194,7 +253,10 @@ class DBMigracija {
         }
     }
 
-    /** Pataiso nurodytus varchar laukus, pakeisdama juos į TEXT tipą */
+    /**
+     * Pataiso nurodytus varchar laukus, pakeisdama juos į TEXT tipą.
+     * TEXT tipas neturi ilgio apribojimų — tinka ilgiems tekstiniams laukams.
+     */
     private function pataisytiVarcharLaukus(): void {
         $laukai = [
             ['lentele' => 'gaminio_kirtikliai', 'laukas' => 'linijos_10kv_nr'],
@@ -208,7 +270,13 @@ class DBMigracija {
         }
     }
 
-    /** Pakeičia nurodyto lauko tipą į TEXT, jei dabartinis tipas nėra TEXT */
+    /**
+     * Pakeičia konkretaus lauko tipą į TEXT (neriboto ilgio tekstas),
+     * bet tik jei dabartinis tipas nėra TEXT. Jei jau TEXT — nieko nedaro.
+     *
+     * @param string $lentele Lentelės pavadinimas
+     * @param string $laukas  Stulpelio pavadinimas
+     */
     private function pakeistiIText(string $lentele, string $laukas): void {
         try {
             $sql = "SELECT data_type FROM information_schema.columns 
@@ -225,6 +293,10 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda pavadinimas stulpelį į gaminiai lentelę.
+     * Leidžia saugoti laisvą gaminio pavadinimą be ryšio su gaminio_tipai lentele.
+     */
     private function pridetiGaminioPavadinimaStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'pavadinimas'";
@@ -236,6 +308,15 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Sinchronizuoja automatinio numeravimo sekas (SEQUENCE) su faktiniais duomenimis.
+     *
+     * Problema: kai duomenys importuojami tiesiogiai (ne per programą),
+     * automatinis ID skaitliukas gali "atsilikti" ir bandyti priskirti ID,
+     * kuris jau egzistuoja. Tai sukelia klaidas.
+     *
+     * Šis metodas sutvarko skaitliukus — nustato juos į didžiausią esamą ID.
+     */
     private function sinchronizuotiSekas(): void {
         $lenteles = ['uzsakymai', 'gaminiai', 'gaminiu_rusys', 'uzsakovai', 'objektai', 'vartotojai', 'pretenzijos', 'prietaisai', 'gaminio_tipai', 'funkciniu_sablonas'];
         foreach ($lenteles as $lentele) {
@@ -255,6 +336,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Sukuria pretenzijos_email_history lentelę, jei jos dar nėra.
+     * Šioje lentelėje saugoma kiekvieno laiško, išsiųsto dėl pretenzijos, istorija:
+     * kam išsiųsta, kas išsiuntė, kada, koks atsakymas gautas ir t.t.
+     */
     private function sukurtiPretenzijoEmailHistoryLentele(): void {
         try {
             $this->conn->exec("
@@ -275,6 +361,15 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Pervadina senąsias lenteles, kurios turėjo "mt_" priešdėlį, į universalius pavadinimus.
+     *
+     * Senos lentelės (pvz. mt_funkciniai_bandymai) buvo skirtos tik MT gaminiams.
+     * Sistemos plėtros metu priešdėlis "mt_" buvo pašalintas, kad lenteles galėtų
+     * naudoti ir kitos gaminių rūšys (USN, SI-04 ir kt.).
+     *
+     * Pervadinimas atliekamas tik jei senasis pavadinimas egzistuoja ir naujasis — ne.
+     */
     private function pervadintiMtLenteles(): void {
         $pervadinimas = [
             'mt_dielektriniai_bandymai' => 'dielektriniai_bandymai',
@@ -306,6 +401,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Sukuria imones_nustatymai lentelę su UAB "ELGA" rekvizitais,
+     * jei jos dar nėra. Šioje lentelėje saugomi įmonės duomenys,
+     * rodomi PDF dokumentuose ir laiškuose (pavadinimas, adresas, telefonas ir kt.).
+     */
     private function sukurtiImonesNustatymuLentele(): void {
         try {
             $stmt = $this->conn->query("
@@ -338,10 +438,13 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Vienkartinis pataisymas: atnaujina UAB "ELGA" rekvizitus, bet TIK jei
+     * pavadinimas yra "UAB tomas" (senas bandomasis įrašas). Jei administratorius
+     * jau pakeitė duomenis — šis metodas jų nepalies.
+     */
     private function atnaujintiElgaRekvizitus(): void {
         try {
-            // Vienkartinis pataisymas: atnaujina TIK žinomus bandymų duomenis.
-            // Jei administratorius pakeitė įmonės duomenis — šis UPDATE nepalies jų.
             $this->conn->exec("
                 UPDATE imones_nustatymai SET
                     pavadinimas  = 'UAB \"ELGA\"',
@@ -357,6 +460,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda parasas ir parasas_tipas stulpelius į vartotojai lentelę.
+     * Vartotojas gali įkelti savo parašo vaizdą — jis naudojamas
+     * PDF dokumentuose (funkcinių ir dielektrinių bandymų protokolai, paso dokumente).
+     */
     private function pridetiVartotojoParasoStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'vartotojai' AND column_name = 'parasas'";
@@ -368,6 +476,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda pareigos stulpelį į vartotojai lentelę.
+     * Pareigos (pvz. "Kokybės inžinierius") rodomos PDF dokumentų parašo blokuose.
+     * Jei pareigos neįvestos — naudojamas numatytasis tekstas "Kokybės inžinierius".
+     */
     private function pridetiVartotojoPareiguStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'vartotojai' AND column_name = 'pareigos'";
@@ -379,6 +492,12 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda įmonės rekvizitų stulpelius į uzsakymai lentelę.
+     * Kai sukuriamas užsakymas, įmonės duomenys (pavadinimas, adresas, telefonas ir kt.)
+     * įrašomi tiesiai į užsakymą — taip PDF dokumentas visada rodys teisingus
+     * to meto rekvizitus, net jei vėliau įmonės duomenys pasikeis.
+     */
     private function pridetiUzsakymoImonesStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'uzsakymai' AND column_name = 'imone_pavadinimas'";
@@ -397,6 +516,12 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Sukuria remember_tokens lentelę, jei jos dar nėra.
+     * Šioje lentelėje saugomi "prisimink mane" žetonai — ilgalaikiai
+     * prisijungimo rakteliai, leidžiantys vartotojui automatiškai prisijungti
+     * po naršyklės uždarymo (be slaptažodžio įvedimo).
+     */
     private function sukurtiRememberTokensLentele(): void {
         try {
             $this->conn->exec("
@@ -411,6 +536,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda defekto PDF stulpelius į pretenzijos lentelę.
+     * Leidžia prie pretenzijos pridėti PDF dokumentą su defekto aprašymu
+     * (defekto_pdf_pavadinimas — failo pavadinimas, defekto_pdf_turinys — turinys).
+     */
     private function pridetiDefektoPdfStulpelius(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'pretenzijos' AND column_name = 'defekto_pdf_pavadinimas'";
@@ -422,6 +552,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda qt_pretenzija_id stulpelį į pretenzijos lentelę.
+     * Šis unikalus ID naudojamas sinchronizuojant pretenzijas su išorine
+     * Tomo QMS sistema — leidžia žinoti kuris mūsų įrašas atitinka kurį ten.
+     */
     private function pridetiQtPretenzijaIdStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'pretenzijos' AND column_name = 'qt_pretenzija_id'";
@@ -434,6 +569,12 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Sukuria pretenzijos_failai lentelę, jei jos dar nėra.
+     * Šioje lentelėje saugomi prie pretenzijos pridėti failai (PDF, .msg ir kt.).
+     * Viena pretenzija gali turėti kelis failus. Jei pretenzija ištrintina —
+     * visi jos failai ištrinami automatiškai (ON DELETE CASCADE).
+     */
     private function sukurtiPretenzijoFailuLentele(): void {
         try {
             $this->conn->exec("
@@ -451,6 +592,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Prideda dielektriniai_issaugoti stulpelį į gaminiai lentelę.
+     * Tai vėliavėlė (true/false), kuri nurodo ar dielektrinių bandymų protokolas
+     * jau buvo sugeneruotas ir išsaugotas PDF formatu.
+     */
     private function pridetiDielektriniuIssaugotiStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'gaminiai' AND column_name = 'dielektriniai_issaugoti'";
@@ -462,7 +608,11 @@ class DBMigracija {
         }
     }
 
-    /** Prideda papildomo_komentaro stulpelį prie pretenzijos_email_history lentelės (pokalbio tęsimui) */
+    /**
+     * Prideda papildomas_komentaras stulpelį į pretenzijos_email_history lentelę.
+     * Leidžia prie laiško istorijos įrašo pridėti vidinį komentarą —
+     * naudinga kai pokalbis tęsiamas ir reikia pažymėti papildomą informaciją.
+     */
     private function pridetiPapildomoKomentaroStulpeli(): void {
         try {
             $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'pretenzijos_email_history' AND column_name = 'papildomas_komentaras'";
@@ -474,6 +624,11 @@ class DBMigracija {
         }
     }
 
+    /**
+     * Pataiso komponentų tekstinių laukų tipą iš VARCHAR į TEXT.
+     * VARCHAR turi ilgio apribojimą, TEXT — ne. Gamintojų kodai ir pavadinimai
+     * gali būti ilgi, todėl juos geriau laikyti TEXT tipo lauke.
+     */
     private function pataisytiKomponentuVarchar(): void {
         try {
             $this->conn->exec("ALTER TABLE komponentai ALTER COLUMN gamintojo_kodas TYPE TEXT");
@@ -483,6 +638,12 @@ class DBMigracija {
         } catch (PDOException $e) {}
     }
 
+    /**
+     * Prideda perziuros_token stulpelį į pretenzijos lentelę.
+     * Tai unikalus saugus žetonas (atsitiktinis kodas), kuris leidžia
+     * klientui peržiūrėti savo pretenzijos statusą be prisijungimo prie sistemos
+     * (per specialią viešą nuorodą). Kiekvienai pretenzijai generuojamas skirtingas kodas.
+     */
     private function pridetiPerziurosTokena(): void {
         try {
             $exists = $this->conn->query("SELECT column_name FROM information_schema.columns WHERE table_name='pretenzijos' AND column_name='perziuros_token'")->fetchColumn();

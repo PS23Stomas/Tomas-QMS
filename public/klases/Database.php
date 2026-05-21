@@ -1,14 +1,27 @@
 <?php
 /**
- * Duomenų bazės prisijungimo klasė (Singleton šablonas)
- * Naudoja PDO su PostgreSQL. Analizuoja DATABASE_URL aplinkos kintamąjį.
+ * Duomenų bazės ryšio klasė
+ *
+ * Tai tarsi "tiltas" tarp programos ir duomenų bazės.
+ * Kai programa nori gauti arba įrašyti duomenis, ji naudoja šią klasę
+ * kad prisijungtų prie PostgreSQL duomenų bazės.
+ *
+ * Naudoja Singleton šabloną — tai reiškia, kad visoje programoje
+ * egzistuoja TIK VIENAS prisijungimas, o ne naujas kiekvienam puslapiui.
+ * Tai greičiau ir taupo resursus.
  */
 class Database {
+    /** Saugoma prisijungimo kopija — sukuriama tik vieną kartą */
     private static ?PDO $instance = null;
 
     /**
-     * Grąžina PDO prisijungimą prie duomenų bazės.
-     * Jei prisijungimas dar nesukurtas, išanalizuoja DATABASE_URL ir sukuria naują PDO instanciją.
+     * Grąžina prisijungimą prie duomenų bazės.
+     *
+     * Kaip veikia: jei prisijungimas jau sukurtas — grąžina tą patį.
+     * Jei dar ne — perskaito duomenų bazės adresą iš aplinkos kintamojo
+     * DATABASE_URL ir sukuria naują prisijungimą.
+     *
+     * Jei DATABASE_URL nėra nustatytas — programa sustoja su klaida.
      */
     public static function getConnection(): PDO {
         if (self::$instance !== null) {

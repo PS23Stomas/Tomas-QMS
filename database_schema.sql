@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UcEegdnVuioqAXfxV4KcRrzT2Gy5kidQyMZ1To5pSH2ObBxv0cD3Z0QOFB7XlnX
+\restrict zWdxhd54oMqVfjOVr9dnbPntQXKTyx7PKLT1BnYDh4g8jlRgP4HshH9SY0Oa4Hk
 
 -- Dumped from database version 16.10
 -- Dumped by pg_dump version 16.10
@@ -1383,5 +1383,5 @@ ALTER TABLE ONLY public.pretenzijos_nuotraukos
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UcEegdnVuioqAXfxV4KcRrzT2Gy5kidQyMZ1To5pSH2ObBxv0cD3Z0QOFB7XlnX
+\unrestrict zWdxhd54oMqVfjOVr9dnbPntQXKTyx7PKLT1BnYDh4g8jlRgP4HshH9SY0Oa4Hk
 

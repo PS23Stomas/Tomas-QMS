@@ -1,9 +1,31 @@
 <?php
+/**
+ * Tomo QMS sinchronizacijos klasė
+ *
+ * Tomo QMS — tai išorinė duomenų bazė, naudojama gamybos valdymui.
+ * Ši klasė atsakinga už duomenų perkėlimą iš mūsų sistemos į tą išorinę bazę
+ * ir atgal — tai vadinama sinchronizacija (sutrumpintai: "sinch").
+ *
+ * Pavyzdys: kai sukuriamas naujas užsakymas mūsų sistemoje,
+ * sinchronizacija jį nukopijuoja ir į Tomo QMS, kad abu sistemoje būtų vienodi duomenys.
+ *
+ * Ši klasė taip pat valdo sinchronizacijos žurnalą (sync_log) —
+ * kiekvienas sinchronizacijos veiksmas užregistruojamas, kad galima būtų
+ * patikrinti ar viskas vyko sėkmingai.
+ *
+ * Naudojama: sinchronizuoti.php, sync_log.php
+ */
 class TomoQMS {
     private static ?PDO $conn = null;
     private static bool $available = true;
     private static bool $logTableChecked = false;
 
+    /**
+     * Prisijungia prie išorinės Tomo QMS duomenų bazės.
+     * Jei TOMO_QMS_DATABASE_URL aplinkos kintamasis nenustatytas —
+     * grąžina null (sinchronizacija neveiks, bet programa nesuges).
+     * Prisijungimas sukuriamas tik kartą ir išsaugomas atmintyje.
+     */
     public static function getConnection(): ?PDO {
         if (!self::$available) return null;
         if (self::$conn !== null) return self::$conn;
@@ -37,6 +59,11 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Patikrina ar sync_log lentelė egzistuoja Tomo QMS duomenų bazėje,
+     * ir jei ne — ją sukuria. Ši lentelė saugo sinchronizacijos žurnalą.
+     * Kviečiama automatiškai pirmą kartą prisijungus.
+     */
     private static function uztikrinitiLogLentele(): void {
         if (self::$logTableChecked || !self::$conn) return;
         try {
@@ -59,6 +86,18 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Įrašo vieną eilutę į sinchronizacijos žurnalą.
+     * Kiekvieną kartą kai sinchronizuojami duomenys — užregistruojamas veiksmas:
+     * kas sinchronizuota, kiek įrašų, ar pavyko, ir kas tai padarė.
+     *
+     * @param string $veiksmas        Trumpas veiksmo aprašymas (pvz. "Sukurtas užsakymas")
+     * @param string|null $lentele   Lentelės pavadinimas (pvz. "uzsakymai")
+     * @param string|null $uzsakymo_numeris Susijęs užsakymo numeris
+     * @param int $irasu_kiekis       Kiek įrašų buvo apdorota
+     * @param string $statusas        "ok" arba "klaida"
+     * @param string|null $klaida     Klaidos pranešimas jei nepavyko
+     */
     public static function irasytLog(string $veiksmas, ?string $lentele = null, ?string $uzsakymo_numeris = null, int $irasu_kiekis = 0, string $statusas = 'ok', ?string $klaida = null): void {
         $conn = self::getConnection();
         if (!$conn) return;
@@ -74,6 +113,13 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Grąžina sinchronizacijos žurnalo įrašus, surikiuotus nuo naujausio.
+     * Naudojama sync_log.php puslapyje rodyti sinchronizacijos istoriją.
+     *
+     * @param int $limit  Kiek įrašų grąžinti (numatyta: 100)
+     * @param int $offset Nuo kurio įrašo pradėti (puslapiavimui)
+     */
     public static function gautiSyncLog(int $limit = 100, int $offset = 0): array {
         $conn = self::getConnection();
         if (!$conn) return [];
@@ -86,6 +132,10 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Grąžina bendrą sinchronizacijos žurnalo įrašų skaičių.
+     * Naudojama puslapiavimui — kad žinotume kiek iš viso yra puslapių.
+     */
     public static function gautiSyncLogKieki(): int {
         $conn = self::getConnection();
         if (!$conn) return 0;
@@ -96,6 +146,14 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Ieško užsakovo pagal pavadinimą Tomo QMS duomenų bazėje.
+     * Jei rastas — grąžina jo ID. Jei nerastas — sukuria naują ir grąžina naują ID.
+     * Taip išvengiama užsakovų dublikavimo sinchronizacijos metu.
+     *
+     * @param string $uzsakovas_pav Užsakovo pavadinimas (pvz. "UAB Statybos darbai")
+     * @return int|null             Užsakovo ID arba null jei klaida
+     */
     public static function gautiArbaKurtiUzsakova(string $uzsakovas_pav): ?int {
         $conn = self::getConnection();
         if (!$conn || trim($uzsakovas_pav) === '') return null;
@@ -113,6 +171,13 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Ieško objekto (statybos vietos) pagal pavadinimą Tomo QMS duomenų bazėje.
+     * Jei rastas — grąžina jo ID. Jei nerastas — sukuria naują ir grąžina naują ID.
+     *
+     * @param string $objektas_pav Objekto pavadinimas (pvz. "Šiaulių elektrinė")
+     * @return int|null            Objekto ID arba null jei klaida
+     */
     public static function gautiArbaKurtiObjekta(string $objektas_pav): ?int {
         $conn = self::getConnection();
         if (!$conn || trim($objektas_pav) === '') return null;
@@ -130,6 +195,14 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Sinchronizuoja užsakymą į Tomo QMS duomenų bazę.
+     * Jei užsakymas ten jau egzistuoja (pagal numerį) — atnaujina.
+     * Jei neegzistuoja — sukuria naują. Taip pat sukuria/atnaujina
+     * susijusį užsakovą ir objektą.
+     *
+     * @return int|null Užsakymo ID Tomo QMS bazėje arba null jei klaida
+     */
     public static function sinchronizuotiUzsakyma(string $uzsakymo_numeris, ?string $uzsakovas_pav, ?string $objektas_pav, int $kiekis = 1, int $vartotojas_id = 1, ?int $gaminiu_rusis_id = null, ?string $sukurtas = null): ?int {
         $conn = self::getConnection();
         if (!$conn || trim($uzsakymo_numeris) === '') return null;
@@ -174,6 +247,15 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Sinchronizuoja gaminio tipą į Tomo QMS duomenų bazę.
+     * Jei gaminio tipas ten jau egzistuoja (pagal ID) — nieko nedaro.
+     * Jei neegzistuoja — nukopijuoja iš mūsų lokalios bazės.
+     * Kviečiama prieš sinchronizuojant gaminį — kad tipas jau būtų ten.
+     *
+     * @param PDO $localConn  Ryšys su mūsų lokalia duomenų baze
+     * @param int|null $tipas_id Gaminio tipo ID
+     */
     public static function sinchGaminioTipa(PDO $localConn, ?int $tipas_id): void {
         if (!$tipas_id) return;
         $conn = self::getConnection();
@@ -193,6 +275,17 @@ class TomoQMS {
         }
     }
 
+    /**
+     * Ieško gaminio Tomo QMS duomenų bazėje pagal užsakymo ID ir gaminio numerį.
+     * Jei rastas — grąžina jo ID. Jei nerastas — sukuria naują gaminį ir grąžina naują ID.
+     * Kviečiama sinchronizuojant kiekvieną gaminį iš užsakymo.
+     *
+     * @param int $uzsakymo_id_tomo  Užsakymo ID Tomo QMS bazėje
+     * @param string|null $gaminio_numeris Gaminio serijos numeris
+     * @param int|null $gaminio_tipas_id   Gaminio tipo ID
+     * @param string|null $protokolo_nr    Protokolo numeris
+     * @return int|null                    Gaminio ID Tomo QMS bazėje arba null jei klaida
+     */
     public static function gautiArbaKurtiGamini(int $uzsakymo_id_tomo, ?string $gaminio_numeris = null, ?int $gaminio_tipas_id = null, ?string $protokolo_nr = null): ?int {
         $conn = self::getConnection();
         if (!$conn) return null;
