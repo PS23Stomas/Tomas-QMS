@@ -92,8 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!preg_match('/\d/', $slaptazodis)) {
             $klaida = "Slaptažodyje turi būti bent vienas skaičius.";
         } else {
-            // Vartotojo paieška duomenų bazėje pagal vardą
-            $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas");
+            // Vartotojo paieška pagal vardą arba el. paštą (jei yra @ — ieškoma el. paštu)
+            if (str_contains($vardas, '@')) {
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE el_pastas = :vardas LIMIT 1");
+            } else {
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY role = 'admin' DESC, id ASC LIMIT 1");
+            }
             $stmt->execute(['vardas' => $vardas]);
             $naudotojas = $stmt->fetch();
 
