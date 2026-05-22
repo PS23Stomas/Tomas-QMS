@@ -769,6 +769,7 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
+            <?php /* IMPORTO MYGTUKAS — laikinai išjungtas (atmaskuoti: pašalinti php komentaro žymes)
             <div style="position:relative;display:inline-flex;align-items:center;" id="importWrap">
                 <button class="btn btn-sm" id="btnImport" onclick="importuotiIsQualityTomas()" data-testid="button-import" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -785,6 +786,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div id="importDetails" style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
                 </div>
             </div>
+            */ ?>
             <button class="btn btn-primary btn-sm btn-new-order" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
