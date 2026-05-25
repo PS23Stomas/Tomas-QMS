@@ -254,7 +254,7 @@ Lentelė: vartotojai
 - id              SERIAL PRIMARY KEY
 - vardas          VARCHAR — vardas
 - pavarde         VARCHAR — pavardė
-- pastas          VARCHAR — el. pašto adresas
+- el_pastas       VARCHAR — el. pašto adresas (naudojamas prisijungimui)
 - slaptazodis     VARCHAR — bcrypt hash
 - role            VARCHAR — 'admin'|'user'|'skaitytojas'
 - parasas         BYTEA — parašo vaizdas
@@ -433,12 +433,16 @@ js/app.js                      — kliento JavaScript
 ================================================================================
 
 5.1 Prisijungimas (login.php)
-- Priima vardą, pavardę ir slaptažodį
-- Ieško vartotojo pagal vardą ir pavardę vartotojai lentelėje
+- Priima prisijungimo vardą (vardas arba el. paštas) ir slaptažodį
+- Prisijungimo logika:
+  a) Jei įvesta reikšmė turi '@' — ieško pagal el_pastas lauką
+  b) Jei be '@' — ieško pagal vardas lauką; kai keli vartotojai turi tą patį
+     vardą, pirmenybė teikiama 'admin' rolei (ORDER BY role='admin' DESC)
 - Tikrina slaptažodį su password_verify() (bcrypt — PASSWORD_BCRYPT)
 - Sėkmės atveju: session_regenerate_id(true) prieš sesijos kintamųjų nustatymą
 - Nustato: vartotojas_id, vardas, pavarde, role, paskutine_veikla
 - Registruoja aktyvų vartotoją aktyvus_vartotojai lentelėje
+- GET užklausa visada grąžina HTTP 200 (ne 302) — Replit sveikatos tikrintojo reikalavimas
 
 5.2 Sesijos konfigūracija (Sesija.php)
 - Galiojimas: 1800 sekundžių (30 minučių)
@@ -729,7 +733,7 @@ Eksporto logika: DELETE esami + INSERT nauji (pilnas perrašymas)
 ================================================================================
 
 11.1 CSS architektūra
-- Pagrindinis failas: public/css/style.css (2300+ eilučių)
+- Pagrindinis failas: public/css/style.css (2570+ eilučių, 48 sekcijos)
 - Individualus CSS karkasas su CSS kintamaisiais (--primary: #2563eb ir kt.)
 - Flexbox ir Grid išdėstymas
 - Bootstrap 5 selektyviai integruotas tik specifiniuose puslapiuose:
