@@ -115,6 +115,23 @@ $stmt = $pdo->prepare("
 $stmt->execute($ist_params);
 $ist_aktyvus_defektai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$stmt = $pdo->prepare("
+    SELECT
+        EXTRACT(WEEK FROM u.sukurtas::timestamp) AS savaite,
+        MIN(DATE(u.sukurtas)) AS savaites_data,
+        COUNT(DISTINCT fb.gaminio_id) AS patikrinta_gaminiu,
+        COUNT(CASE WHEN fb.defektas IS NOT NULL AND TRIM(fb.defektas) <> '' THEN 1 END) AS klaidu
+    FROM funkciniai_bandymai fb
+    JOIN gaminiai g ON fb.gaminio_id = g.id
+    JOIN gaminio_tipai gt ON gt.id = g.gaminio_tipas_id
+    JOIN uzsakymai u ON g.uzsakymo_id = u.id
+    $ist_where_sql AND gt.grupe = " . $pdo->quote($filtro_grupe) . "
+    GROUP BY EXTRACT(WEEK FROM u.sukurtas::timestamp)
+    ORDER BY savaite
+");
+$stmt->execute($ist_params);
+$ist_savaiciu_duomenys = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 $data = date('Y-m-d H:i');
 $vartotojas = currentUser();
 $vart_vardas = htmlspecialchars(($vartotojas['vardas'] ?? '') . ' ' . ($vartotojas['pavarde'] ?? ''));
@@ -161,6 +178,53 @@ $html = '
         </td>
     </tr>
 </table>';
+
+if (!empty($ist_savaiciu_duomenys)) {
+    $max_val = 1;
+    foreach ($ist_savaiciu_duomenys as $s) {
+        $max_val = max($max_val, (int)$s['patikrinta_gaminiu'], (int)$s['klaidu']);
+    }
+    $html .= '<h2>Per savaite: patikrinta gaminiu ir rasta klaidu</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+        <thead>
+            <tr>
+                <th style="width:60px;text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">Savaite</th>
+                <th style="text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">&#9632; Patikrinta gaminiu</th>
+                <th style="text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">&#9632; Rasta klaidu</th>
+            </tr>
+        </thead>
+        <tbody>';
+    foreach ($ist_savaiciu_duomenys as $s) {
+        $gaminiai  = (int)$s['patikrinta_gaminiu'];
+        $klaidos   = (int)$s['klaidu'];
+        $savaite   = (int)$s['savaite'];
+        $data_txt  = $s['savaites_data'] ? date('d.m', strtotime($s['savaites_data'])) : '';
+        $g_pct = round($gaminiai / $max_val * 100);
+        $k_pct = round($klaidos  / $max_val * 100);
+        $html .= '<tr>
+            <td style="padding:4px 6px;font-size:10px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">' . $savaite . '<br><span style="font-size:9px;color:#6b7280;">' . $data_txt . '</span></td>
+            <td style="padding:4px 6px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">
+                <table style="width:100%;border-collapse:collapse;"><tr>
+                    <td style="width:' . $g_pct . '%;background:#3b82f6;height:12px;font-size:1px;">&nbsp;</td>
+                    <td style="width:' . (100 - $g_pct) . '%;"></td>
+                </tr></table>
+                <span style="font-size:10px;color:#1d4ed8;">' . $gaminiai . '</span>
+            </td>
+            <td style="padding:4px 6px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">
+                <table style="width:100%;border-collapse:collapse;"><tr>
+                    <td style="width:' . $k_pct . '%;background:#ef4444;height:12px;font-size:1px;">&nbsp;</td>
+                    <td style="width:' . (100 - $k_pct) . '%;"></td>
+                </tr></table>
+                <span style="font-size:10px;color:#dc2626;">' . $klaidos . '</span>
+            </td>
+        </tr>';
+    }
+    $html .= '</tbody></table>
+    <p style="font-size:9px;color:#6b7280;margin-bottom:8px;">
+        <span style="color:#3b82f6;">&#9632;</span> Patikrinta gaminiu &nbsp;&nbsp;
+        <span style="color:#ef4444;">&#9632;</span> Rasta klaidu
+    </p>';
+}
 
 if (!empty($ist_top_defektai)) {
     $html .= '<h2>TOP 5 dazniausios klaidos</h2>
