@@ -184,46 +184,66 @@ if (!empty($ist_savaiciu_duomenys)) {
     foreach ($ist_savaiciu_duomenys as $s) {
         $max_val = max($max_val, (int)$s['patikrinta_gaminiu'], (int)$s['klaidu']);
     }
-    $html .= '<h2>Per savaite: patikrinta gaminiu ir rasta klaidu</h2>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-        <thead>
-            <tr>
-                <th style="width:60px;text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">Savaite</th>
-                <th style="text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">&#9632; Patikrinta gaminiu</th>
-                <th style="text-align:left;padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">&#9632; Rasta klaidu</th>
-            </tr>
-        </thead>
-        <tbody>';
-    foreach ($ist_savaiciu_duomenys as $s) {
-        $gaminiai  = (int)$s['patikrinta_gaminiu'];
-        $klaidos   = (int)$s['klaidu'];
-        $savaite   = (int)$s['savaite'];
-        $data_txt  = $s['savaites_data'] ? date('d.m', strtotime($s['savaites_data'])) : '';
-        $g_pct = round($gaminiai / $max_val * 100);
-        $k_pct = round($klaidos  / $max_val * 100);
-        $html .= '<tr>
-            <td style="padding:4px 6px;font-size:10px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">' . $savaite . '<br><span style="font-size:9px;color:#6b7280;">' . $data_txt . '</span></td>
-            <td style="padding:4px 6px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">
-                <table style="width:100%;border-collapse:collapse;"><tr>
-                    <td style="width:' . $g_pct . '%;background:#3b82f6;height:12px;font-size:1px;">&nbsp;</td>
-                    <td style="width:' . (100 - $g_pct) . '%;"></td>
-                </tr></table>
-                <span style="font-size:10px;color:#1d4ed8;">' . $gaminiai . '</span>
-            </td>
-            <td style="padding:4px 6px;border-bottom:1px solid #e5e7eb;vertical-align:middle;">
-                <table style="width:100%;border-collapse:collapse;"><tr>
-                    <td style="width:' . $k_pct . '%;background:#ef4444;height:12px;font-size:1px;">&nbsp;</td>
-                    <td style="width:' . (100 - $k_pct) . '%;"></td>
-                </tr></table>
-                <span style="font-size:10px;color:#dc2626;">' . $klaidos . '</span>
-            </td>
-        </tr>';
+
+    $svg_w      = 530;
+    $svg_h      = 170;
+    $ml         = 28;
+    $mb         = 32;
+    $mt         = 12;
+    $chart_h    = $svg_h - $mb - $mt;
+    $chart_w    = $svg_w - $ml;
+    $n          = count($ist_savaiciu_duomenys);
+    $slot_w     = $n > 0 ? $chart_w / $n : $chart_w;
+    $bar_w      = max(4, min(16, $slot_w * 0.32));
+    $baseline_y = $svg_h - $mb;
+
+    $svg  = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $svg_w . '" height="' . $svg_h . '">';
+    $svg .= '<line x1="' . $ml . '" y1="' . $baseline_y . '" x2="' . $svg_w . '" y2="' . $baseline_y . '" stroke="#d1d5db" stroke-width="1"/>';
+
+    for ($yi = 1; $yi <= 4; $yi++) {
+        $gy = $baseline_y - round($yi / 4 * $chart_h);
+        $svg .= '<line x1="' . $ml . '" y1="' . $gy . '" x2="' . $svg_w . '" y2="' . $gy . '" stroke="#f3f4f6" stroke-width="1"/>';
+        $svg .= '<text x="' . ($ml - 3) . '" y="' . ($gy + 3) . '" text-anchor="end" font-size="7" fill="#9ca3af">' . round($max_val * $yi / 4) . '</text>';
     }
-    $html .= '</tbody></table>
-    <p style="font-size:9px;color:#6b7280;margin-bottom:8px;">
-        <span style="color:#3b82f6;">&#9632;</span> Patikrinta gaminiu &nbsp;&nbsp;
-        <span style="color:#ef4444;">&#9632;</span> Rasta klaidu
-    </p>';
+
+    foreach ($ist_savaiciu_duomenys as $i => $s) {
+        $g  = (int)$s['patikrinta_gaminiu'];
+        $k  = (int)$s['klaidu'];
+        $xc = $ml + ($i + 0.5) * $slot_w;
+
+        $bh_g = $max_val > 0 ? round(($g / $max_val) * $chart_h) : 0;
+        $xg   = round($xc - $bar_w - 1);
+        $yg   = $baseline_y - $bh_g;
+        if ($bh_g > 0) {
+            $svg .= '<rect x="' . $xg . '" y="' . $yg . '" width="' . $bar_w . '" height="' . $bh_g . '" fill="#3b82f6" rx="1"/>';
+        }
+        if ($g > 0) {
+            $svg .= '<text x="' . round($xg + $bar_w / 2) . '" y="' . ($yg - 2) . '" text-anchor="middle" font-size="7" fill="#1d4ed8">' . $g . '</text>';
+        }
+
+        $bh_k = $max_val > 0 ? round(($k / $max_val) * $chart_h) : 0;
+        $xk   = round($xc + 1);
+        $yk   = $baseline_y - $bh_k;
+        if ($bh_k > 0) {
+            $svg .= '<rect x="' . $xk . '" y="' . $yk . '" width="' . $bar_w . '" height="' . $bh_k . '" fill="#ef4444" rx="1"/>';
+        }
+        if ($k > 0) {
+            $svg .= '<text x="' . round($xk + $bar_w / 2) . '" y="' . ($yk - 2) . '" text-anchor="middle" font-size="7" fill="#b91c1c">' . $k . '</text>';
+        }
+
+        $savaite  = (int)$s['savaite'];
+        $data_txt = $s['savaites_data'] ? date('d.m', strtotime($s['savaites_data'])) : '';
+        $svg .= '<text x="' . round($xc) . '" y="' . ($baseline_y + 11) . '" text-anchor="middle" font-size="8" fill="#374151">' . $savaite . '</text>';
+        $svg .= '<text x="' . round($xc) . '" y="' . ($baseline_y + 21) . '" text-anchor="middle" font-size="7" fill="#9ca3af">' . $data_txt . '</text>';
+    }
+
+    $svg .= '</svg>';
+
+    $html .= '<h2>Per savaite: patikrinta gaminiu ir rasta klaidu</h2>'
+           . $svg
+           . '<p style="font-size:9px;color:#6b7280;margin:4px 0 12px 0;">'
+           . '<span style="color:#3b82f6;">&#9632;</span> Patikrinta gaminiu &nbsp;&nbsp;'
+           . '<span style="color:#ef4444;">&#9632;</span> Rasta klaidu</p>';
 }
 
 if (!empty($ist_top_defektai)) {
