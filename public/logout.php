@@ -31,7 +31,7 @@ if (isset($_COOKIE['remember_token'])) {
         'path' => '/',
         'secure' => true,
         'httponly' => true,
-        'samesite' => 'Lax'
+        'samesite' => 'None'
     ]);
 }
 

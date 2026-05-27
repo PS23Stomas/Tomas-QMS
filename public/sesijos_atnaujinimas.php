@@ -15,7 +15,7 @@
  *   HTTP 401 + { "ok": false, "expired": true }
  *   app.js tuomet nukreipia vartotoją į /login.php?sesija_pasibaige=1
  */
-session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'None']);
 ini_set('session.gc_maxlifetime', 1800);
 session_start();
 

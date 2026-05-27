@@ -97,8 +97,10 @@
        Pvz.: pelės judėjimas, klavišo paspaudimas, slinkimas, lietimas (telefonui). */
     var aktyvumoIvykiai = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
 
-    /* Paskutinio serverio atnaujinimo laikas — neleidžia siųsti užklausų per dažnai */
-    var paskutinisAtnaujinimas = 0;
+    /* Paskutinio serverio atnaujinimo laikas — neleidžia siųsti užklausų per dažnai.
+       Inicializuojama su Date.now(), kad pirmasis kliktelėjimas iš karto nesukeltų
+       užklausos (pirma užklausa bus tik po 30 sekundžių neaktyvumo). */
+    var paskutinisAtnaujinimas = Date.now();
 
     /**
      * Kviečiamas kaskart, kai vartotojas ką nors daro.
@@ -117,7 +119,7 @@
         if (dabar - paskutinisAtnaujinimas < 30000) return;
         paskutinisAtnaujinimas = dabar;
         resetuotiLaikmati();
-        fetch('/sesijos_atnaujinimas.php', { method: 'POST', credentials: 'same-origin' })
+        fetch('/sesijos_atnaujinimas.php', { method: 'GET', credentials: 'include' })
             .then(function(r) { if (r.status === 401) window.location.href = '/login.php?sesija_pasibaige=1'; })
             .catch(function() { /* Tinklo klaida — nieko nedarome, laikmaitis toliau eina */ });
     }
