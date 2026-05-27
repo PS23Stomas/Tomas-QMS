@@ -3,7 +3,7 @@
  * Vartotojų valdymo puslapis (tik administratoriams) - vartotojų CRUD ir rolių valdymas
  *
  * Šis puslapis leidžia administratoriams kurti, redaguoti, šalinti vartotojus,
- * priskirti roles (admin, user, skaitytojas) ir valdyti patvirtinimo būseną.
+ * priskirti roles (administratorius, vartotojas, skaitytojas) ir valdyti patvirtinimo būseną.
  */
 
 require_once __DIR__ . '/includes/config.php';
@@ -13,7 +13,7 @@ $page_title = 'Vartotojų valdymas';
 $user = currentUser();
 
 // Prieigos tikrinimas - tik administratoriai gali pasiekti šį puslapį
-if (($user['role'] ?? '') !== 'admin') {
+if (($user['role'] ?? '') !== 'administratorius') {
     header('Location: /index.php');
     exit;
 }
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'pavarde' => $_POST['pavarde'] ?? '',
                 'el_pastas' => $el_pastas,
                 'slaptazodis' => $slaptazodis,
-                'role' => $_POST['role'] ?? 'user',
+                'role' => $_POST['role'] ?? 'vartotojas',
                 'patvirtino_id' => $_SESSION['vartotojas_id'],
             ]);
             $message = 'Vartotojas sukurtas sėkmingai.';
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'vardas' => $_POST['vardas'] ?? '',
             'pavarde' => $_POST['pavarde'] ?? '',
             'el_pastas' => $_POST['el_pastas'] ?? '',
-            'role' => $_POST['role'] ?? 'user',
+            'role' => $_POST['role'] ?? 'vartotojas',
             'pareigos' => trim($_POST['pareigos'] ?? ''),
             'id' => $_POST['id'],
         ];
@@ -166,7 +166,7 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
         </div>
-        <div class="stat-value" data-testid="text-users-admin"><?= $role_counts['admin'] ?? 0 ?></div>
+        <div class="stat-value" data-testid="text-users-admin"><?= $role_counts['administratorius'] ?? 0 ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-header">
@@ -175,7 +175,7 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
         </div>
-        <div class="stat-value" data-testid="text-users-regular"><?= $role_counts['user'] ?? 0 ?></div>
+        <div class="stat-value" data-testid="text-users-regular"><?= $role_counts['vartotojas'] ?? 0 ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-header">
@@ -263,9 +263,9 @@ require_once __DIR__ . '/includes/header.php';
                     <?php foreach ($users as $u): ?>
                     <?php
                         $role_badge = 'badge-info';
-                        $role_labels = ['admin' => 'Administratorius', 'user' => 'Vartotojas', 'skaitytojas' => 'Skaitytojas'];
-                        if ($u['role'] === 'admin') $role_badge = 'badge-danger';
-                        elseif ($u['role'] === 'user') $role_badge = 'badge-primary';
+                        $role_labels = ['administratorius' => 'Administratorius', 'vartotojas' => 'Vartotojas', 'skaitytojas' => 'Skaitytojas'];
+                        if ($u['role'] === 'administratorius') $role_badge = 'badge-danger';
+                        elseif ($u['role'] === 'vartotojas') $role_badge = 'badge-primary';
                     ?>
                     <tr data-testid="row-user-<?= $u['id'] ?>">
                         <td class="usr-cell-name" data-label="Vardas" style="font-weight: 500;"><?= h($u['vardas'] ?? '-') ?></td>
@@ -336,8 +336,8 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Rolė</label>
                     <select class="form-control" name="role" data-testid="select-user-role">
-                        <option value="user">Vartotojas</option>
-                        <option value="admin">Administratorius</option>
+                        <option value="vartotojas">Vartotojas</option>
+                        <option value="administratorius">Administratorius</option>
                         <option value="skaitytojas">Skaitytojas</option>
                     </select>
                 </div>
@@ -383,8 +383,8 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="form-group">
                     <label class="form-label">Rolė</label>
                     <select class="form-control" name="role" id="edit_user_role" data-testid="select-user-role-edit">
-                        <option value="user">Vartotojas</option>
-                        <option value="admin">Administratorius</option>
+                        <option value="vartotojas">Vartotojas</option>
+                        <option value="administratorius">Administratorius</option>
                         <option value="skaitytojas">Skaitytojas</option>
                     </select>
                 </div>
@@ -476,7 +476,7 @@ function editUser(u) {
     document.getElementById('edit_user_vardas').value = u.vardas || '';
     document.getElementById('edit_user_pavarde').value = u.pavarde || '';
     document.getElementById('edit_user_el_pastas').value = u.el_pastas || '';
-    document.getElementById('edit_user_role').value = u.role || 'user';
+    document.getElementById('edit_user_role').value = u.role || 'vartotojas';
     document.getElementById('edit_user_pareigos').value = u.pareigos || '';
 
     var preview = document.getElementById('edit_parasas_preview');

@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Užsakovas atnaujintas.';
     } elseif ($action === 'delete') {
         $user = currentUser();
-        if (($user['role'] ?? '') !== 'admin') {
+        if (($user['role'] ?? '') !== 'administratorius') {
             $error = 'Tik administratorius gali trinti užsakovus.';
         } else {
             $id = $_POST['id'] ?? null;
@@ -78,7 +78,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td class="gct-cell-actions">
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editClient(<?= $c['id'] ?>, '<?= h(addslashes($c['uzsakovas'])) ?>')" data-testid="button-edit-client-<?= $c['id'] ?>">Redaguoti</button>
-                                    <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
+                                    <?php if ((currentUser()['role'] ?? '') === 'administratorius'): ?>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= $c['id'] ?>">

@@ -29,7 +29,7 @@ Sesija::tikrintiPrisijungima();
 $conn = Database::getConnection();
 
 $user = currentUser();
-if (($user['role'] ?? '') !== 'admin') {
+if (($user['role'] ?? '') !== 'administratorius') {
     header('Location: /moduliai.php');
     exit;
 }

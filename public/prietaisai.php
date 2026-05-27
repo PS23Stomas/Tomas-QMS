@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'delete') {
         $user = currentUser();
-        if ($user['role'] !== 'admin') {
+        if ($user['role'] !== 'administratorius') {
             $error = 'Tik administratorius gali trinti prietaisus.';
         } else {
             $id = $_POST['id'] ?? null;
@@ -456,7 +456,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="card">
     <div class="card-header">
         <span class="card-title">Prietaisai (<?= count($devices) ?>)</span>
-        <?php if (($user['role'] ?? '') === 'admin'): ?>
+        <?php if (($user['role'] ?? '') === 'administratorius'): ?>
         <button class="btn btn-primary btn-sm" onclick="openModal('createDeviceModal')" data-testid="button-new-device">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Naujas prietaisas
@@ -513,7 +513,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td class="prt-cell-actions">
                                 <div class="actions">
                                     <a href="/prietaisai.php?id=<?= $d['id'] ?>" class="btn btn-secondary btn-sm" data-testid="button-view-device-<?= $d['id'] ?>">Peržiūrėti</a>
-                                    <?php if (($user['role'] ?? '') === 'admin'): ?>
+                                    <?php if (($user['role'] ?? '') === 'administratorius'): ?>
                                     <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-device-<?= $d['id'] ?>"
                                         onclick="atidarytiPrietaisoTrinyma(<?= $d['id'] ?>, '<?= h($d['pavadinimas'] ?? '') ?>')">Trinti</button>
                                     <?php endif; ?>
@@ -530,7 +530,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<?php if (($user['role'] ?? '') === 'admin'): ?>
+<?php if (($user['role'] ?? '') === 'administratorius'): ?>
 <div class="modal-overlay" id="createDeviceModal">
     <div class="modal" style="max-width: 700px;">
         <div class="modal-header">
@@ -648,7 +648,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <?php endif; ?>
 
-<?php if (($user['role'] ?? '') === 'admin'): ?>
+<?php if (($user['role'] ?? '') === 'administratorius'): ?>
 <div class="modal-overlay" id="deleteDeviceModal" data-testid="modal-delete-device">
     <div class="modal" style="max-width: 420px;">
         <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">

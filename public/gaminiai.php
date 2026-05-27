@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $id = $_POST['id'] ?? null;
         $user = currentUser();
-        if (($user['role'] ?? '') !== 'admin') {
+        if (($user['role'] ?? '') !== 'administratorius') {
             $error = 'Tik administratorius gali trinti gaminius.';
         } elseif ($id) {
             // Pirmiausia ištriname susijusius komponentus (nes jie susieti per gaminio_id)
@@ -196,7 +196,7 @@ require_once __DIR__ . '/includes/header.php';
 
                             <!-- Trynimo mygtukas su patvirtinimo dialogu (tik admin) -->
                             <td>
-                                <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
+                                <?php if ((currentUser()['role'] ?? '') === 'administratorius'): ?>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti šį gaminį?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $p['id'] ?>">

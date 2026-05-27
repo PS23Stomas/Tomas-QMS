@@ -28,7 +28,7 @@ requireLogin();
 
 $page_title = 'Moduliai';
 $user = currentUser();
-$isAdmin = (($user['role'] ?? '') === 'admin');
+$isAdmin = (($user['role'] ?? '') === 'administratorius');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
     $action = $_POST['action'] ?? '';

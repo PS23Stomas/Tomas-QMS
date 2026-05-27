@@ -32,7 +32,7 @@ Sesija::tikrintiPrisijungima();
 
 /* Tik adminai gali keisti šabloną */
 $user = currentUser();
-if (($user['role'] ?? '') !== 'admin') {
+if (($user['role'] ?? '') !== 'administratorius') {
     header('Location: /index.php');
     exit;
 }

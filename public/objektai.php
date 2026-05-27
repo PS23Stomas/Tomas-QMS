@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Objektas atnaujintas.';
     } elseif ($action === 'delete') {
         $user = currentUser();
-        if (($user['role'] ?? '') !== 'admin') {
+        if (($user['role'] ?? '') !== 'administratorius') {
             $error = 'Tik administratorius gali trinti objektus.';
         } else {
             $id = $_POST['id'] ?? null;
@@ -78,7 +78,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td class="gct-cell-actions">
                                 <div class="actions">
                                     <button class="btn btn-secondary btn-sm" onclick="editObject(<?= $o['id'] ?>, '<?= h(addslashes($o['pavadinimas'])) ?>')" data-testid="button-edit-object-<?= $o['id'] ?>">Redaguoti</button>
-                                    <?php if ((currentUser()['role'] ?? '') === 'admin'): ?>
+                                    <?php if ((currentUser()['role'] ?? '') === 'administratorius'): ?>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Ar tikrai norite ištrinti?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?= $o['id'] ?>">

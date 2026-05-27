@@ -31,7 +31,7 @@ $page_title = 'Įmonės nustatymai';
 $current_page = 'imones_nustatymai';
 $user = currentUser();
 
-if (($user['role'] ?? '') !== 'admin') {
+if (($user['role'] ?? '') !== 'administratorius') {
     header('Location: /uzsakymai.php');
     exit;
 }

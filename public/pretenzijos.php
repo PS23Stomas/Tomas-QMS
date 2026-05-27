@@ -365,7 +365,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($veiksmas === 'trinti') {
         $user = currentUser();
-        if ($user['role'] !== 'admin') {
+        if ($user['role'] !== 'administratorius') {
             $klaida = 'Tik administratorius gali trinti pretenzijas.';
         } else {
             $id = (int)($_POST['id'] ?? 0);
@@ -999,7 +999,7 @@ include __DIR__ . '/includes/header.php';
             <button class="btn-action edit" onclick="editPretenzija(<?= $p['id'] ?>)" title="Redaguoti" aria-label="Redaguoti pretenziją #<?= $p['id'] ?>" data-testid="button-edit-<?= $p['id'] ?>">
               <i class="bi bi-pencil"></i>
             </button>
-            <?php if (currentUser()['role'] === 'admin'): ?>
+            <?php if (currentUser()['role'] === 'administratorius'): ?>
             <button class="btn-action delete" title="Šis veiksmas negrįžtamas – pretenzija bus ištrinta" aria-label="Trinti pretenziją #<?= $p['id'] ?>" data-testid="button-delete-<?= $p['id'] ?>"
                 onclick="atidarytiPretenzijosTrinyma(<?= $p['id'] ?>, '<?= h($p['nr'] ?? $p['id']) ?>')">
               <i class="bi bi-trash"></i>
@@ -2031,7 +2031,7 @@ document.querySelectorAll('#modalKurti, #modalView, #modalEdit, #modalEmail, #mo
 
 </script>
 
-<?php if (currentUser()['role'] === 'admin'): ?>
+<?php if (currentUser()['role'] === 'administratorius'): ?>
 <div class="modal-overlay" id="deletePretModal" data-testid="modal-delete-pretenzija">
     <div class="modal" style="max-width: 420px;">
         <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">

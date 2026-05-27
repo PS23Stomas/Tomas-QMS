@@ -104,7 +104,7 @@ function requireLogin(): void {
  *   id:      int|null,
  *   vardas:  string|null,
  *   pavarde: string|null,
- *   role:    string|null   (galimos reikšmės: 'admin', 'user', 'skaitytojas')
+ *   role:    string|null   (galimos reikšmės: 'administratorius', 'vartotojas', 'skaitytojas')
  * }
  */
 function currentUser(): array {

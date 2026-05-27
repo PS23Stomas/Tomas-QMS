@@ -21,7 +21,7 @@ require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 $user = currentUser();
-if (($user['role'] ?? '') !== 'admin') {
+if (($user['role'] ?? '') !== 'administratorius') {
     header('Location: /index.php');
     exit;
 }

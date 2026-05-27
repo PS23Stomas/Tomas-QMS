@@ -16,7 +16,7 @@ require_once __DIR__ . '/includes/config.php';
 requireLogin();
 
 // Tik adminai gali naudotis šiuo puslapiu
-if (currentUser()['role'] !== 'admin') {
+if (currentUser()['role'] !== 'administratorius') {
     http_response_code(403);
     die('Prieiga uždrausta. Šis puslapis skirtas tik administratoriams.');
 }

@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (str_contains($vardas, '@')) {
                 $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE el_pastas = :vardas LIMIT 1");
             } else {
-                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY role = 'admin' DESC, id ASC LIMIT 1");
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY role = 'administratorius' DESC, id ASC LIMIT 1");
             }
             $stmt->execute(['vardas' => $vardas]);
             $naudotojas = $stmt->fetch();

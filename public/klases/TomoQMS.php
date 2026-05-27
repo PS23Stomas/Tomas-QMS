@@ -1149,7 +1149,7 @@ class TomoQMS {
                         ->execute([$u['vardas'], $u['pavarde'], $u['role'], $u['id']]);
                 } else {
                     $tomo->prepare("INSERT INTO vartotojai (id, vardas, pavarde, el_pastas, slaptazodis, role) VALUES (?,?,?,?,?,?)")
-                        ->execute([$u['id'], $u['vardas'], $u['pavarde'], $u['el_pastas'] ?? '', $u['slaptazodis'] ?? '', $u['role'] ?? 'user']);
+                        ->execute([$u['id'], $u['vardas'], $u['pavarde'], $u['el_pastas'] ?? '', $u['slaptazodis'] ?? '', $u['role'] ?? 'vartotojas']);
                 }
                 $rezultatas['vartotojai']++;
             }

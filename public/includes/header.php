@@ -157,7 +157,7 @@
                                     <span>Kokybiniai rodikliai</span>
                                 </a>
 
-                                <?php $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
+                                <?php $isAdmin = (($user['role'] ?? '') === 'administratorius'); ?>
                                 <?php if ($isAdmin): ?>
                                 <!-- Tikrinimo šablonas — tik administratoriams -->
                                 <a href="/sablonas_funkciniai.php?grupe=<?= urlencode($aktyvus_grupe) ?>"
@@ -195,7 +195,7 @@
                                      Prietaisų patikra — visiems vartotojams
                                      Vartotojų valdymas — tik administratoriams
                                      ─────────────────────────────────────────────────── -->
-                                <?php if (!isset($isAdmin)) $isAdmin = (($user['role'] ?? '') === 'admin'); ?>
+                                <?php if (!isset($isAdmin)) $isAdmin = (($user['role'] ?? '') === 'administratorius'); ?>
                                 <div class="nav-section-label">Administravimas</div>
 
                                 <a href="/prietaisai.php"
@@ -257,8 +257,8 @@
                                             <?= h(($user['vardas'] ?? '') . ' ' . ($user['pavarde'] ?? '')) ?>
                                         </div>
                                         <div class="user-role"><?php
-                                            $roleLabels = ['admin' => 'Administratorius', 'user' => 'Vartotojas',                                                     'skaitytojas' => 'Skaitytojas'];
-                                            echo h($roleLabels[$user['role'] ?? 'user'] ?? $user['role'] ??                                                             'Vartotojas');
+                                            $roleLabels = ['administratorius' => 'Administratorius', 'vartotojas' => 'Vartotojas',                                                     'skaitytojas' => 'Skaitytojas'];
+                                            echo h($roleLabels[$user['role'] ?? 'vartotojas'] ?? $user['role'] ??                                                             'Vartotojas');
                                         ?></div>
                                     </div>
                                 </div>

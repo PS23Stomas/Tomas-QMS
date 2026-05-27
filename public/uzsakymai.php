@@ -40,7 +40,7 @@ $clients = $pdo->query('SELECT id, uzsakovas FROM uzsakovai ORDER BY uzsakovas')
 $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinimas')->fetchAll();
 
 $user = currentUser();
-$is_admin = (($user['role'] ?? '') === 'admin');
+$is_admin = (($user['role'] ?? '') === 'administratorius');
 $imones_nust = null;
 $imones_logo_src = '';
 $imones_has_logo = false;
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = $_POST['id'] ?? null;
         $patvirtinimas = trim($_POST['patvirtinimo_nr'] ?? '');
         $user = currentUser();
-        if ($user['role'] !== 'admin') {
+        if ($user['role'] !== 'administratorius') {
             $error = 'Tik administratorius gali trinti užsakymus.';
         } elseif (!$id) {
             $error = 'Nenurodytas užsakymo ID.';
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'delete_pdf') {
         $user = currentUser();
-        if (($user['role'] ?? '') !== 'admin') {
+        if (($user['role'] ?? '') !== 'administratorius') {
             $error = 'Tik administratorius gali trinti PDF failus.';
         } else {
             $gam_id = (int)($_POST['gaminio_id'] ?? 0);
@@ -943,7 +943,7 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td class="uzs-cell-actions">
                                 <div class="actions">
-                                    <?php if (currentUser()['role'] === 'admin'): ?>
+                                    <?php if (currentUser()['role'] === 'administratorius'): ?>
                                     <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-order-<?= $o['id'] ?>"
                                         onclick="atidarytiTrynima(<?= $o['id'] ?>, '<?= h($o['uzsakymo_numeris']) ?>')">Trinti</button>
                                     <?php endif; ?>
@@ -1168,7 +1168,7 @@ document.addEventListener('click', function(e) {
 </div>
 <?php endif; ?>
 
-<?php if (currentUser()['role'] === 'admin'): ?>
+<?php if (currentUser()['role'] === 'administratorius'): ?>
 <div class="modal-overlay" id="deleteOrderModal" data-testid="modal-delete-order">
     <div class="modal" style="max-width: 480px;">
         <div class="modal-header" style="background: #fef2f2; border-bottom: 2px solid #fecaca;">
