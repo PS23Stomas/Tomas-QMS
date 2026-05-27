@@ -12,7 +12,7 @@
                  *  Ką šis failas daro:
                  *    1. Nustato aktyvų puslapį (paryškinimui navigacijoje)
                  *    2. Generuoja HTML <head> su stiliais, šriftais ir favicon
-                 *    3. Sukuria šoninę navigacijos juostą su rolių patikrais
+                 *    3. Sukuria šoninę navigacijos juostą su rolių patikrinimais
                  *    4. Generuoja viršutinę antraštę su duonos trupiniais ir puslapio pavadinimu
                  *    5. Atidaro pagrindinę turinio sritį (uždaroma footer.php)
                  *
