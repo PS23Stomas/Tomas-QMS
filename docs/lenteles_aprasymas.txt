@@ -1,0 +1,374 @@
+Lentelių aprašymas
+Duomenų bazė: PostgreSQL 16 | Sistema: MT Modulis | UAB "ELGA"
+Viso: 22 lentelės | Sugeneruota: 2026-05-27
+
+================================================================================
+
+1 lentelė. vartotojai — sistemos vartotojų duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+vardas                  VARCHAR(100)    Vartotojo vardas, naudojamas prisijungimui
+pavarde                 VARCHAR(100)    Vartotojo pavardė
+el_pastas               VARCHAR(255)    Elektroninio pašto adresas
+slaptazodis             VARCHAR(255)    Užšifruotas slaptažodis bcrypt formatu
+sukurta                 TEXT            Paskyros sukūrimo data ir laikas
+role                    TEXT            Rolė: administratorius, vartotojas arba skaitytojas
+login_token             VARCHAR(255)    Laikinas žetonas slaptažodžio atstatymui
+token_galiojimas        TIMESTAMP       Slaptažodžio atstatymo žetono galiojimo laikas
+patvirtintas            BOOLEAN         Ar vartotojas patvirtintas administratoriaus
+patvirtino_id           INTEGER         Nuoroda į patvirtinusį vartotoją (→ vartotojai.id)
+patvirtinimo_data       TIMESTAMP       Patvirtinimo data ir laikas
+parasas                 BYTEA           Skaitmeninis parašas, binariniai duomenys
+parasas_tipas           VARCHAR(50)     Parašo failo formato tipas (pvz. image/png)
+pareigos                VARCHAR(100)    Pareigų pavadinimas įmonėje (rodomas PDF dokumentuose)
+
+================================================================================
+
+2 lentelė. remember_tokens — „prisiminti mane" autentifikacijos žetonai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+vartotojas_id           INTEGER         Išorinis raktas → vartotojai.id
+token                   VARCHAR(255)    Užšifruotas žetonas SHA-256 formatu
+expires_at              TIMESTAMP       Galiojimo pabaigos data ir laikas (30 dienų)
+
+================================================================================
+
+3 lentelė. gaminiu_rusys — gamybos modulių pavadinimai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pavadinimas             TEXT            Modulio pavadinimas, pvz. „MT", „USN", „SI-04", „GVX", „10kV"
+
+================================================================================
+
+4 lentelė. uzsakovai — užsakovų (klientų) duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+uzsakovas               TEXT            Užsakovo įmonės pavadinimas
+
+================================================================================
+
+5 lentelė. objektai — statybos objektų duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pavadinimas             TEXT            Objekto pavadinimas
+
+================================================================================
+
+6 lentelė. uzsakymai — gamybos užsakymų duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+uzsakymo_numeris        VARCHAR(50)     Unikalus užsakymo numeris
+sukurtas                TEXT            Sukūrimo data ir laikas
+kiekis                  INTEGER         Užsakytų gaminių kiekis
+uzsakovas_id            INTEGER         Išorinis raktas → uzsakovai.id
+vartotojas_id           INTEGER         Išorinis raktas → vartotojai.id (užsakymą sukūręs)
+objektas_id             INTEGER         Išorinis raktas → objektai.id
+gaminiu_rusis_id        INTEGER         Išorinis raktas → gaminiu_rusys.id (NOT NULL)
+imone_pavadinimas       VARCHAR(255)    Gamintojo įmonės pavadinimas (kopija iš nustatymų)
+imone_adresas           TEXT            Gamintojo įmonės adresas (kopija iš nustatymų)
+imone_telefonas         VARCHAR(100)    Gamintojo telefono numeris (kopija iš nustatymų)
+imone_faksas            VARCHAR(100)    Gamintojo fakso numeris (kopija iš nustatymų)
+imone_el_pastas         VARCHAR(255)    Gamintojo el. pašto adresas (kopija iš nustatymų)
+imone_internetas        VARCHAR(255)    Gamintojo interneto svetainė (kopija iš nustatymų)
+
+================================================================================
+
+7 lentelė. gaminiai — atskirų gaminių duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+uzsakymo_id             INTEGER         Išorinis raktas → uzsakymai.id
+gaminio_numeris         VARCHAR(50)     Gaminio serijos / eilės numeris
+gaminio_tipas_id        INTEGER         Išorinis raktas → gaminio_tipai.id
+protokolo_nr            VARCHAR(100)    Bandymų protokolo numeris
+atitikmuo_kodas         VARCHAR(20)     Atitikmenų deklaracijos kodas
+mt_paso_pdf             BYTEA           Gaminio paso PDF failas (binariniai duomenys)
+mt_paso_failas          VARCHAR(255)    Paso PDF failo pavadinimas
+mt_dielektriniu_pdf     BYTEA           Dielektrinių bandymų protokolo PDF
+mt_dielektriniu_failas  VARCHAR(255)    Dielektrinių bandymų PDF pavadinimas
+mt_funkciniu_pdf        BYTEA           Funkcinių bandymų protokolo PDF
+mt_funkciniu_failas     VARCHAR(255)    Funkcinių bandymų PDF pavadinimas
+pavadinimas             TEXT            Gaminio pavadinimas
+dielektriniai_issaugoti BOOLEAN         Ar dielektriniai bandymai išsaugoti (generuoti PDF)
+
+================================================================================
+
+8 lentelė. gaminio_tipai — gaminių subtipai pagal modulį
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminio_tipas           TEXT            Gaminio tipo pavadinimas / modelis
+grupe                   TEXT            Modulio grupė (NOT NULL), pvz. „MT", „USN"
+atitikmuo_kodas         TEXT            Atitikmenų deklaracijos kodas šiam tipui
+
+================================================================================
+
+9 lentelė. funkciniu_sablonas — bandymų šablono reikalavimai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+eil_nr                  INTEGER         Eilės numeris, naudojamas rikiavimui (NOT NULL)
+pavadinimas             TEXT            Reikalavimo pavadinimas (NOT NULL)
+gaminiu_rusis_id        INTEGER         Išorinis raktas → gaminiu_rusys.id
+
+================================================================================
+
+10 lentelė. funkciniai_bandymai — funkcinių bandymų rezultatai
+--------------------------------------------------------------------------------
+Stulpelis                           Tipas           Aprašymas
+id                                  SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminio_id                          INTEGER         Išorinis raktas → gaminiai.id
+eil_nr                              INTEGER         Eilės numeris protokole
+reikalavimas                        TEXT            Tikrinamo reikalavimo pavadinimas
+isvada                              TEXT            Išvada: „atitinka" arba „neatitinka" (NOT NULL)
+defektas                            TEXT            Defekto aprašymas (tuščias jei defekto nėra)
+darba_atliko                        VARCHAR(255)    Bandymą atlikusio darbuotojo vardas
+irase_vartotojas                    VARCHAR(100)    Įrašą sukūrusio vartotojo vardas
+defekto_nuotrauka                   BYTEA           Defekto nuotraukos failas (binariniai duomenys)
+defekto_nuotraukos_pavadinimas      VARCHAR(255)    Nuotraukos failo pavadinimas
+pataisyta                           TEXT            Informacija apie defekto pataisymą
+issiusta_kam                        TEXT            El. paštas, kuriam išsiųstas pranešimas
+
+================================================================================
+
+11 lentelė. dielektriniai_bandymai — dielektrinių bandymų rezultatai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminys_id              INTEGER         Išorinis raktas → gaminiai.id
+eiles_nr                INTEGER         Eilės numeris bandymų protokole
+aprasymas               TEXT            Bandymo eilutės aprašymas
+itampa                  VARCHAR(50)     Bandymo įtampa (mažos įtampos blokams)
+schema1                 VARCHAR(100)    1-os grandinės bandymo schema / rezultatas
+schema2                 VARCHAR(100)    2-os grandinės bandymo schema / rezultatas
+schema3                 VARCHAR(100)    3-ios grandinės bandymo schema / rezultatas
+schema4                 VARCHAR(100)    4-os grandinės bandymo schema / rezultatas
+schema5                 VARCHAR(100)    5-os grandinės bandymo schema / rezultatas
+schema6                 VARCHAR(100)    6-os grandinės bandymo schema / rezultatas
+isvada                  TEXT            Galutinė bandymo išvada
+tipas                   VARCHAR(20)     Tipas: „mazos_itampos" arba „vidutines_itampos"
+grandines_pavadinimas   TEXT            Elektros grandinės pavadinimas (vidutinei įtampai)
+grandines_itampa        VARCHAR(50)     Grandinės nominali įtampa
+bandymo_schema          VARCHAR(255)    Bandymo schemos aprašymas
+bandymo_itampa_kv       VARCHAR(50)     Bandymo įtampa kilovoltais
+bandymo_trukme          VARCHAR(50)     Bandymo trukmė
+
+================================================================================
+
+12 lentelė. komponentai — gaminyje sumontuoti komponentai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+eiles_numeris           INTEGER         Eilės numeris komponentų sąraše (NOT NULL)
+gamintojo_kodas         TEXT            Gamintojo suteiktas komponento kodas / kataloginė pozicija
+kiekis                  INTEGER         Sumontuotų vienetų kiekis (NOT NULL)
+aprasymas               TEXT            Komponento aprašymas / pavadinimas
+gamintojas              TEXT            Komponento gamintojo pavadinimas
+gaminio_id              INTEGER         Išorinis raktas → gaminiai.id
+parinkta_projektui      SMALLINT        Žymė ar komponentas parinktas projektui (0 arba 1)
+
+================================================================================
+
+13 lentelė. saugikliu_ideklai — saugiklių įdėklų duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminio_id              INTEGER         Išorinis raktas → gaminiai.id
+sekcija                 VARCHAR(10)     Sekcijos žymėjimas (pvz. „A", „B")
+pozicija                INTEGER         Saugiklio pozicijos numeris sekcijoje
+gabaritas               VARCHAR(20)     Saugiklio įdėklo gabaritas (tipas 3.5 arba 3.6)
+nominalas               VARCHAR(10)     Saugiklio nominalinė srovė
+pozicijos_numeris       INTEGER         Unikalus pozicijos numeris viso gaminio kontekste
+
+================================================================================
+
+14 lentelė. izeminimo_tikrinimas — įžeminimo tikrinimo rezultatai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminys_id              INTEGER         Išorinis raktas → gaminiai.id (NOT NULL)
+eil_nr                  VARCHAR(10)     Matavimo taško eilės numeris
+tasko_pavadinimas       VARCHAR(255)    Matavimo taško pavadinimas / aprašymas
+matavimo_tasku_skaicius INTEGER         Matavimo taškų skaičius
+varza_ohm               NUMERIC(5,3)    Išmatuota varža omais
+budas                   VARCHAR(50)     Matavimo būdas
+bukle                   VARCHAR(50)     Taško būklė (atitinka / neatitinka)
+
+================================================================================
+
+15 lentelė. paso_teksto_korekcijos — paso teksto korekcijos
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminio_id              INTEGER         Išorinis raktas → gaminiai.id (NOT NULL)
+field_key               VARCHAR(100)    Lauko identifikatorius PDF šablone (NOT NULL)
+lang                    VARCHAR(5)      Kalbos kodas: „lt" arba „en" (NOT NULL)
+tekstas                 TEXT            Koreguojamas paso teksto turinys
+updated_at              TIMESTAMP       Paskutinio atnaujinimo data ir laikas
+
+================================================================================
+
+16 lentelė. bandymai_prietaisai — bandymuose naudoti matavimo prietaisai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+gaminys_id              INTEGER         Išorinis raktas → gaminiai.id (NOT NULL)
+prietaiso_tipas         VARCHAR(255)    Matavimo prietaiso tipas / pavadinimas
+prietaiso_nr            VARCHAR(255)    Prietaiso inventorinis / serijinis numeris
+patikra_data            DATE            Paskutinės metrologinės patikros data
+galioja_iki             DATE            Patikros galiojimo pabaigos data
+sertifikato_nr          VARCHAR(255)    Metrologinės patikros sertifikato numeris
+
+================================================================================
+
+17 lentelė. prietaisai — bendras matavimo prietaisų registras
+--------------------------------------------------------------------------------
+Stulpelis                   Tipas           Aprašymas
+id                          SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+vidinis_kodas               VARCHAR         Įmonės vidinis prietaiso kodas / inventoriaus nr.
+pavadinimas                 VARCHAR         Prietaiso pavadinimas
+gamintojas                  VARCHAR         Prietaiso gamintojo pavadinimas
+modelis                     VARCHAR         Prietaiso modelio žymėjimas
+serijos_nr                  VARCHAR         Serijinis numeris
+matavimo_tipas              VARCHAR         Matavimo dydžio tipas (pvz. srovė, įtampa, varža)
+matavimo_ribos              TEXT            Matavimo ribos ir diapazonas
+tikslumo_klase              VARCHAR         Tikslumo klasė pagal standartus
+busena                      VARCHAR         Dabartinė prietaiso būsena (veikia / remontas / atidėtas)
+vieta                       VARCHAR         Fizinė prietaiso laikymo vieta
+atsakingas_asmuo            VARCHAR         Prietaisą prižiūrintis darbuotojas
+kalibracijos_sertifikato_nr VARCHAR         Kalibravimo sertifikato numeris
+kalibravimo_istaiga         VARCHAR         Kalibravimą atlikusi įstaiga
+kalibravimo_data            DATE            Paskutinio kalibravimo data
+galiojimo_pabaiga           DATE            Kalibravimo galiojimo pabaigos data
+kita_kalibracija            DATE            Planuojamo kito kalibravimo data
+standartas_metodika         TEXT            Taikytas standartas arba metodika
+sertifikato_pdf             BYTEA           Kalibravimo sertifikato PDF failas
+sertifikato_failas          VARCHAR         Sertifikato PDF failo pavadinimas
+pastabos                    TEXT            Papildomos pastabos
+sukurta                     TIMESTAMP       Įrašo sukūrimo data ir laikas
+atnaujinta                  TIMESTAMP       Paskutinio atnaujinimo data ir laikas
+
+================================================================================
+
+18 lentelė. pretenzijos — kokybės pretenzijų duomenys
+--------------------------------------------------------------------------------
+Stulpelis                   Tipas           Aprašymas
+id                          SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+uzsakymo_id                 INTEGER         Išorinis raktas → uzsakymai.id
+gaminio_id                  INTEGER         Išorinis raktas → gaminiai.id
+pretenzijos_nr              VARCHAR(100)    Unikalus pretenzijos numeris
+data                        DATE            Pretenzijos registravimo data
+tipas                       VARCHAR(100)    Tipas: vidinė, kliento arba tiekėjui
+aprasymas                   TEXT            Problemos aprašymas
+statusas                    VARCHAR(50)     Būsena: nauja, tyrimas, vykdoma, užbaigta, atmesta
+prioritetas                 VARCHAR(50)     Prioritetas: žemas, vidutinis, aukštas
+atsakingas_asmuo            VARCHAR(255)    Atsakingas asmuo
+sprendimas                  TEXT            Priimtas sprendimas
+uzdaryta_data               DATE            Uždarymo data
+sukure_id                   INTEGER         Išorinis raktas → vartotojai.id (sukūrė)
+sukurta                     TIMESTAMP       Sukūrimo data ir laikas
+atnaujinta                  TIMESTAMP       Paskutinio atnaujinimo laikas
+aptikimo_vieta              VARCHAR(255)    Defekto aptikimo vieta
+gaminys_info                VARCHAR(255)    Gaminio informacija
+atsakingas_padalinys        VARCHAR(255)    Atsakingas padalinys
+siulomas_sprendimas         TEXT            Siūlomas sprendimas
+uzfiksavo_padalinys         VARCHAR(255)    Problemą užfiksavęs padalinys
+uzfiksavo_asmuo             VARCHAR(255)    Problemą užfiksavęs asmuo
+priezastis                  TEXT            Nustatyta problemos priežastis
+veiksmai                    TEXT            Atlikti korekciniai / prevenciniai veiksmai
+terminas                    DATE            Sprendimo terminas
+gavimo_data                 DATE            Pretenzijos gavimo data
+uzbaigimo_data              DATE            Galutinio užbaigimo data
+sukure_vardas               VARCHAR(255)    Sukūrėjo vardas ir pavardė (teksto kopija)
+uzsakymo_numeris_ranka      VARCHAR(255)    Rankiniu būdu įvestas užsakymo numeris
+defekto_pdf_pavadinimas     VARCHAR         Prisegto PDF failo pavadinimas
+defekto_pdf_turinys         BYTEA           Defekto / pretenzijos PDF failas
+qt_pretenzija_id            INTEGER         Atitinkamos pretenzijos ID išorinėje sistemoje (archyvinė)
+perziuros_token             VARCHAR         Unikalus nuorodos žetonas atsakymo formoje
+
+================================================================================
+
+19 lentelė. pretenzijos_nuotraukos — pretenzijų nuotraukos
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pretenzija_id           INTEGER         Išorinis raktas → pretenzijos.id (kaskadinis trynimas)
+pavadinimas             VARCHAR         Nuotraukos failo pavadinimas
+tipas                   VARCHAR         Failo MIME tipas (pvz. image/jpeg)
+turinys                 BYTEA           Nuotraukos failas (binariniai duomenys)
+sukurta                 TIMESTAMP       Įkėlimo data ir laikas
+
+================================================================================
+
+20 lentelė. pretenzijos_email_history — el. pašto siuntimų istorija
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pretenzija_id           INTEGER         Išorinis raktas → pretenzijos.id (kaskadinis trynimas)
+email_delegated_to      VARCHAR(255)    Pagrindinio gavėjo el. pašto adresas
+email_cc                TEXT            Kopijos gavėjų adresai (kableliais atskirti)
+email_subject           VARCHAR(255)    Laiško tema
+sent_by                 VARCHAR(255)    Siuntėjo vardas
+sent_at                 TIMESTAMP       Išsiuntimo data ir laikas
+feedback_text           TEXT            Gautas atsakymas iš gavėjo
+feedback_at             TIMESTAMP       Atsakymo gavimo data ir laikas
+feedback_by             VARCHAR(255)    Atsakymą pateikęs asmuo
+papildomas_komentaras   TEXT            Papildomas vidinių pastabų komentaras
+outgoing_text           TEXT            Siunčiamo laiško turinys (archyvinis)
+parent_history_id       INTEGER         Nuoroda į pirminį el. laišką (atsakymo grandinė)
+
+================================================================================
+
+21 lentelė. pretenzijos_failai — pretenzijų papildomi priedai
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pretenzija_id           INTEGER         Išorinis raktas → pretenzijos.id (kaskadinis trynimas)
+pavadinimas             VARCHAR         Priedo failo pavadinimas
+tipas                   VARCHAR         Failo MIME tipas (pvz. application/pdf, message/rfc822)
+turinys                 BYTEA           Priedo failas (binariniai duomenys)
+ikelta                  TIMESTAMP       Įkėlimo data ir laikas
+
+================================================================================
+
+22 lentelė. imones_nustatymai — įmonės kontaktiniai duomenys
+--------------------------------------------------------------------------------
+Stulpelis               Tipas           Aprašymas
+id                      SERIAL          Pirminis raktas, skaičiuojamas automatiškai
+pavadinimas             VARCHAR(255)    Įmonės pavadinimas (numatyta: UAB "ELGA")
+adresas                 TEXT            Įmonės adresas
+telefonas               VARCHAR(100)    Telefono numeris
+faksas                  VARCHAR(100)    Fakso numeris
+el_pastas               VARCHAR(255)    El. pašto adresas
+internetas              VARCHAR(255)    Interneto svetainės adresas
+logotipas               BYTEA           Logotipo failas (binariniai duomenys)
+logotipo_tipas          VARCHAR(50)     Logotipo formato tipas (pvz. image/png)
+
+================================================================================
+PASTABOS
+================================================================================
+
+Pašalintos lentelės (nebeegzistuoja duomenų bazėje):
+  - aktyvus_vartotojai  — sesijų sekimo lentelė, pašalinta kartu su Tomo QMS sinchronizacija
+  - sync_log            — sinchronizacijos žurnalo lentelė, pašalinta kartu su sinchronizacija
+
+BYTEA stulpeliai (dvejetainiai duomenys, saugomi tiesiai DB):
+  - gaminiai: mt_paso_pdf, mt_dielektriniu_pdf, mt_funkciniu_pdf
+  - funkciniai_bandymai: defekto_nuotrauka
+  - vartotojai: parasas
+  - pretenzijos: defekto_pdf_turinys
+  - pretenzijos_nuotraukos: turinys
+  - pretenzijos_failai: turinys
+  - prietaisai: sertifikato_pdf
+  - imones_nustatymai: logotipas
+
+Rolės sistemoje:
+  administratorius — pilnos teisės (vartotojų valdymas, visi veiksmai)
+  vartotojas       — įprastas darbas (CRUD operacijos)
+  skaitytojas      — tik peržiūra (be keitimo teisių)
