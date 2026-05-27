@@ -7,7 +7,6 @@
  * - Sesijos tikrinimas ir nukreipimas jei jau prisijungta
  * - POST autentifikacija: vardo ir slaptažodžio patikra
  * - Slaptažodžio validacija: ≥8 simbolių ir ≥1 skaičius
- * - Aktyvių vartotojų (aktyvus_vartotojai) sekimas
  */
 
 session_set_cookie_params([
@@ -54,16 +53,6 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
             $_SESSION['role'] = $user['role'] ?? '';
             $_SESSION['paskutine_veikla'] = time();
             
-            $session_id = session_id();
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-            
-            $stmt_ins = $pdo->prepare("INSERT INTO aktyvus_vartotojai 
-                (vartotojas_id, session_id, vardas, pavarde, ip_adresas, naršykle) 
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (session_id) DO UPDATE SET 
-                    paskutine_veikla = CURRENT_TIMESTAMP");
-            $stmt_ins->execute([$user['id'], $session_id, $user['vardas'], $user['pavarde'], $ip, $user_agent]);
         } else {
             setcookie('remember_token', '', [
                 'expires' => time() - 3600,
@@ -111,18 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['pavarde'] = $naudotojas['pavarde'];
                 $_SESSION['role'] = $naudotojas['role'] ?? '';
                 $_SESSION['paskutine_veikla'] = time();
-                
-                // Aktyvaus vartotojo įrašymas (sesijos sekimas)
-                $session_id = session_id();
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-                
-                $stmt_ins = $pdo->prepare("INSERT INTO aktyvus_vartotojai 
-                    (vartotojas_id, session_id, vardas, pavarde, ip_adresas, naršykle) 
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT (session_id) DO UPDATE SET 
-                        paskutine_veikla = CURRENT_TIMESTAMP");
-                $stmt_ins->execute([$naudotojas['id'], $session_id, $naudotojas['vardas'], $naudotojas['pavarde'], $ip, $user_agent]);
                 
                 // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
                 if (isset($_POST['remember']) && $_POST['remember'] == '1') {

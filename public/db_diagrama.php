@@ -82,7 +82,6 @@ $fk_implicit = [
     ['table_name' => 'pretenzijos', 'column_name' => 'uzsakymo_id', 'foreign_table_name' => 'uzsakymai', 'foreign_column_name' => 'id'],
     ['table_name' => 'pretenzijos', 'column_name' => 'gaminio_id', 'foreign_table_name' => 'gaminiai', 'foreign_column_name' => 'id'],
     ['table_name' => 'pretenzijos', 'column_name' => 'sukure_id', 'foreign_table_name' => 'vartotojai', 'foreign_column_name' => 'id'],
-    ['table_name' => 'aktyvus_vartotojai', 'column_name' => 'vartotojas_id', 'foreign_table_name' => 'vartotojai', 'foreign_column_name' => 'id'],
 ];
 
 $all_fk = array_merge($fk_explicit, $fk_implicit);
@@ -103,7 +102,7 @@ $table_group_map = [];
 $group_defs = [
     ['name' => 'Pagrindinės lentelės', 'tables' => ['uzsakymai', 'gaminiai', 'uzsakovai', 'objektai', 'gaminio_tipai', 'gaminiu_rusys'], 'color' => '#1e293b'],
     ['name' => 'MT Bandymai ir komponentai', 'tables' => ['funkciniai_bandymai', 'komponentai', 'dielektriniai_bandymai', 'izeminimo_tikrinimas', 'saugikliu_ideklai', 'paso_teksto_korekcijos', 'bandymai_prietaisai'], 'color' => '#059669'],
-    ['name' => 'Vartotojai', 'tables' => ['vartotojai', 'aktyvus_vartotojai'], 'color' => '#7c3aed'],
+    ['name' => 'Vartotojai', 'tables' => ['vartotojai', 'remember_tokens'], 'color' => '#7c3aed'],
     ['name' => 'Pretenzijos', 'tables' => ['pretenzijos', 'pretenzijos_nuotraukos'], 'color' => '#dc2626'],
     ['name' => 'Kita', 'tables' => [], 'color' => '#d97706'],
 ];

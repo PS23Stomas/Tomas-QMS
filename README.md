@@ -13,32 +13,21 @@ skirta modulinių transformatorių ir kitų gaminių gamybos procesų kokybės k
 
 ## Pagrindinės funkcijos
 
-- Užsakymų ir gaminių valdymas
-- Funkcinių ir dielektrinių bandymų registravimas
-- Komponentų sekimas ir paso generavimas (PDF)
-- Pretenzijų valdymas su el. pašto istorija
-- Matavimo prietaisų priežiūra
-- Kokybės statistika ir PDF ataskaitos
+- Užsakymų ir gaminių valdymas (užsakovai, objektai, gaminių tipai)
+- Funkcinių ir dielektrinių bandymų registravimas su išvadomis ir defektais
+- Komponentų sekimas ir paso generavimas (PDF su BYTEA saugojimu)
+- Pretenzijų valdymas su el. pašto istorija ir PDF generavimu (PR 28/2)
+- Matavimo prietaisų ir jų kalibravimo sertifikatų priežiūra
+- Kokybės statistika ir PDF ataskaitos (30 dienų, ketvirtinė, išplėstinė)
 - Vartotojų valdymas (rolės: `administratorius`, `vartotojas`, `skaitytojas`)
 
 ## Duomenų bazės schema (PostgreSQL 16)
 
 > Diagrama sugeneruota automatiškai iš gyvos PostgreSQL duomenų bazės  
-> Data: 2026-05-27 · Lentelių: 23
+> Data: 2026-05-27 · Lentelių: 22
 
 ```mermaid
 erDiagram
-    aktyvus_vartotojai {
-        int id PK
-        int vartotojas_id
-        varchar session_id
-        varchar vardas
-        varchar pavarde
-        timestamp prisijungimo_laikas
-        timestamp paskutine_veikla
-        varchar ip_adresas
-        varchar naršykle
-    }
     bandymai_prietaisai {
         int id PK
         int gaminys_id
@@ -306,41 +295,48 @@ erDiagram
     pretenzijos_nuotraukos }o--|| pretenzijos : "pretenzija_id"
 ```
 
-## Lentelių aprašas (23 lentelės)
+## Lentelių aprašas (22 lentelės)
 
-| Lentelė | Paskirtis |
-|---|---|
-| `vartotojai` | Sistemos vartotojai ir rolės (administratorius, vartotojas, skaitytojas) |
-| `uzsakymai` | Gamybos užsakymai |
-| `uzsakovai` | Užsakovų įmonės |
-| `objektai` | Statybos / montavimo objektai |
-| `gaminiai` | Pagaminti gaminiai (su PDF kaip BYTEA) |
-| `gaminiu_rusys` | Gaminių rūšys (MT, USN, SI-04 ir kt.) |
-| `gaminio_tipai` | Gaminių tipai pagal rūšį |
-| `funkciniai_bandymai` | Funkcinių bandymų rezultatai ir defektai |
-| `funkciniu_sablonas` | Funkcinių reikalavimų šablonai pagal rūšį |
-| `dielektriniai_bandymai` | Dielektrinių bandymų duomenys |
-| `izeminimo_tikrinimas` | Įžeminimo tikrinimo rezultatai |
-| `komponentai` | Gaminiuose sumontuoti komponentai |
-| `saugikliu_ideklai` | Saugiklių įdėklų duomenys |
-| `paso_teksto_korekcijos` | Paso teksto korekcijos |
-| `pretenzijos` | Klientų pretenzijos ir defektai |
-| `pretenzijos_nuotraukos` | Pretenzijų nuotraukos (BYTEA) |
-| `pretenzijos_email_history` | El. pašto siuntimo istorija |
-| `pretenzijos_failai` | Pretenzijų priedai (PDF, .msg) |
-| `prietaisai` | Matavimo prietaisai |
-| `bandymai_prietaisai` | Prietaisų kalibravimo sertifikatai |
-| `imones_nustatymai` | Įmonės duomenys ir logotipas |
-| `aktyvus_vartotojai` | Aktyvių sesijų stebėjimas |
-| `remember_tokens` | "Prisiminti mane" autentifikacijos žetonai |
+| Lentelė | Grupė | Paskirtis |
+|---|---|---|
+| `bandymai_prietaisai` | **Prietaisų sertifikatai** | Matavimo prietaisų kalibravimo sertifikatai susieti su konkrečiu gaminiu ir bandymu |
+| `dielektriniai_bandymai` | **Dielektriniai bandymai** | Dielektrinių bandymų eilutės: įtampa, schema, išvada; palaiko mažos ir aukštos įtampos grandines |
+| `funkciniai_bandymai` | **Funkciniai bandymai** | Funkcinių reikalavimų patikros rezultatai: išvada, defektai, nuotraukos (BYTEA), atsakingas darbuotojas |
+| `funkciniu_sablonas` | **Funkcinių bandymų šablonas** | Redaguojami funkcinių reikalavimų šablonai kiekvienai gaminių rūšiai |
+| `gaminiai` | **Gaminiai** | Pagaminti gaminiai — protokolo nr., PDF dokumentai (BYTEA): paso, dielektrinių ir funkcinių bandymų |
+| `gaminio_tipai` | **Gaminių tipai** | Konkretūs gaminių modeliai pagal rūšį su atitikmenų kodais |
+| `gaminiu_rusys` | **Gaminių rūšys** | Gaminių rūšys: MT, USN, SI-04, GVX, 10kV — pagrindas modulinei navigacijai |
+| `imones_nustatymai` | **Įmonės nustatymai** | UAB „ELGA" rekvizitai, logotipas (BYTEA) — naudojami visuose PDF dokumentuose |
+| `izeminimo_tikrinimas` | **Įžeminimo tikrinimas** | Įžeminimo taškų varža (Ω), matavimo būdas ir būklė kiekvienai gaminio grandžiai |
+| `komponentai` | **Komponentai** | Gaminyje sumontuoti komponentai — gamintojo kodas, kiekis, aprašymas, gamintojas |
+| `objektai` | **Objektai** | Statybos / montavimo objektai, susieti su užsakymais |
+| `paso_teksto_korekcijos` | **Paso teksto korekcijos** | Rankinis paso teksto keitimas atskirai LT/EN kalba konkrečiam gaminiui |
+| `pretenzijos` | **Pretenzijos** | Klientų pretenzijos — defekto aprašas, statusas, atsakingas asmuo, PDF formos PR 28/2 duomenys |
+| `pretenzijos_email_history` | **El. laiškų istorija** | Pretenzijų el. laiškų siuntimo istorija su gavėjais, data ir atsakymo sekimo nuoroda |
+| `pretenzijos_failai` | **Pretenzijų failai** | Papildomi pretenzijų priedai: PDF ir .msg failai, saugomi BYTEA |
+| `pretenzijos_nuotraukos` | **Pretenzijų nuotraukos** | Pretenzijų defektų nuotraukos saugomos BYTEA formatu duomenų bazėje |
+| `prietaisai` | **Matavimo prietaisai** | Laboratoriniai matavimo prietaisai — tipas, serijinis numeris, kalibravimo galiojimas |
+| `remember_tokens` | **Autentifikacija** | „Prisiminti mane" žetonai 30 dienų automatiniam prisijungimui |
+| `saugikliu_ideklai` | **Saugiklių įdėklai** | Saugiklių įdėklų tipai (3.5 / 3.6) su 1× ir 2× transformatoriaus logika |
+| `uzsakovai` | **Užsakovai** | Užsakovų įmonės — pavadinimas, kodas, kontaktai |
+| `uzsakymai` | **Užsakymai** | Gamybos užsakymai — numeris, pavadinimas, terminas, statusas, užsakovas, objektas |
+| `vartotojai` | **Vartotojai** | Sistemos vartotojai, slaptažodžiai (bcrypt), rolės: `administratorius`, `vartotojas`, `skaitytojas` |
+
+## Duomenų bazės pastabos
+
+- **BYTEA** — dvejetainiai duomenys (nuotraukos, PDF, logotipas) saugomi tiesiai duomenų bazėje
+- **Sekvencijos** — `SERIAL` tipo stulpeliai naudoja `SEQUENCE` automatiniam ID generavimui
+- Kai kurios lentelės (pvz. `funkciniai_bandymai`, `dielektriniai_bandymai`) naudoja senas sekvencijų pavadinimų su `mt_` prefiksu dėl atgalinio suderinamumo
+- Visos lentelės turi `PRIMARY KEY`; ryšiai tarp lentelių palaikomi per stulpelių pavadinimų konvenciją ir FK apribojimus
 
 ## Saugumo priemonės
 
-- Slaptažodžiai šifruojami `password_hash()` (bcrypt)
+- Slaptažodžiai šifruojami `password_hash()` (bcrypt, `PASSWORD_DEFAULT`)
 - Visos DB užklausos — paruoštos užklausos (PDO prepared statements)
 - XSS apsauga — `htmlspecialchars()` visose išvestyse
 - Sesijų apsauga — `session_regenerate_id()` po prisijungimo
 - CSRF apsauga — vienkarčiai žetonai formose
+- Rolių sistema — kiekvienas veiksmas tikrinamas prieš vartotojo rolę
 
 ## Failų struktūra
 

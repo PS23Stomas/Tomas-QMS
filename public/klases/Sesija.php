@@ -9,8 +9,6 @@
  * Ši klasė atsakinga už:
  * - Sesijos pradžią ir jos galiojimo tikrinimą
  * - Vartotojo prisijungimo patikrinimą kiekviename puslapyje
- * - Aktyvių vartotojų sąrašo tvarkymą (kas dabar dirba sistemoje)
- * - Neaktyvių vartotojų automatinį ištrynimą iš aktyvių sąrašo
  */
 class Sesija {
 
@@ -48,7 +46,6 @@ class Sesija {
      * 1. Pradeda sesiją (jei dar nepradėta)
      * 2. Patikrina ar sesija nepasibaigė (30 min. neveiklumo)
      * 3. Atnaujina vartotojo paskutinės veiklos laiką
-     * 4. Kartais (atsitiktinai) išvalo senus neaktyvius vartotojus
      */
     public static function pradzia(): void {
         if (session_status() === PHP_SESSION_NONE) {
@@ -68,11 +65,6 @@ class Sesija {
         if (isset($_SESSION['vartotojas_id']) && isset($_SESSION['paskutine_veikla'])) {
             $neaktyvumo_laikas = time() - $_SESSION['paskutine_veikla'];
             if ($neaktyvumo_laikas > self::SESIJOS_GALIOJIMAS) {
-                $session_id = session_id();
-                try {
-                    $pdo = Database::getConnection();
-                    $pdo->prepare("DELETE FROM aktyvus_vartotojai WHERE session_id = ?")->execute([$session_id]);
-                } catch (Exception $e) {}
                 session_unset();
                 session_destroy();
                 session_start();
@@ -87,13 +79,6 @@ class Sesija {
 
         if (isset($_SESSION['vartotojas_id'])) {
             $_SESSION['paskutine_veikla'] = time();
-        }
-
-        self::atnaujintiVeikla();
-
-        // 10% tikimybė išvalyti neaktyvius vartotojus — daroma retai, kad negrąžintų viską kiekvieną kartą
-        if (rand(1, 10) === 1) {
-            self::isvalytiNeaktyvius();
         }
     }
 
@@ -154,79 +139,6 @@ class Sesija {
         if (self::arSkaitytojas()) {
             header("Location: $redirect?klaida=skaitytojas");
             exit;
-        }
-    }
-
-    /**
-     * Atnaujina prisijungusio vartotojo paskutinės veiklos laiką duomenų bazėje.
-     * Tai reikalinga, kad aktyvių vartotojų sąraše matytųsi kada vartotojas
-     * paskutinį kartą kažką darė sistemoje.
-     */
-    public static function atnaujintiVeikla(): void {
-        if (isset($_SESSION['vartotojas_id'])) {
-            try {
-                $pdo = Database::getConnection();
-                $session_id = session_id();
-                $stmt = $pdo->prepare("UPDATE aktyvus_vartotojai 
-                                      SET paskutine_veikla = CURRENT_TIMESTAMP 
-                                      WHERE session_id = ?");
-                $stmt->execute([$session_id]);
-            } catch (Exception $e) {
-            }
-        }
-    }
-
-    /**
-     * Ištrina iš aktyvių vartotojų sąrašo tuos, kurie nebuvo aktyvūs ilgiau nei 30 minučių.
-     * Tai reikalinga, kad sąraše nebūtų rodomi žmonės, kurie jau seniai išjungė naršyklę.
-     */
-    public static function isvalytiNeaktyvius(): void {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare("DELETE FROM aktyvus_vartotojai 
-                                  WHERE paskutine_veikla < CURRENT_TIMESTAMP - INTERVAL '30 minutes'");
-            $stmt->execute();
-        } catch (Exception $e) {
-        }
-    }
-
-    /**
-     * Grąžina sąrašą vartotojų, kurie aktyviai dirba sistemoje šiuo metu
-     * (buvo aktyvūs per paskutines 15 minučių).
-     * Naudojama rodyti "Kas dabar prisijungęs" skyriuje.
-     */
-    public static function gautiAktyvius(): array {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->query("SELECT vardas, pavarde, 
-                                    MAX(prisijungimo_laikas) AS prisijungimo_laikas, 
-                                    MAX(paskutine_veikla) AS paskutine_veikla 
-                                FROM aktyvus_vartotojai 
-                                WHERE paskutine_veikla > NOW() - INTERVAL '15 minutes'
-                                GROUP BY vartotojas_id, vardas, pavarde
-                                ORDER BY MAX(paskutine_veikla) DESC");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            return [];
-        }
-    }
-
-    /**
-     * Grąžina vartotojų prisijungimų istoriją per paskutines 24 valandas.
-     * Kiekvienas įrašas rodo: kas prisijungė, kada ir ar dar aktyvus.
-     * Naudojama administratoriaus stebėjimo skyriuje.
-     */
-    public static function gautiIstorija24h(): array {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->query("SELECT vardas, pavarde, prisijungimo_laikas, paskutine_veikla,
-                                CASE WHEN paskutine_veikla > NOW() - INTERVAL '15 minutes' THEN true ELSE false END as aktyvus
-                                FROM aktyvus_vartotojai 
-                                WHERE prisijungimo_laikas > NOW() - INTERVAL '24 hours'
-                                ORDER BY prisijungimo_laikas DESC");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            return [];
         }
     }
 }
