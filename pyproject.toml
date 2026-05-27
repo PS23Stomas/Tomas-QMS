@@ -6,4 +6,5 @@ requires-python = ">=3.11"
 dependencies = [
     "openpyxl>=3.1.5",
     "psycopg2-binary>=2.9.11",
+    "python-docx>=1.2.0",
 ]

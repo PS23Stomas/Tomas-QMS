@@ -18,3 +18,15 @@ id = "pbMpM7M3Qq-tz5kABHIKg"
 uri = "file://public/docs/tomo_qms_mysql_export.sql.gz"
 type = "unspecified"
 title = "Tomo-QMS MySQL eksportas (.sql.gz)"
+
+[[outputs]]
+id = "EJi376t4pGai2MVlq6XgE"
+uri = "file://docs/lenteles_aprasymas.xlsx"
+type = "table"
+title = "Lentelių aprašymas — Excel"
+
+[[outputs]]
+id = "NFeiJH7jClBl5h7o8x927"
+uri = "file://docs/lenteles_aprasymas.docx"
+type = "word_document"
+title = "Lentelių aprašymas — Word"
