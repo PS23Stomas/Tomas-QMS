@@ -79,7 +79,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 
 ## External Dependencies
 
-- **Tomo QMS Database**: External PostgreSQL database for data replication.
+- ~~**Tomo QMS Database**~~: Išorinė sistema naudota laikinai duomenų migracijai. Migracija atlikta — sinchronizacijos funkcija pašalinta.
 - **PostgreSQL**: Primary application database.
 - **Google Fonts**: Inter font for typography.
 - **PHP Extensions**: `pgsql`, `pdo_pgsql`, `mbstring`, `session`.

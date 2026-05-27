@@ -769,24 +769,6 @@ require_once __DIR__ . '/includes/header.php';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-secondary);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="orderSearch" placeholder="Ieškoti pagal užsakymo Nr..." style="padding:0.4rem 0.6rem 0.4rem 2rem;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px;" data-testid="input-order-search" oninput="filterOrders()">
             </div>
-            <?php /* IMPORTO MYGTUKAS — laikinai išjungtas (atmaskuoti: pašalinti php komentaro žymes)
-            <div style="position:relative;display:inline-flex;align-items:center;" id="importWrap">
-                <button class="btn btn-sm" id="btnImport" onclick="importuotiIsQualityTomas()" data-testid="button-import" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; display:inline-flex; align-items:center; gap:5px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <span id="importText">Importuoti naujus</span>
-                </button>
-                <div id="importProgress" style="display:none;width:var(--import-btn-w,140px);margin-left:8px;" data-testid="import-progress">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                        <span style="font-size:11px;color:var(--text-secondary);" id="importLabel">Importuojama...</span>
-                        <span style="font-size:12px;font-weight:700;color:var(--primary);" id="importProc">0%</span>
-                    </div>
-                    <div style="width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-                        <div id="importBar" style="height:100%;width:0%;background:linear-gradient(90deg,#10b981,#059669);border-radius:3px;transition:width 0.3s ease;"></div>
-                    </div>
-                    <div id="importDetails" style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                </div>
-            </div>
-            */ ?>
             <button class="btn btn-primary btn-sm btn-new-order" onclick="openModal('createOrderModal')" data-testid="button-new-order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Naujas užsakymas
@@ -977,112 +959,6 @@ function filterOrders() {
     });
 }
 
-async function importuotiIsQualityTomas() {
-    var btn = document.getElementById('btnImport');
-    var text = document.getElementById('importText');
-    var progress = document.getElementById('importProgress');
-    var bar = document.getElementById('importBar');
-    var label = document.getElementById('importLabel');
-    var proc = document.getElementById('importProc');
-    var details = document.getElementById('importDetails');
-
-    var btnW = btn.offsetWidth;
-    progress.style.width = btnW + 'px';
-
-    btn.disabled = true;
-    text.textContent = 'Importuojama...';
-    progress.style.display = 'block';
-    bar.style.width = '0%';
-    bar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-    label.textContent = 'Importuojama...';
-    proc.textContent = '0%';
-    proc.style.color = 'var(--primary)';
-    details.textContent = '';
-
-    try {
-        var fd = new FormData();
-        fd.append('importas_stream', '1');
-        var resp = await fetch('/sinchronizuoti.php', { method: 'POST', body: fd });
-        var reader = resp.body.getReader();
-        var decoder = new TextDecoder();
-        var buffer = '';
-        var finalData = null;
-
-        while (true) {
-            var result = await reader.read();
-            if (result.done) break;
-            buffer += decoder.decode(result.value, { stream: true });
-
-            var lines = buffer.split('\n');
-            buffer = lines.pop();
-
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (line.startsWith('data: ')) {
-                    try {
-                        var d = JSON.parse(line.substring(6));
-                        bar.style.width = d.proc + '%';
-                        proc.textContent = d.proc + '%';
-                        if (d.zinute) label.textContent = d.zinute;
-                        if (d.baigta) finalData = d;
-                    } catch (e) {}
-                }
-            }
-        }
-
-        if (finalData) {
-            bar.style.width = '100%';
-            proc.textContent = '100%';
-            if (finalData.success) {
-                var rez = finalData.rezultatas || {};
-                bar.style.background = 'var(--success, #10b981)';
-                label.innerHTML = '<span style="color:var(--success,#10b981);">Baigta!</span>';
-                proc.style.color = 'var(--success, #10b981)';
-                var parts = [];
-                if (rez.nauji > 0) parts.push('+' + rez.nauji + ' nauji užs.');
-                if (rez.atnaujinti > 0) parts.push(rez.atnaujinti + ' atnaujinti');
-                if (rez.gaminiai > 0) parts.push(rez.gaminiai + ' gaminiai');
-                if (rez.bandymai > 0) parts.push(rez.bandymai + ' bandymai');
-                if (rez.komponentai > 0) parts.push(rez.komponentai + ' komponentai');
-                var f2parts = [];
-                if (rez.faze2_apdoroti > 0) f2parts.push(rez.faze2_apdoroti + ' su gaminiais');
-                if (rez.faze2_be_gaminiu > 0) f2parts.push(rez.faze2_be_gaminiu + ' be gaminių');
-                if (rez.faze2_praleisti > 0) f2parts.push(rez.faze2_praleisti + ' praleisti');
-                if (f2parts.length > 0) parts.push('Fazė 2: ' + f2parts.join(', '));
-                details.textContent = parts.length > 0 ? parts.join(' | ') : 'Nėra naujų duomenų';
-                if (rez.klaidos && rez.klaidos.length > 0) {
-                    details.textContent += ' | Klaidos: ' + rez.klaidos.join('; ');
-                    details.style.color = 'var(--danger, #dc2626)';
-                }
-                if (rez.nauji > 0) {
-                    setTimeout(function() { location.reload(); }, 2000);
-                }
-            } else {
-                bar.style.background = 'var(--danger, #dc2626)';
-                label.innerHTML = '<span style="color:var(--danger,#dc2626);">Klaida</span>';
-                proc.style.color = 'var(--danger, #dc2626)';
-                var errMsg = finalData.klaida || '';
-                if (finalData.rezultatas && finalData.rezultatas.klaidos && finalData.rezultatas.klaidos.length > 0) {
-                    errMsg += (errMsg ? ' | ' : '') + finalData.rezultatas.klaidos.join('; ');
-                }
-                details.textContent = errMsg;
-                details.style.color = 'var(--danger, #dc2626)';
-            }
-        }
-    } catch (e) {
-        bar.style.width = '100%';
-        bar.style.background = 'var(--danger, #dc2626)';
-        label.innerHTML = '<span style="color:var(--danger,#dc2626);">Klaida</span>';
-        proc.textContent = '';
-        details.textContent = e.message || '';
-    }
-
-    btn.disabled = false;
-    text.textContent = 'Importuoti naujus';
-    setTimeout(function() {
-        progress.style.display = 'none';
-    }, 5000);
-}
 
 function togglePdfDropdown(btn) {
     var dropdown = btn.closest('.pdf-dropdown');
