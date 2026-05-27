@@ -30,6 +30,19 @@ $pdo = new PDO($dsn, $parsed['user'], $parsed['pass'], [
 
 $klaida = '';
 
+/**
+ * Normalizuoja rolės pavadinimą — production DB gali turėti "admin"/"user",
+ * o sistema tikrina "administratorius"/"vartotojas". Konvertuojame į vieningą formatą.
+ */
+function normalizuotiRole(string $role): string {
+    return match($role) {
+        'admin'          => 'administratorius',
+        'user'           => 'vartotojas',
+        'administrator'  => 'administratorius',
+        default          => $role,
+    };
+}
+
 // Automatinio prisijungimo tikrinimas per „prisiminti mane" slapuką (remember_token)
 if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     $token = $_COOKIE['remember_token'];
@@ -50,7 +63,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
             $_SESSION['vartotojas_id'] = $user['id'];
             $_SESSION['vardas'] = $user['vardas'];
             $_SESSION['pavarde'] = $user['pavarde'];
-            $_SESSION['role'] = $user['role'] ?? '';
+            $_SESSION['role'] = normalizuotiRole($user['role'] ?? '');
             $_SESSION['paskutine_veikla'] = time();
             
         } else {
@@ -85,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (str_contains($vardas, '@')) {
                 $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE el_pastas = :vardas LIMIT 1");
             } else {
-                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY role = 'administratorius' DESC, id ASC LIMIT 1");
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY (role IN ('administratorius','admin')) DESC, id ASC LIMIT 1");
             }
             $stmt->execute(['vardas' => $vardas]);
             $naudotojas = $stmt->fetch();
@@ -98,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['vartotojas_id'] = $naudotojas['id'];
                 $_SESSION['vardas'] = $naudotojas['vardas'];
                 $_SESSION['pavarde'] = $naudotojas['pavarde'];
-                $_SESSION['role'] = $naudotojas['role'] ?? '';
+                $_SESSION['role'] = normalizuotiRole($naudotojas['role'] ?? '');
                 $_SESSION['paskutine_veikla'] = time();
                 
                 // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
