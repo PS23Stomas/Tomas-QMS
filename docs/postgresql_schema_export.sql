@@ -61,43 +61,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: aktyvus_vartotojai; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.aktyvus_vartotojai (
-    id integer NOT NULL,
-    vartotojas_id integer NOT NULL,
-    session_id character varying(255) NOT NULL,
-    vardas character varying(100),
-    pavarde character varying(100),
-    prisijungimo_laikas timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    paskutine_veikla timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    ip_adresas character varying(50),
-    "naršykle" character varying(255)
-);
-
-
---
--- Name: aktyvus_vartotojai_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.aktyvus_vartotojai_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: aktyvus_vartotojai_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.aktyvus_vartotojai_id_seq OWNED BY public.aktyvus_vartotojai.id;
-
-
---
 -- Name: antriniu_grandiniu_bandymai_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -959,13 +922,6 @@ CREATE TABLE public.vartotojai (
 
 
 --
--- Name: aktyvus_vartotojai id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aktyvus_vartotojai ALTER COLUMN id SET DEFAULT nextval('public.aktyvus_vartotojai_id_seq'::regclass);
-
-
---
 -- Name: bandymai_prietaisai id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1068,22 +1024,6 @@ ALTER TABLE ONLY public.remember_tokens ALTER COLUMN id SET DEFAULT nextval('pub
 --
 
 ALTER TABLE ONLY public.uzsakovai ALTER COLUMN id SET DEFAULT nextval('public.uzsakovai_id_seq'::regclass);
-
-
---
--- Name: aktyvus_vartotojai aktyvus_vartotojai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aktyvus_vartotojai
-    ADD CONSTRAINT aktyvus_vartotojai_pkey PRIMARY KEY (id);
-
-
---
--- Name: aktyvus_vartotojai aktyvus_vartotojai_session_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aktyvus_vartotojai
-    ADD CONSTRAINT aktyvus_vartotojai_session_id_key UNIQUE (session_id);
 
 
 --
