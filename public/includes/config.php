@@ -60,22 +60,16 @@ $pdo = Database::getConnection();
 
 
 // --------------------------------------------------------------------------
-//  4 DALIS: AUTOMATINĖ DB MIGRACIJA
-//  Migracija tikrinama kiekvienoje naujoje sesijoje arba kai
-//  DBMigracija.php failas pakeičiamas (md5_file grąžina failo kontrolinę sumą).
-//  Taip DB schema atnaujinama automatiškai — be rankinio SQL vykdymo.
+//  4 DALIS: DB MIGRACIJA
+//  Migracija NEVYKDOMA automatiškai užklausos metu — tai užtikrina
+//  saugų diegimo modelį produkcinėje aplinkoje.
+//
+//  Migraciją paleisti vienu iš dviejų būdų:
+//    a) Komandinė eilutė: php migracija.php
+//    b) Admino sąsaja:    /migracija_admin.php (tik admin rolė)
+//
+//  Paleisti būtina po kiekvieno sistemos atnaujinimo.
 // --------------------------------------------------------------------------
-$migr_failas = $klases_dir . 'DBMigracija.php';
-$migr_hash   = md5_file($migr_failas); // Failo turinio kontrolinė suma
-
-// Vykdome migraciją tik jei:
-//   a) sesijoje nėra išsaugotos hash reikšmės (nauja sesija), arba
-//   b) DBMigracija.php failas pasikeitė nuo paskutinės migracijos
-if (empty($_SESSION['migracijos_hash']) || $_SESSION['migracijos_hash'] !== $migr_hash) {
-    $migracija = new DBMigracija($pdo);
-    $migracija->paleisti();
-    $_SESSION['migracijos_hash'] = $migr_hash; // Išsaugome, kad nekartotume
-}
 
 
 // ==========================================================================
