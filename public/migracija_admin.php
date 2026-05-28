@@ -25,7 +25,7 @@ $rezultatas  = null;
 $klaida      = null;
 $ar_vykdyta  = false;
 
-// Apdorojame formos pateikimą
+// Apdorojame formos pateikimą — migracija
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vykdyti_migracija'])) {
     csrfVerify();
     $ar_vykdyta = true;
@@ -38,6 +38,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vykdyti_migracija']))
         $rezultatas = "Migracijos įvykdytos sėkmingai. Trukmė: {$trukme} sek.";
     } catch (Exception $e) {
         $klaida = 'Klaida vykdant migracijas: ' . $e->getMessage();
+    }
+}
+
+// Apdorojame formos pateikimą — atliko lauko valymas
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valyti_atliko'])) {
+    csrfVerify();
+    try {
+        $stmt = $pdo->exec("UPDATE funkciniai_bandymai SET atliko = NULL WHERE atliko IS NOT NULL AND atliko <> ''");
+        $rezultatas = "Laukas „Atliko" išvalytas. Paveikti įrašai: {$stmt}.";
+    } catch (Exception $e) {
+        $klaida = 'Klaida valant duomenis: ' . $e->getMessage();
     }
 }
 
@@ -181,6 +192,20 @@ require_once __DIR__ . '/includes/header.php';
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrfToken()) ?>">
         <button type="submit" name="vykdyti_migracija" class="btn btn-primary" style="padding:12px 28px; font-size:15px; font-weight:600;">
             Vykdyti migracijas
+        </button>
+    </form>
+
+    <hr style="margin:2rem 0; border:none; border-top:1px solid var(--border-color);">
+
+    <h3 style="margin:0 0 8px;">Duomenų valymas</h3>
+    <p style="color:var(--text-secondary); margin-bottom:1rem; font-size:14px;">
+        Išvalo lauką <strong>„Atliko"</strong> iš visų funkcinių bandymų įrašų.
+        Reikalavimai, išvados ir kiti duomenys išlieka nepakitę.
+    </p>
+    <form method="POST" onsubmit="return confirm('Išvalyti lauką „Atliko" iš visų funkcinių bandymų? Šio veiksmo anuliuoti negalima.')">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrfToken()) ?>">
+        <button type="submit" name="valyti_atliko" class="btn btn-danger" style="padding:12px 28px; font-size:15px; font-weight:600;">
+            Išvalyti lauką „Atliko"
         </button>
     </form>
 
