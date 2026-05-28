@@ -308,9 +308,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         <form method="POST" action="/login.php" id="loginForm" novalidate>
             <div class="form-group">
-                <label class="form-label" for="vardas">Vardas</label>
+                <label class="form-label" for="vardas">Vardas arba el. paštas</label>
                 <input type="text" class="form-control" id="vardas" name="vardas"
                        value="<?= htmlspecialchars($_POST['vardas'] ?? '') ?>" required
+                       autocomplete="username"
+                       placeholder="Vardas arba el. paštas"
                        data-testid="input-vardas">
             </div>
             <div class="form-group">
