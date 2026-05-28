@@ -58,6 +58,7 @@ class DBMigracija {
         $this->pridetiPapildomoKomentaroStulpeli();
         $this->pataisytiKomponentuVarchar();
         $this->pridetiPerziurosTokena();
+        $this->normalizuotiRolesDB();
     }
 
     /**
@@ -654,6 +655,20 @@ class DBMigracija {
             }
             $this->conn->exec("UPDATE pretenzijos SET perziuros_token = md5(id::text || '-' || EXTRACT(EPOCH FROM COALESCE(sukurta, now()))::text || '-' || random()::text) WHERE perziuros_token IS NULL OR perziuros_token = ''");
             $this->conn->exec("CREATE UNIQUE INDEX IF NOT EXISTS pretenzijos_perziuros_token_idx ON pretenzijos(perziuros_token)");
+        } catch (PDOException $e) {}
+    }
+
+    /**
+     * Normalizuoja rolių pavadinimus duomenų bazėje.
+     * Production DB gali turėti senas angliškas reikšmes ("admin", "user")
+     * arba lietuviškas su didžiąja raide ("Vartotojas", "Skaitytojas").
+     * Šis metodas vieną kartą sutvarkys visas reikšmes į vienodą formatą.
+     */
+    private function normalizuotiRolesDB(): void {
+        try {
+            $this->conn->exec("UPDATE vartotojai SET role = 'administratorius' WHERE role IN ('admin', 'administrator', 'Administratorius')");
+            $this->conn->exec("UPDATE vartotojai SET role = 'vartotojas'       WHERE role IN ('user', 'Vartotojas')");
+            $this->conn->exec("UPDATE vartotojai SET role = 'skaitytojas'      WHERE role IN ('Skaitytojas', 'reader')");
         } catch (PDOException $e) {}
     }
 }

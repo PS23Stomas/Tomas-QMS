@@ -69,8 +69,12 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
             $_SESSION['vartotojas_id'] = $user['id'];
             $_SESSION['vardas'] = $user['vardas'];
             $_SESSION['pavarde'] = $user['pavarde'];
-            $_SESSION['role'] = normalizuotiRole($user['role'] ?? '');
+            $normRole = normalizuotiRole($user['role'] ?? '');
+            $_SESSION['role'] = $normRole;
             $_SESSION['paskutine_veikla'] = time();
+            if ($normRole !== ($user['role'] ?? '')) {
+                $pdo->prepare("UPDATE vartotojai SET role = ? WHERE id = ?")->execute([$normRole, $user['id']]);
+            }
             
         } else {
             setcookie('remember_token', '', [
@@ -122,8 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['vartotojas_id'] = $naudotojas['id'];
                 $_SESSION['vardas'] = $naudotojas['vardas'];
                 $_SESSION['pavarde'] = $naudotojas['pavarde'];
-                $_SESSION['role'] = normalizuotiRole($naudotojas['role'] ?? '');
+                $normRole = normalizuotiRole($naudotojas['role'] ?? '');
+                $_SESSION['role'] = $normRole;
                 $_SESSION['paskutine_veikla'] = time();
+                if ($normRole !== ($naudotojas['role'] ?? '')) {
+                    $pdo->prepare("UPDATE vartotojai SET role = ? WHERE id = ?")->execute([$normRole, $naudotojas['id']]);
+                }
                 
                 // „Prisiminti mane" slapuko kūrimas (30 dienų galiojimas)
                 if (isset($_POST['remember']) && $_POST['remember'] == '1') {
