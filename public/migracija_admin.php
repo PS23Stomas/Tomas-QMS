@@ -27,6 +27,7 @@ $ar_vykdyta  = false;
 
 // Apdorojame formos pateikimą
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vykdyti_migracija'])) {
+    csrfVerify();
     $ar_vykdyta = true;
     $pradzia    = microtime(true);
 
@@ -177,6 +178,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <form method="POST" onsubmit="return confirm('Vykdyti DB migracijas? Tai atnaujins duomenų bazės schemą.')">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrfToken()) ?>">
         <button type="submit" name="vykdyti_migracija" class="vykdyti-btn">
             Vykdyti migracijas
         </button>
