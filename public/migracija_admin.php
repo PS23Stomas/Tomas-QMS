@@ -179,7 +179,7 @@ require_once __DIR__ . '/includes/header.php';
 
     <form method="POST" onsubmit="return confirm('Vykdyti DB migracijas? Tai atnaujins duomenų bazės schemą.')">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrfToken()) ?>">
-        <button type="submit" name="vykdyti_migracija" class="vykdyti-btn">
+        <button type="submit" name="vykdyti_migracija" class="btn btn-primary" style="padding:12px 28px; font-size:15px; font-weight:600;">
             Vykdyti migracijas
         </button>
     </form>
