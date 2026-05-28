@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valyti_atliko'])) {
     csrfVerify();
     try {
         $stmt = $pdo->exec("UPDATE funkciniai_bandymai SET atliko = NULL WHERE atliko IS NOT NULL AND atliko <> ''");
-        $rezultatas = "Laukas „Atliko" išvalytas. Paveikti įrašai: {$stmt}.";
+        $rezultatas = 'Laukas "Atliko" išvalytas. Paveikti įrašai: ' . $stmt . '.';
     } catch (Exception $e) {
         $klaida = 'Klaida valant duomenis: ' . $e->getMessage();
     }
