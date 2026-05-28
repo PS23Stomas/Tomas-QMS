@@ -3,7 +3,7 @@
 -- Sistema: MT Modulis — Gamybos kokybės valdymo sistema
 -- Įmonė: UAB "ELGA"
 -- Duomenų bazė: PostgreSQL 16
--- Sugeneruota: 2026-05-27 20:05:32
+-- Sugeneruota: 2026-05-28 08:00:00
 -- =============================================================================
 --
 -- PASTABA: Ši schema yra pagrindinės sistemos (PHP 8.3 + PostgreSQL) eksportas.
@@ -1035,6 +1035,14 @@ ALTER TABLE ONLY public.bandymai_prietaisai
 
 
 --
+-- Name: dielektriniai_bandymai dielektriniai_bandymai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dielektriniai_bandymai
+    ADD CONSTRAINT dielektriniai_bandymai_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: gaminiai gaminiai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1059,11 +1067,27 @@ ALTER TABLE ONLY public.gaminiu_rusys
 
 
 --
+-- Name: funkciniai_bandymai funkciniai_bandymai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funkciniai_bandymai
+    ADD CONSTRAINT funkciniai_bandymai_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: imones_nustatymai imones_nustatymai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.imones_nustatymai
     ADD CONSTRAINT imones_nustatymai_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: izeminimo_tikrinimas izeminimo_tikrinimas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.izeminimo_tikrinimas
+    ADD CONSTRAINT izeminimo_tikrinimas_pkey PRIMARY KEY (id);
 
 
 --
@@ -1104,6 +1128,14 @@ ALTER TABLE ONLY public.paso_teksto_korekcijos
 
 ALTER TABLE ONLY public.saugikliu_ideklai
     ADD CONSTRAINT mt_saugikliu_ideklai_unique UNIQUE (gaminio_id, sekcija, pozicijos_numeris);
+
+
+--
+-- Name: saugikliu_ideklai saugikliu_ideklai_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saugikliu_ideklai
+    ADD CONSTRAINT saugikliu_ideklai_pkey PRIMARY KEY (id);
 
 
 --
