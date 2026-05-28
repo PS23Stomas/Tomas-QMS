@@ -23,6 +23,7 @@ $error = '';
 
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas, patvirtinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // Naujo vartotojo kūrimas su el. pašto unikalumo tikrinimu

@@ -15,6 +15,7 @@ $klaida = '';
 
 // POST užklausos apdorojimas - atstatymo nuorodos siuntimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $el_pastas = trim($_POST['el_pastas'] ?? '');
 
     // El. pašto adreso validacija
@@ -194,6 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if (!$pranesimas): ?>
         <form method="POST" action="/slaptazodis_atstatymas.php">
+            <input type="hidden" name="_csrf" value="<?= csrfToken() ?>">
             <div class="form-group">
                 <label class="form-label" for="el_pastas">El. pašto adresas</label>
                 <input type="email" class="form-control" id="el_pastas" name="el_pastas" 

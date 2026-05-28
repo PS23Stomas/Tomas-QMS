@@ -254,3 +254,30 @@ function getUzsakymoImone(int $uzsakymo_id): array {
 
     return $global;
 }
+
+/**
+ * Grąžina (arba sukuria) CSRF apsaugos žetoną, saugomą sesijoje.
+ * Naudojamas kaip paslėptas laukas HTML formose ir meta žyme.
+ *
+ * @return string  32 baitų atsitiktinis šešioliktainis žetonas
+ */
+function csrfToken(): string {
+    if (empty($_SESSION['_csrf_token'])) {
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['_csrf_token'];
+}
+
+/**
+ * Tikrina, ar POST užklausa turi galiojantį CSRF žetoną.
+ * Žetonas gali būti: POST lauke '_csrf' ARBA HTTP antraštėje 'X-CSRF-Token'.
+ * Nesutapus — grąžinama 403 klaida ir vykdymas sustabdomas.
+ */
+function csrfVerify(): void {
+    $pateiktas = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    $sesijoje  = $_SESSION['_csrf_token'] ?? '';
+    if (!$sesijoje || !hash_equals($sesijoje, $pateiktas)) {
+        http_response_code(403);
+        die('CSRF patikrinimas nepavyko. Atnaujinkite puslapį ir bandykite dar kartą.');
+    }
+}

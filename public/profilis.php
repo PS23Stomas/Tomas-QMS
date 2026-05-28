@@ -20,6 +20,7 @@ $vartotojas = $stmt->fetch();
 
 // POST užklausos apdorojimas: el. pašto arba slaptažodžio keitimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $veiksmas = $_POST['veiksmas'] ?? '';
 
     // El. pašto adreso atnaujinimo logika

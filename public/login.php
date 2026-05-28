@@ -43,6 +43,12 @@ function normalizuotiRole(string $role): string {
     };
 }
 
+// CSRF žetono generavimas (inline, nes login.php nenaudoja config.php)
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}
+$_csrf_token = $_SESSION['_csrf_token'];
+
 // Automatinio prisijungimo tikrinimas per „prisiminti mane" slapuką (remember_token)
 if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     $token = $_COOKIE['remember_token'];
@@ -84,6 +90,11 @@ $jau_prisijunges = isset($_SESSION['vartotojas_id']);
 
 // POST užklausos apdorojimas: prisijungimo formos duomenų tikrinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $pateiktas_csrf = $_POST['_csrf'] ?? '';
+    if (!$_csrf_token || !hash_equals($_csrf_token, $pateiktas_csrf)) {
+        http_response_code(403);
+        die('CSRF patikrinimas nepavyko. Atnaujinkite puslapį ir bandykite dar kartą.');
+    }
     $vardas = trim($_POST['vardas'] ?? '');
     $slaptazodis = $_POST['slaptazodis'] ?? '';
 
@@ -307,6 +318,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-danger" data-testid="text-login-error"><?= htmlspecialchars($klaida) ?></div>
         <?php endif; ?>
         <form method="POST" action="/login.php" id="loginForm" novalidate>
+            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_csrf_token) ?>">
             <div class="form-group">
                 <label class="form-label" for="vardas">Vardas arba el. paštas</label>
                 <input type="text" class="form-control" id="vardas" name="vardas"

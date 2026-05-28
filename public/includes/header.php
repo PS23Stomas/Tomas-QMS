@@ -53,6 +53,7 @@
                     <meta name="theme-color" content="#1e293b">
                     <meta name="apple-mobile-web-app-capable" content="yes">
                     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+                    <meta name="csrf-token" content="<?= csrfToken() ?>">
 
                     <!-- Puslapio pavadinimas naršyklės kortelėje (nustato kiekvienas puslapis per $page_title) -->
                     <title><?= h($page_title ?? 'Tomo-QMS') ?> — Kokybės valdymo sistema</title>

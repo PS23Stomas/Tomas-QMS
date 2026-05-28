@@ -16,6 +16,12 @@ session_start();
 require __DIR__ . '/klases/Database.php';
 $pdo = Database::getConnection();
 
+// CSRF žetono generavimas (analogiškas config.php csrfToken() funkcijai)
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}
+$_csrf_token = $_SESSION['_csrf_token'];
+
 $pranesimas = '';
 $klaida = '';
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
@@ -46,6 +52,11 @@ if (empty($token)) {
 
 // Naujo slaptažodžio išsaugojimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
+    $pateiktas_csrf = $_POST['_csrf'] ?? '';
+    if (!$_csrf_token || !hash_equals($_csrf_token, $pateiktas_csrf)) {
+        http_response_code(403);
+        die('CSRF patikrinimas nepavyko. Atnaujinkite puslapį ir bandykite dar kartą.');
+    }
     $naujas = $_POST['slaptazodis'] ?? '';
     $pakartoti = $_POST['slaptazodis2'] ?? '';
 
@@ -231,6 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $galiojantis) {
             </div>
             <form method="POST" action="/slaptazodis_keitimas.php">
                 <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_csrf_token) ?>">
                 <div class="form-group">
                     <label class="form-label" for="slaptazodis">Naujas slaptažodis</label>
                     <input type="password" class="form-control" id="slaptazodis" name="slaptazodis" 

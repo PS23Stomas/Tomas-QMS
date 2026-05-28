@@ -147,6 +147,28 @@
    Mobiliuose įrenginiuose (<768px) šoninė juosta slepiama.
    Atidaroma paspaudus "hamburger" mygtuką (#menuToggle).
    ========================================================================= */
+/* =========================================================================
+   CSRF APSAUGA — automatinis žetono įterpimas
+   Ieško meta žymės "csrf-token" (įterpiama per header.php) ir prideda
+   paslėptą lauką "_csrf" į visas POST formas puslapyje.
+   ========================================================================= */
+(function() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (!meta) return;
+    var token = meta.getAttribute('content');
+    if (!token) return;
+    document.querySelectorAll('form').forEach(function(form) {
+        if (form.method.toLowerCase() === 'post' && !form.querySelector('input[name="_csrf"]')) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = '_csrf';
+            inp.value = token;
+            form.appendChild(inp);
+        }
+    });
+    window.__csrfToken = token;
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
     var menuToggle = document.getElementById('menuToggle');
     var sidebar = document.getElementById('sidebar');
@@ -330,6 +352,13 @@ function confirmDelete(url, name) {
         input.name = 'action';
         input.value = 'delete';
         form.appendChild(input);
+        if (window.__csrfToken) {
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_csrf';
+            csrf.value = window.__csrfToken;
+            form.appendChild(csrf);
+        }
         document.body.appendChild(form);
         form.submit();
     }
