@@ -30,3 +30,9 @@ id = "NFeiJH7jClBl5h7o8x927"
 uri = "file://docs/lenteles_aprasymas.docx"
 type = "word_document"
 title = "Lentelių aprašymas — Word"
+
+[[outputs]]
+id = "t5gPhrCRgQBmzj3pusmDj"
+uri = "file://public_export.zip"
+type = "unspecified"
+title = "public/ failai (be vendor)"
