@@ -226,7 +226,7 @@
                                     <span>Vartotojų valdymas</span>
                                 </a>
 
-                                <!-- DB Migracija — rodoma tik admin rolei -->
+                                <?php /* DB Migracija — laikinai paslėpta; norint atkomentuoti, išimti PHP komentarą
                                 <a href="/migracija_admin.php"
                                    class="nav-item <?= $current_page === 'migracija_admin' ? 'active' : '' ?>"
                                    data-testid="link-migration">
@@ -238,6 +238,7 @@
                                     </svg>
                                     <span>DB Migracija</span>
                                 </a>
+                                */ ?>
                                 <?php endif; ?>
 
                             </nav>
