@@ -1239,11 +1239,43 @@ ALTER TABLE ONLY public.paso_teksto_korekcijos
 
 
 --
+-- Name: dielektriniai_bandymai dielektriniai_bandymai_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dielektriniai_bandymai
+    ADD CONSTRAINT dielektriniai_bandymai_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: funkciniai_bandymai funkciniai_bandymai_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.funkciniai_bandymai
+    ADD CONSTRAINT funkciniai_bandymai_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: izeminimo_tikrinimas izeminimo_tikrinimas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.izeminimo_tikrinimas
+    ADD CONSTRAINT izeminimo_tikrinimas_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: saugikliu_ideklai mt_saugikliu_ideklai_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.saugikliu_ideklai
     ADD CONSTRAINT mt_saugikliu_ideklai_unique UNIQUE (gaminio_id, sekcija, pozicijos_numeris);
+
+
+--
+-- Name: saugikliu_ideklai saugikliu_ideklai_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.saugikliu_ideklai
+    ADD CONSTRAINT saugikliu_ideklai_pkey PRIMARY KEY (id);
 
 
 --
