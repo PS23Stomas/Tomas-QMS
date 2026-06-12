@@ -1016,7 +1016,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="sig-date-label">Data</div>
         </div>
         <div class="paso-sig-right">
-            <img src="/img/parasas_elga.jpg" alt="UAB ELGA parašas">
+            <img src="/api/elga_parasas.php" alt="UAB ELGA parašas">
             <div class="sig-label">(parašas)/antspaudas</div>
         </div>
     </div>

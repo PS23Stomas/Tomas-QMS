@@ -669,9 +669,7 @@ function removeIzemRow(btn) {
         <span style="font-size:14px;">
             <strong>Vardas, Pavardė:</strong> <?=htmlspecialchars($vardas)?> <?=htmlspecialchars($pavarde)?>
         </span>
-        <?php if (file_exists(__DIR__ . '/../img/parasas_elga.jpg')): ?>
-        <img src="/img/parasas_elga.jpg" alt="Parašas" style="max-height:50px;">
-        <?php endif; ?>
+        <img src="/api/elga_parasas.php" alt="Parašas" style="max-height:50px;">
     </div>
 </div>
 
