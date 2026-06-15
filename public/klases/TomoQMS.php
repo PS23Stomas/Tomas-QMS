@@ -1355,6 +1355,158 @@ class TomoQMS {
         return $rezultatas;
     }
 
+    /**
+     * Importuoja pretenzijas iš quality_tomas į Tomo QMS duomenų bazę.
+     * Kopijuojamos pretenzijos, jų nuotraukos ir el. pašto istorija.
+     * Dublikatai atnaujinami pagal qt_pretenzija_id arba aprašymą+datą.
+     */
+    public static function importuotiPretenzijasSiQualityTomas(): array {
+        $qt   = self::getQualityTomasConnection();
+        $tomo = self::getConnection();
+        if (!$qt)   return ['klaida' => 'Nepavyko prisijungti prie quality_tomas DB'];
+        if (!$tomo) return ['klaida' => 'Nepavyko prisijungti prie Tomo QMS DB'];
+
+        $rez = ['pretenzijos' => 0, 'nuotraukos' => 0, 'email' => 0, 'klaidos' => []];
+
+        try {
+            $qt_pret_exists = $qt->query("SELECT to_regclass('pretenzijos')")->fetchColumn();
+            if (!$qt_pret_exists) return ['klaida' => 'quality_tomas neturi pretenzijos lentelės'];
+
+            $qt_pret_cols    = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='pretenzijos'")->fetchAll(PDO::FETCH_COLUMN);
+            $qt_has_gaminys  = in_array('gaminys_id', $qt_pret_cols);
+            $qt_has_pdf      = in_array('defekto_pdf_pavadinimas', $qt_pret_cols);
+
+            $pret_sel = "id, uzsakymo_id, tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka";
+            if ($qt_has_gaminys) $pret_sel .= ", gaminys_id";
+            if ($qt_has_pdf)     $pret_sel .= ", defekto_pdf_pavadinimas, defekto_pdf_turinys";
+
+            $qt_pretenzijos = $qt->query("SELECT $pret_sel FROM pretenzijos ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($qt_pretenzijos)) return ['klaida' => 'quality_tomas neturi pretenzijų'];
+
+            // Užsakymų žemėlapis: qt uzsakymo_id → uzsakymo_numeris → tomo uzsakymo_id
+            $qt_uzs_nr = [];
+            foreach ($qt->query("SELECT id, uzsakymo_numeris FROM uzsakymai")->fetchAll(PDO::FETCH_ASSOC) as $o)
+                $qt_uzs_nr[(int)$o['id']] = trim($o['uzsakymo_numeris']);
+
+            $tomo_uzs_map = [];
+            foreach ($tomo->query("SELECT id, uzsakymo_numeris FROM uzsakymai")->fetchAll(PDO::FETCH_ASSOC) as $o)
+                $tomo_uzs_map[trim($o['uzsakymo_numeris'])] = (int)$o['id'];
+
+            // Gaminių žemėlapis: qt gaminys_id → tomo gaminys_id
+            $qt_gam_map = [];
+            if ($qt_has_gaminys) {
+                $qt_gam_rows = $qt->query("
+                    SELECT g.id, g.gaminio_numeris, u.uzsakymo_numeris
+                    FROM gaminiai g JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                ")->fetchAll(PDO::FETCH_ASSOC);
+                $chk_gam = $tomo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND gaminio_numeris = ? LIMIT 1");
+                foreach ($qt_gam_rows as $g) {
+                    $tomo_uzs_id = $tomo_uzs_map[trim($g['uzsakymo_numeris'])] ?? null;
+                    if (!$tomo_uzs_id) continue;
+                    $chk_gam->execute([$tomo_uzs_id, $g['gaminio_numeris']]);
+                    $tomo_gid = $chk_gam->fetchColumn();
+                    if ($tomo_gid) $qt_gam_map[(int)$g['id']] = (int)$tomo_gid;
+                }
+            }
+
+            $tomo_has_qt_id  = (bool)$tomo->query("SELECT column_name FROM information_schema.columns WHERE table_name='pretenzijos' AND column_name='qt_pretenzija_id'")->fetchColumn();
+            $qt_nuotr_table  = (bool)$qt->query("SELECT to_regclass('pretenzijos_nuotraukos')")->fetchColumn();
+            $qt_email_table  = (bool)$qt->query("SELECT to_regclass('pretenzijos_email_history')")->fetchColumn();
+
+            foreach ($qt_pretenzijos as $p) {
+                try {
+                    $qt_pret_id = (int)$p['id'];
+
+                    $tomo_uzs_id = null;
+                    if ($p['uzsakymo_id']) {
+                        $nr = $qt_uzs_nr[(int)$p['uzsakymo_id']] ?? null;
+                        if ($nr) $tomo_uzs_id = $tomo_uzs_map[$nr] ?? null;
+                    }
+                    $tomo_gam_id = ($qt_has_gaminys && !empty($p['gaminys_id']))
+                        ? ($qt_gam_map[(int)$p['gaminys_id']] ?? null) : null;
+
+                    // Tikrina dublikatus
+                    $existing_id = false;
+                    if ($tomo_has_qt_id) {
+                        $chk = $tomo->prepare("SELECT id FROM pretenzijos WHERE qt_pretenzija_id = ? LIMIT 1");
+                        $chk->execute([$qt_pret_id]);
+                        $existing_id = $chk->fetchColumn();
+                    }
+                    if (!$existing_id) {
+                        $chk2 = $tomo->prepare("SELECT id FROM pretenzijos WHERE aprasymas = ? AND sukure_vardas = ? AND gavimo_data = ? LIMIT 1");
+                        $chk2->execute([$p['aprasymas'], $p['sukure_vardas'], $p['gavimo_data']]);
+                        $existing_id = $chk2->fetchColumn();
+                    }
+
+                    $common_cols   = "tipas=?, statusas=?, aprasymas=?, priezastis=?, veiksmai=?, atsakingas_asmuo=?, gavimo_data=?, terminas=?, uzbaigimo_data=?, sukure_vardas=?, aptikimo_vieta=?, gaminys_info=?, atsakingas_padalinys=?, siulomas_sprendimas=?, uzfiksavo_padalinys=?, uzfiksavo_asmuo=?, uzsakymo_numeris_ranka=?, uzsakymo_id=?, gaminio_id=?";
+                    $common_params = [$p['tipas'], $p['statusas'], $p['aprasymas'], $p['priezastis'] ?? null, $p['veiksmai'] ?? null, $p['atsakingas_asmuo'] ?? null, $p['gavimo_data'], $p['terminas'] ?? null, $p['uzbaigimo_data'] ?? null, $p['sukure_vardas'], $p['aptikimo_vieta'] ?? null, $p['gaminys_info'] ?? null, $p['atsakingas_padalinys'] ?? null, $p['siulomas_sprendimas'] ?? null, $p['uzfiksavo_padalinys'] ?? null, $p['uzfiksavo_asmuo'] ?? null, $p['uzsakymo_numeris_ranka'] ?? null, $tomo_uzs_id, $tomo_gam_id];
+
+                    if ($existing_id) {
+                        $upd = "UPDATE pretenzijos SET $common_cols";
+                        $upd_p = $common_params;
+                        if ($qt_has_pdf) { $upd .= ", defekto_pdf_pavadinimas=?, defekto_pdf_turinys=?"; $upd_p[] = $p['defekto_pdf_pavadinimas'] ?? null; $upd_p[] = $p['defekto_pdf_turinys'] ?? null; }
+                        if ($tomo_has_qt_id) { $upd .= ", qt_pretenzija_id=?"; $upd_p[] = $qt_pret_id; }
+                        $upd .= " WHERE id=?"; $upd_p[] = $existing_id;
+                        $tomo->prepare($upd)->execute($upd_p);
+                        $local_pret_id = (int)$existing_id;
+                    } else {
+                        $ic = "tipas, statusas, aprasymas, priezastis, veiksmai, atsakingas_asmuo, gavimo_data, terminas, uzbaigimo_data, sukure_vardas, sukurta, atnaujinta, aptikimo_vieta, gaminys_info, atsakingas_padalinys, siulomas_sprendimas, uzfiksavo_padalinys, uzfiksavo_asmuo, uzsakymo_numeris_ranka, uzsakymo_id, gaminio_id, data, prioritetas, perziuros_token";
+                        $iv = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, md5(random()::text || clock_timestamp()::text)";
+                        $ip = $common_params;
+                        array_splice($ip, 10, 0, [$p['sukurta'] ?? date('Y-m-d H:i:s'), $p['atnaujinta'] ?? date('Y-m-d H:i:s')]);
+                        $ip[] = $p['gavimo_data'] ?? $p['sukurta'] ?? date('Y-m-d');
+                        $ip[] = 'vidutinis';
+                        if ($qt_has_pdf) { $ic .= ", defekto_pdf_pavadinimas, defekto_pdf_turinys"; $iv .= ", ?, ?"; $ip[] = $p['defekto_pdf_pavadinimas'] ?? null; $ip[] = $p['defekto_pdf_turinys'] ?? null; }
+                        if ($tomo_has_qt_id) { $ic .= ", qt_pretenzija_id"; $iv .= ", ?"; $ip[] = $qt_pret_id; }
+                        $ins = $tomo->prepare("INSERT INTO pretenzijos ($ic) VALUES ($iv) RETURNING id");
+                        $ins->execute($ip);
+                        $local_pret_id = (int)$ins->fetchColumn();
+                    }
+                    $rez['pretenzijos']++;
+
+                    if ($qt_nuotr_table) {
+                        $tomo->prepare("DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?")->execute([$local_pret_id]);
+                        $n_stmt = $qt->prepare("SELECT pavadinimas, tipas, turinys FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?");
+                        $n_stmt->execute([$qt_pret_id]);
+                        $ins_n = $tomo->prepare("INSERT INTO pretenzijos_nuotraukos (pretenzija_id, pavadinimas, tipas, turinys) VALUES (?, ?, ?, ?)");
+                        foreach ($n_stmt->fetchAll(PDO::FETCH_ASSOC) as $n) {
+                            $turinys = $n['turinys'];
+                            if (is_resource($turinys)) $turinys = stream_get_contents($turinys);
+                            $ins_n->bindValue(1, $local_pret_id, PDO::PARAM_INT);
+                            $ins_n->bindValue(2, $n['pavadinimas']);
+                            $ins_n->bindValue(3, $n['tipas']);
+                            $ins_n->bindValue(4, $turinys, $turinys !== null ? PDO::PARAM_LOB : PDO::PARAM_NULL);
+                            $ins_n->execute();
+                            $rez['nuotraukos']++;
+                        }
+                    }
+
+                    if ($qt_email_table) {
+                        $tomo->prepare("DELETE FROM pretenzijos_email_history WHERE pretenzija_id = ?")->execute([$local_pret_id]);
+                        $e_stmt = $qt->prepare("SELECT email_delegated_to, email_cc, email_subject, sent_by, sent_at, feedback_text, feedback_at, feedback_by FROM pretenzijos_email_history WHERE pretenzija_id = ?");
+                        $e_stmt->execute([$qt_pret_id]);
+                        $ins_e = $tomo->prepare("INSERT INTO pretenzijos_email_history (pretenzija_id, email_delegated_to, email_cc, email_subject, sent_by, sent_at, feedback_text, feedback_at, feedback_by) VALUES (?,?,?,?,?,?,?,?,?)");
+                        foreach ($e_stmt->fetchAll(PDO::FETCH_ASSOC) as $em) {
+                            $ins_e->execute([$local_pret_id, $em['email_delegated_to'] ?? null, $em['email_cc'] ?? null, $em['email_subject'] ?? null, $em['sent_by'] ?? null, $em['sent_at'] ?? null, $em['feedback_text'] ?? null, $em['feedback_at'] ?? null, $em['feedback_by'] ?? null]);
+                            $rez['email']++;
+                        }
+                    }
+
+                } catch (Exception $row_e) {
+                    $rez['klaidos'][] = "Pretenzija qt_id=$qt_pret_id: {$row_e->getMessage()}";
+                }
+            }
+
+            self::irasytLog('Pretenzijos iš quality_tomas į Tomo QMS', 'pretenzijos', null, $rez['pretenzijos'], empty($rez['klaidos']) ? 'ok' : 'klaida', empty($rez['klaidos']) ? null : implode('; ', array_slice($rez['klaidos'], 0, 5)));
+
+        } catch (Exception $e) {
+            $rez['klaidos'][] = $e->getMessage();
+        }
+
+        return $rez;
+    }
+
     public static function sinchPDF(PDO $localConn, int $local_gaminio_id, string $pdf_column, string $failas_column): void {
         $conn = self::getConnection();
         if (!$conn) return;
