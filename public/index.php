@@ -47,7 +47,6 @@ if (isset($_GET['grupe'])) {
 }
 $page_title = $filtro_grupe . ' Kokybės rodikliai';
 $active_tab = $_GET['tab'] ?? '30d';
-<?php
 /**
  * Pagrindinis kokybės rodiklių skydelis (Dashboard)
  *
