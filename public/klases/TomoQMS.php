@@ -1245,102 +1245,63 @@ class TomoQMS {
                 }
             }
 
-            // === 6. FUNKCINIAI BANDYMAI ===
-            $qt_mt_fb_cols2 = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='mt_funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
-            $use_mt_fb2 = !empty($qt_mt_fb_cols2);
-            if ($use_mt_fb2) {
-                $qt_fb_cols = $qt_mt_fb_cols2;
-                $fb_gam_col2 = in_array('gaminio_id', $qt_fb_cols) ? 'gaminio_id' : 'gaminys_id';
-                $fb_atliko_col2 = in_array('darba_atliko', $qt_fb_cols) ? 'darba_atliko' : (in_array('atliko_vardas', $qt_fb_cols) ? 'atliko_vardas' : 'darba_atliko');
-                $fb_irase_col2 = in_array('irase_vartotojas', $qt_fb_cols) ? 'irase_vartotojas' : (in_array('pildytojas_vardas', $qt_fb_cols) ? 'pildytojas_vardas' : 'irase_vartotojas');
-                $fb_table2 = 'mt_funkciniai_bandymai';
-            } else {
-                $qt_fb_cols = $qt->query("SELECT column_name FROM information_schema.columns WHERE table_name='funkciniai_bandymai'")->fetchAll(PDO::FETCH_COLUMN);
-                $fb_gam_col2 = 'gaminys_id';
-                $fb_atliko_col2 = 'atliko_vardas';
-                $fb_irase_col2 = 'pildytojas_vardas';
-                $fb_table2 = 'funkciniai_bandymai';
-            }
-            $has_photo = in_array('defekto_nuotrauka', $qt_fb_cols);
-
-            $select_cols = "fb.$fb_gam_col2 AS gaminio_id, fb.eil_nr, fb.reikalavimas, fb.isvada, fb.defektas, fb.$fb_atliko_col2 AS darba_atliko, fb.$fb_irase_col2 AS irase_vartotojas";
-            if ($has_photo) $select_cols .= ", fb.defekto_nuotrauka, fb.defekto_nuotraukos_pavadinimas";
-
-            $tests = $qt->query("
-                SELECT $select_cols
-                FROM $fb_table2 fb
-                JOIN gaminiai g ON g.id = fb.$fb_gam_col2
-                JOIN uzsakymai u ON u.id = g.uzsakymo_id
-                WHERE u.gaminiu_rusis_id = 2
-                ORDER BY fb.$fb_gam_col2, fb.eil_nr
-            ")->fetchAll(PDO::FETCH_ASSOC);
-
-            $grouped = [];
-            foreach ($tests as $t) $grouped[$t['gaminio_id']][] = $t;
-
-            foreach ($grouped as $qt_gam_id => $rows) {
-                $tomo_gam_id = $qt_to_tomo_gam[$qt_gam_id] ?? null;
-                if (!$tomo_gam_id) continue;
-                try {
-                    $tomo->beginTransaction();
-                    $tomo->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
-
-                    if ($has_photo) {
-                        $ins = $tomo->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas,defekto_nuotrauka,defekto_nuotraukos_pavadinimas) VALUES (?,?,?,?,?,?,?,?,?)");
-                    } else {
-                        $ins = $tomo->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
-                    }
-                    foreach ($rows as $r) {
-                        $params = [$tomo_gam_id, $r['eil_nr'], $r['reikalavimas'], $r['isvada'], $r['defektas'], $r['darba_atliko'], $r['irase_vartotojas']];
-                        if ($has_photo) {
-                            $params[] = $r['defekto_nuotrauka'] ?? null;
-                            $params[] = $r['defekto_nuotraukos_pavadinimas'] ?? null;
-                        }
-                        $ins->execute($params);
-                    }
-                    $tomo->commit();
-                    $rezultatas['bandymai'] += count($rows);
-                } catch (Exception $e) {
-                    $tomo->rollBack();
-                    $rezultatas['klaidos'][] = "Bandymai gam_id=$qt_gam_id: {$e->getMessage()}";
-                }
-            }
-
-            // === 7. MT KOMPONENTAI ===
-            $rezultatas['komponentai'] = 0;
-            $komp_data = $qt->query("
-                SELECT mk.gaminio_id as qt_gam_id, mk.eiles_numeris, mk.gamintojo_kodas, mk.kiekis, mk.aprasymas, mk.gamintojas, mk.parinkta_projektui
-                FROM mt_komponentai mk
-                JOIN gaminiai g ON g.id = mk.gaminio_id
-                JOIN uzsakymai u ON u.id = g.uzsakymo_id
-                WHERE u.gaminiu_rusis_id = 2
-                ORDER BY mk.gaminio_id, mk.eiles_numeris
-            ")->fetchAll(PDO::FETCH_ASSOC);
-
-            $komp_grouped = [];
-            foreach ($komp_data as $k) $komp_grouped[$k['qt_gam_id']][] = $k;
-
-            foreach ($komp_grouped as $qt_gam_id => $rows) {
-                $tomo_gam_id = $qt_to_tomo_gam[$qt_gam_id] ?? null;
-                if (!$tomo_gam_id) continue;
-                try {
-                    $tomo->beginTransaction();
-                    $tomo->prepare("DELETE FROM komponentai WHERE gaminio_id = ?")->execute([$tomo_gam_id]);
-                    $ins = $tomo->prepare("INSERT INTO komponentai (gaminio_id, eiles_numeris, gamintojo_kodas, kiekis, aprasymas, gamintojas, parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
-                    foreach ($rows as $r) {
-                        $ins->execute([$tomo_gam_id, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
-                    }
-                    $tomo->commit();
-                    $rezultatas['komponentai'] += count($rows);
-                } catch (Exception $e) {
-                    $tomo->rollBack();
-                    $rezultatas['klaidos'][] = "Komponentai gam_id=$qt_gam_id: {$e->getMessage()}";
-                }
-            }
-
-            // Visi TOMO gaminio ID sąrašas (naudojamas masiniams DELETE)
+            // Visi TOMO gaminio ID sąrašas (naudojamas masiniams DELETE §6–§11)
             $all_tomo_gam_ids = array_values($qt_to_tomo_gam);
             $ph_all = implode(',', array_fill(0, count($all_tomo_gam_ids), '?'));
+
+            // === 6. FUNKCINIAI BANDYMAI (bulk DELETE + INSERT) ===
+            $rezultatas['bandymai'] = 0;
+            try {
+                $fb_data = $qt->query("
+                    SELECT fb.gaminio_id AS qt_gam_id, fb.eil_nr, fb.reikalavimas, fb.isvada,
+                           fb.defektas, fb.darba_atliko, fb.irase_vartotojas
+                    FROM mt_funkciniai_bandymai fb
+                    JOIN gaminiai g ON g.id = fb.gaminio_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY fb.gaminio_id, fb.eil_nr
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM funkciniai_bandymai WHERE gaminio_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_funkciniai_bandymai_id_seq', COALESCE((SELECT MAX(id) FROM funkciniai_bandymai), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO funkciniai_bandymai (gaminio_id,eil_nr,reikalavimas,isvada,defektas,darba_atliko,irase_vartotojas) VALUES (?,?,?,?,?,?,?)");
+                foreach ($fb_data as $r) {
+                    $tid = $qt_to_tomo_gam[(int)$r['qt_gam_id']] ?? null;
+                    if (!$tid) continue;
+                    $ins->execute([$tid, $r['eil_nr'], $r['reikalavimas'], $r['isvada'], $r['defektas'], $r['darba_atliko'], $r['irase_vartotojas']]);
+                    $rezultatas['bandymai']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Funkciniai bandymai: {$e->getMessage()}";
+            }
+
+            // === 7. MT KOMPONENTAI (bulk DELETE + INSERT) ===
+            $rezultatas['komponentai'] = 0;
+            try {
+                $komp_data = $qt->query("
+                    SELECT mk.gaminio_id AS qt_gam_id, mk.eiles_numeris, mk.gamintojo_kodas,
+                           mk.kiekis, mk.aprasymas, mk.gamintojas, mk.parinkta_projektui
+                    FROM mt_komponentai mk
+                    JOIN gaminiai g ON g.id = mk.gaminio_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY mk.gaminio_id, mk.eiles_numeris
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM komponentai WHERE gaminio_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_komponentai_id_seq', COALESCE((SELECT MAX(id) FROM komponentai), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO komponentai (gaminio_id,eiles_numeris,gamintojo_kodas,kiekis,aprasymas,gamintojas,parinkta_projektui) VALUES (?,?,?,?,?,?,?)");
+                foreach ($komp_data as $r) {
+                    $tid = $qt_to_tomo_gam[(int)$r['qt_gam_id']] ?? null;
+                    if (!$tid) continue;
+                    $ins->execute([$tid, $r['eiles_numeris'], $r['gamintojo_kodas'], $r['kiekis'], $r['aprasymas'], $r['gamintojas'], $r['parinkta_projektui']]);
+                    $rezultatas['komponentai']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Komponentai: {$e->getMessage()}";
+            }
 
             // === 8. DIELEKTRINIAI BANDYMAI ===
             $rezultatas['dielektriniai'] = 0;
