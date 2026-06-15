@@ -1193,11 +1193,11 @@ class TomoQMS {
             // === 4. UŽSAKYMAI ===
             $existing = [];
             $st = $tomo->query("SELECT id, uzsakymo_numeris FROM uzsakymai");
-            foreach ($st as $r) $existing[trim($r['uzsakymo_numeris'])] = (int)$r['id'];
+            foreach ($st as $r) $existing[trim($r['uzsakymo_numeris'] ?? '')] = (int)$r['id'];
 
             $order_map = [];
             foreach ($mt_uzsakymai as $uzs) {
-                $nr = trim($uzs['uzsakymo_numeris']);
+                $nr = trim($uzs['uzsakymo_numeris'] ?? '');
                 if ($nr === '') continue;
                 $uzs_id_val = $uzs['uzsakovas'] ? ($uzsakovai_cache[$uzs['uzsakovas']] ?? null) : null;
                 $obj_id_val = $uzs['objektas'] ? ($objektai_cache[$uzs['objektas']] ?? null) : null;
@@ -1497,11 +1497,11 @@ class TomoQMS {
             // Užsakymų žemėlapis: qt uzsakymo_id → uzsakymo_numeris → tomo uzsakymo_id
             $qt_uzs_nr = [];
             foreach ($qt->query("SELECT id, uzsakymo_numeris FROM uzsakymai")->fetchAll(PDO::FETCH_ASSOC) as $o)
-                $qt_uzs_nr[(int)$o['id']] = trim($o['uzsakymo_numeris']);
+                $qt_uzs_nr[(int)$o['id']] = trim($o['uzsakymo_numeris'] ?? '');
 
             $tomo_uzs_map = [];
             foreach ($tomo->query("SELECT id, uzsakymo_numeris FROM uzsakymai")->fetchAll(PDO::FETCH_ASSOC) as $o)
-                $tomo_uzs_map[trim($o['uzsakymo_numeris'])] = (int)$o['id'];
+                $tomo_uzs_map[trim($o['uzsakymo_numeris'] ?? '')] = (int)$o['id'];
 
             // Gaminių žemėlapis: qt gaminys_id → tomo gaminys_id
             $qt_gam_map = [];
@@ -1513,7 +1513,7 @@ class TomoQMS {
                 ")->fetchAll(PDO::FETCH_ASSOC);
                 $chk_gam = $tomo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND gaminio_numeris = ? LIMIT 1");
                 foreach ($qt_gam_rows as $g) {
-                    $tomo_uzs_id = $tomo_uzs_map[trim($g['uzsakymo_numeris'])] ?? null;
+                    $tomo_uzs_id = $tomo_uzs_map[trim($g['uzsakymo_numeris'] ?? '')] ?? null;
                     if (!$tomo_uzs_id) continue;
                     $chk_gam->execute([$tomo_uzs_id, $g['gaminio_numeris']]);
                     $tomo_gid = $chk_gam->fetchColumn();
