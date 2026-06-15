@@ -27,6 +27,10 @@ $veiksmas  = $_POST['veiksmas'] ?? '';
 $rezultatas = null;
 $klaida     = null;
 
+// Kiekiai dabartinėje LOCAL DB
+$local_uzs_count = (int)$pdo->query("SELECT COUNT(*) FROM uzsakymai WHERE gaminiu_rusis_id=2")->fetchColumn();
+$local_gam_count = (int)$pdo->query("SELECT COUNT(*) FROM gaminiai g JOIN uzsakymai u ON u.id=g.uzsakymo_id WHERE u.gaminiu_rusis_id=2")->fetchColumn();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfVerify();
 
@@ -53,6 +57,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $rezultatas = [
                 'tipas'   => 'pretenzijos',
+                'trukme'  => $trukme,
+                'duomenys' => $rez,
+            ];
+        }
+
+    } elseif ($veiksmas === 'importuoti_i_local') {
+        $pradzia = microtime(true);
+        $rez = TomoQMS::importuotiILocalDB($pdo);
+        $trukme = round(microtime(true) - $pradzia, 2);
+        if (isset($rez['klaida'])) {
+            $klaida = $rez['klaida'];
+        } else {
+            $rezultatas = [
+                'tipas'   => 'local',
                 'trukme'  => $trukme,
                 'duomenys' => $rez,
             ];
@@ -115,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<div class="page-title">quality_tomas → Tomo QMS importas</div>
-<div class="page-sub">Duomenų perkėlimas iš išorinės quality_tomas DB į Replit production Tomo QMS DB</div>
+<div class="page-title">quality_tomas importas</div>
+<div class="page-sub">Duomenų perkėlimas iš išorinės quality_tomas DB į šią sistemą arba Tomo QMS</div>
 
 <div class="env-row">
     <div class="env-card">
@@ -177,14 +195,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <?php endif; ?>
 
+    <?php if ($rezultatas['tipas'] === 'local'): ?>
+    <?php $r = $rezultatas['duomenys']; ?>
+    <h3>✓ Importuota į LOCAL DB (nkokybe.elga.tech)</h3>
+    <div class="stat-row">
+        <div class="stat-pill"><strong><?= $r['nauji'] ?? 0 ?></strong>Nauji užsakymai</div>
+        <div class="stat-pill"><strong><?= $r['atnaujinti'] ?? 0 ?></strong>Atnaujinti</div>
+        <div class="stat-pill"><strong><?= $r['gaminiai'] ?? 0 ?></strong>Gaminiai</div>
+        <div class="stat-pill"><strong><?= $r['bandymai'] ?? 0 ?></strong>Bandymai</div>
+        <div class="stat-pill"><strong><?= $r['komponentai'] ?? 0 ?></strong>Komponentai</div>
+        <div class="stat-pill"><strong><?= $r['pretenzijos'] ?? 0 ?></strong>Pretenzijos</div>
+    </div>
+    <?php if (!empty($r['klaidos'])): ?>
+    <details class="err-list">
+        <summary><?= count($r['klaidos']) ?> klaida(-os)</summary>
+        <ul><?php foreach (array_slice($r['klaidos'], 0, 20) as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
+    </details>
+    <?php endif; ?>
+    <?php endif; ?>
+
     <div style="margin-top:14px;font-size:0.83rem;color:var(--text-secondary);">Trukmė: <?= $rezultatas['trukme'] ?> sek.</div>
 </div>
 <?php endif; ?>
 
-<div class="warning-box">
-    ⚠️ <strong>Dėmesio:</strong> šis importas rašo į <strong>Tomo QMS production DB</strong>. Esami įrašai bus atnaujinti pagal užsakymo numerį. Operacija negrįžtama.
+<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:0.88rem;color:#1e40af;">
+    📊 <strong>Šios sistemos (nkokybe.elga.tech) LOCAL DB:</strong>
+    MT užsakymai: <strong><?= $local_uzs_count ?></strong> &nbsp;|&nbsp;
+    MT gaminiai: <strong><?= $local_gam_count ?></strong>
+    &nbsp;&nbsp;
+    <em style="color:#64748b;">quality_tomas turi: 188 užsakymų, 188 gaminių</em>
 </div>
 
+<div class="warning-box">
+    ⚠️ <strong>Dėmesio:</strong> Importas atnaujina esamus įrašus pagal užsakymo numerį (ne dubliuoja). Operacija negrįžtama.
+</div>
+
+<div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--text-secondary);">▼ Į ŠIĄ SISTEMĄ (nkokybe.elga.tech)</div>
+<div class="import-grid" style="margin-bottom:24px;">
+    <div class="import-card main" style="border-color:#22c55e;">
+        <h3>🏠 Importuoti į LOCAL DB</h3>
+        <p>Kopijuoja MT užsakymus, gaminius, bandymus, komponentus ir pretenzijas iš quality_tomas į <strong>nkokybe.elga.tech</strong> duomenų bazę.</p>
+        <form method="POST" onsubmit="return confirm('Importuoti visus MT duomenis iš quality_tomas į šios sistemos DB?\n\nTai gali užtrukti 2-5 minutes.')">
+            <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
+            <input type="hidden" name="veiksmas" value="importuoti_i_local">
+            <button type="submit" class="btn btn-primary btn-import" data-testid="button-import-local" style="background:#16a34a;">Importuoti į LOCAL DB</button>
+        </form>
+    </div>
+</div>
+
+<div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--text-secondary);">▼ Į TOMO QMS (išorinė DB)</div>
 <div class="import-grid">
     <div class="import-card main">
         <h3>🔄 Viskas iš karto</h3>
