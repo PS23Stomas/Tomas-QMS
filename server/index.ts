@@ -1,9 +1,4 @@
-import { spawn, execSync } from "child_process";
-
-try {
-  execSync("rm -f /tmp/sess_*", { stdio: "ignore" });
-  console.log("[Startup] Cleared stale PHP sessions");
-} catch (e) {}
+import { spawn } from "child_process";
 
 function startPhp() {
   const phpProcess = spawn(
