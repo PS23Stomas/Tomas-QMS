@@ -1338,11 +1338,122 @@ class TomoQMS {
                 }
             }
 
+            // Visi TOMO gaminio ID sąrašas (naudojamas masiniams DELETE)
+            $all_tomo_gam_ids = array_values($qt_to_tomo_gam);
+            $ph_all = implode(',', array_fill(0, count($all_tomo_gam_ids), '?'));
+
+            // === 8. DIELEKTRINIAI BANDYMAI ===
+            $rezultatas['dielektriniai'] = 0;
+            try {
+                $diel_data = $qt->query("
+                    SELECT d.gaminys_id as qt_gam_id, d.eiles_nr, d.aprasymas, d.itampa,
+                           d.schema1, d.schema2, d.schema3, d.schema4, d.schema5, d.schema6, d.isvada
+                    FROM mt_dielektriniai_bandymai d
+                    JOIN gaminiai g ON g.id = d.gaminys_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY d.gaminys_id, d.eiles_nr
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM dielektriniai_bandymai WHERE gaminys_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_dielektriniai_bandymai_id_seq', COALESCE((SELECT MAX(id) FROM dielektriniai_bandymai), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO dielektriniai_bandymai (gaminys_id,eiles_nr,aprasymas,itampa,schema1,schema2,schema3,schema4,schema5,schema6,isvada) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+                foreach ($diel_data as $d) {
+                    $tomo_gam_id = $qt_to_tomo_gam[(int)$d['qt_gam_id']] ?? null;
+                    if (!$tomo_gam_id) continue;
+                    $ins->execute([$tomo_gam_id, $d['eiles_nr'], $d['aprasymas'], $d['itampa'], $d['schema1'], $d['schema2'], $d['schema3'], $d['schema4'], $d['schema5'], $d['schema6'], $d['isvada']]);
+                    $rezultatas['dielektriniai']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Dielektriniai: {$e->getMessage()}";
+            }
+
+            // === 9. ĮŽEMINIMO TIKRINIMAS ===
+            $rezultatas['izeminimas'] = 0;
+            try {
+                $izem_data = $qt->query("
+                    SELECT i.gaminys_id as qt_gam_id, i.eil_nr, i.tasko_pavadinimas,
+                           i.matavimo_tasku_skaicius, i.varza_ohm, i.budas, i.bukle
+                    FROM mt_izeminimo_tikrinimas i
+                    JOIN gaminiai g ON g.id = i.gaminys_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY i.gaminys_id, i.eil_nr
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM izeminimo_tikrinimas WHERE gaminys_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_izeminimo_tikrinimas_id_seq', COALESCE((SELECT MAX(id) FROM izeminimo_tikrinimas), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO izeminimo_tikrinimas (gaminys_id,eil_nr,tasko_pavadinimas,matavimo_tasku_skaicius,varza_ohm,budas,bukle) VALUES (?,?,?,?,?,?,?)");
+                foreach ($izem_data as $i) {
+                    $tomo_gam_id = $qt_to_tomo_gam[(int)$i['qt_gam_id']] ?? null;
+                    if (!$tomo_gam_id) continue;
+                    $ins->execute([$tomo_gam_id, $i['eil_nr'], $i['tasko_pavadinimas'], $i['matavimo_tasku_skaicius'], $i['varza_ohm'], $i['budas'], $i['bukle']]);
+                    $rezultatas['izeminimas']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Įžeminimas: {$e->getMessage()}";
+            }
+
+            // === 10. SAUGIKLIŲ ĮDĖKLAI ===
+            $rezultatas['saugikliai'] = 0;
+            try {
+                $saug_data = $qt->query("
+                    SELECT s.gaminio_id as qt_gam_id, s.sekcija, s.pozicija,
+                           s.gabaritas, s.nominalas, s.pozicijos_numeris
+                    FROM mt_saugikliu_ideklai s
+                    JOIN gaminiai g ON g.id = s.gaminio_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY s.gaminio_id, s.pozicijos_numeris
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM saugikliu_ideklai WHERE gaminio_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_saugikliu_ideklai_id_seq', COALESCE((SELECT MAX(id) FROM saugikliu_ideklai), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO saugikliu_ideklai (gaminio_id,sekcija,pozicija,gabaritas,nominalas,pozicijos_numeris) VALUES (?,?,?,?,?,?)");
+                foreach ($saug_data as $s) {
+                    $tomo_gam_id = $qt_to_tomo_gam[(int)$s['qt_gam_id']] ?? null;
+                    if (!$tomo_gam_id) continue;
+                    $ins->execute([$tomo_gam_id, $s['sekcija'], $s['pozicija'], $s['gabaritas'], $s['nominalas'], $s['pozicijos_numeris']]);
+                    $rezultatas['saugikliai']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Saugikliai: {$e->getMessage()}";
+            }
+
+            // === 11. PASO TEKSTO KOREKCIJOS (MT pasas) ===
+            $rezultatas['paso_korekcijos'] = 0;
+            try {
+                $paso_data = $qt->query("
+                    SELECT p.gaminio_id as qt_gam_id, p.field_key, p.lang, p.tekstas, p.updated_at
+                    FROM mt_paso_teksto_korekcijos p
+                    JOIN gaminiai g ON g.id = p.gaminio_id
+                    JOIN uzsakymai u ON u.id = g.uzsakymo_id
+                    WHERE u.gaminiu_rusis_id = 2
+                    ORDER BY p.gaminio_id, p.field_key
+                ")->fetchAll(PDO::FETCH_ASSOC);
+
+                $tomo->prepare("DELETE FROM paso_teksto_korekcijos WHERE gaminio_id IN ($ph_all)")->execute($all_tomo_gam_ids);
+                $tomo->exec("SELECT setval('mt_paso_teksto_korekcijos_id_seq', COALESCE((SELECT MAX(id) FROM paso_teksto_korekcijos), 0) + 50000, false)");
+
+                $ins = $tomo->prepare("INSERT INTO paso_teksto_korekcijos (gaminio_id,field_key,lang,tekstas,updated_at) VALUES (?,?,?,?,?)");
+                foreach ($paso_data as $p) {
+                    $tomo_gam_id = $qt_to_tomo_gam[(int)$p['qt_gam_id']] ?? null;
+                    if (!$tomo_gam_id) continue;
+                    $ins->execute([$tomo_gam_id, $p['field_key'], $p['lang'], $p['tekstas'], $p['updated_at']]);
+                    $rezultatas['paso_korekcijos']++;
+                }
+            } catch (Exception $e) {
+                $rezultatas['klaidos'][] = "Paso korekcijos: {$e->getMessage()}";
+            }
+
             self::irasytLog(
                 'Importas iš quality_tomas',
-                'uzsakymai+bandymai+komponentai',
+                'uzsakymai+bandymai+komponentai+dielektriniai+izeminimas+saugikliai+pasas',
                 null,
-                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['bandymai'] + $rezultatas['komponentai'],
+                $rezultatas['nauji'] + $rezultatas['atnaujinti'] + $rezultatas['bandymai'] + $rezultatas['komponentai'] + $rezultatas['dielektriniai'] + $rezultatas['izeminimas'] + $rezultatas['saugikliai'] + $rezultatas['paso_korekcijos'],
                 empty($rezultatas['klaidos']) ? 'ok' : 'klaida',
                 empty($rezultatas['klaidos']) ? null : implode('; ', array_slice($rezultatas['klaidos'], 0, 5))
             );

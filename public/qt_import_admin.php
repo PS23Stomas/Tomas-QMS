@@ -168,8 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="stat-pill"><strong><?= $r['nauji'] ?? 0 ?></strong>Nauji užsakymai</div>
         <div class="stat-pill"><strong><?= $r['atnaujinti'] ?? 0 ?></strong>Atnaujinti</div>
         <div class="stat-pill"><strong><?= $r['gaminiai'] ?? 0 ?></strong>Gaminiai</div>
-        <div class="stat-pill"><strong><?= $r['bandymai'] ?? 0 ?></strong>Bandymai</div>
+        <div class="stat-pill"><strong><?= $r['bandymai'] ?? 0 ?></strong>Funk. bandymai</div>
         <div class="stat-pill"><strong><?= $r['komponentai'] ?? 0 ?></strong>Komponentai</div>
+        <div class="stat-pill"><strong><?= $r['dielektriniai'] ?? 0 ?></strong>Dielektriniai</div>
+        <div class="stat-pill"><strong><?= $r['izeminimas'] ?? 0 ?></strong>Įžeminimas</div>
+        <div class="stat-pill"><strong><?= $r['saugikliai'] ?? 0 ?></strong>Saugikliai</div>
+        <div class="stat-pill"><strong><?= $r['paso_korekcijos'] ?? 0 ?></strong>Paso korekcijos</div>
     </div>
     <?php if (!empty($r['klaidos'])): ?>
     <details class="err-list">
