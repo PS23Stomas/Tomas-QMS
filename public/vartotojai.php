@@ -115,6 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("DELETE FROM vartotojai WHERE id = :id")->execute(['id' => $id]);
             $message = 'Vartotojas ištrintas.';
         }
+    // Vartotojo aktyvumo perjungimas (sustabdyti/atnaujinti prisijungimą)
+    } elseif ($action === 'toggle_aktyvus') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id === (int)$_SESSION['vartotojas_id']) {
+            $error = 'Negalite išjungti savo paskyros.';
+        } elseif ($id > 0) {
+            $pdo->prepare("UPDATE vartotojai SET aktyvus = NOT aktyvus WHERE id = ?")->execute([$id]);
+            $dabartinis = $pdo->prepare("SELECT aktyvus FROM vartotojai WHERE id = ?");
+            $dabartinis->execute([$id]);
+            $ar_aktyvus = (bool)$dabartinis->fetchColumn();
+            $message = $ar_aktyvus ? 'Vartotojo prisijungimas atnaujintas.' : 'Vartotojo prisijungimas sustabdytas.';
+        }
     // Vartotojo patvirtinimo būsenos perjungimas
     } elseif ($action === 'toggle_confirm') {
         $id = $_POST['id'] ?? null;
@@ -132,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Vartotojų sąrašo gavimas su patvirtintojo informacija
-$users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazodis, v.role, v.pareigos, v.patvirtintas, v.patvirtino_id, v.patvirtinimo_data, CASE WHEN v.parasas IS NOT NULL THEN true ELSE false END AS turi_parasa, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
+$users = $pdo->query("SELECT v.id, v.vardas, v.pavarde, v.el_pastas, v.slaptazodis, v.role, v.pareigos, v.patvirtintas, v.aktyvus, v.patvirtino_id, v.patvirtinimo_data, CASE WHEN v.parasas IS NOT NULL THEN true ELSE false END AS turi_parasa, p.vardas as patvirtino_vardas, p.pavarde as patvirtino_pavarde FROM vartotojai v LEFT JOIN vartotojai p ON v.patvirtino_id = p.id ORDER BY v.id")->fetchAll();
 
 // Vartotojų skaičius pagal roles statistikai
 $role_counts = $pdo->query("SELECT role, COUNT(*) as cnt FROM vartotojai GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -204,6 +216,7 @@ require_once __DIR__ . '/includes/header.php';
                         <th>El. paštas</th>
                         <th>Rolė</th>
                         <th>Patvirtintas</th>
+                        <th>Prisijungimas</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
@@ -215,7 +228,8 @@ require_once __DIR__ . '/includes/header.php';
                         if ($u['role'] === 'administratorius') $role_badge = 'badge-danger';
                         elseif ($u['role'] === 'vartotojas') $role_badge = 'badge-primary';
                     ?>
-                    <tr data-testid="row-user-<?= $u['id'] ?>">
+                    <?php $ar_aktyvus = isset($u['aktyvus']) ? (bool)$u['aktyvus'] : true; ?>
+                    <tr data-testid="row-user-<?= $u['id'] ?>" style="<?= !$ar_aktyvus ? 'opacity:0.55;' : '' ?>">
                         <td class="usr-cell-name" data-label="Vardas" style="font-weight: 500;"><?= h($u['vardas'] ?? '-') ?></td>
                         <td data-label="Pavardė"><?= h($u['pavarde'] ?? '-') ?></td>
                         <td data-label="El. paštas" style="color: var(--text-secondary);"><?= h($u['el_pastas'] ?? '-') ?></td>
@@ -225,6 +239,13 @@ require_once __DIR__ . '/includes/header.php';
                                 <span class="badge badge-success">Taip</span>
                             <?php else: ?>
                                 <span class="badge badge-warning">Ne</span>
+                            <?php endif; ?>
+                        </td>
+                        <td data-label="Prisijungimas">
+                            <?php if ($ar_aktyvus): ?>
+                                <span class="badge badge-success" data-testid="status-aktyvus-<?= $u['id'] ?>">Aktyvus</span>
+                            <?php else: ?>
+                                <span class="badge badge-danger" data-testid="status-aktyvus-<?= $u['id'] ?>">Išjungtas</span>
                             <?php endif; ?>
                         </td>
                         <td class="usr-cell-actions">
@@ -239,6 +260,14 @@ require_once __DIR__ . '/includes/header.php';
                                 </form>
                                 <?php endif; ?>
                                 <?php if ($u['id'] != $_SESSION['vartotojas_id']): ?>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="toggle_aktyvus">
+                                    <input type="hidden" name="id" value="<?= $u['id'] ?>">
+                                    <button type="submit" class="btn btn-sm <?= $ar_aktyvus ? 'btn-warning' : 'btn-success' ?>" data-testid="button-toggle-aktyvus-<?= $u['id'] ?>"
+                                        onclick="return confirm('<?= $ar_aktyvus ? 'Sustabdyti šio vartotojo prisijungimą?' : 'Atnaujinti šio vartotojo prisijungimą?' ?>')">
+                                        <?= $ar_aktyvus ? 'Išjungti' : 'Įjungti' ?>
+                                    </button>
+                                </form>
                                 <button type="button" class="btn btn-danger btn-sm" data-testid="button-delete-user-<?= $u['id'] ?>"
                                     onclick="atidarytiVartotojoTrinyma(<?= $u['id'] ?>, '<?= h($u['vardas'] . ' ' . $u['pavarde']) ?>')">Trinti</button>
                                 <?php endif; ?>

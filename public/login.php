@@ -56,7 +56,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
     
     try {
         $stmt = $pdo->prepare("
-            SELECT v.id, v.vardas, v.pavarde, v.role 
+            SELECT v.id, v.vardas, v.pavarde, v.role, v.aktyvus
             FROM remember_tokens rt
             JOIN vartotojai v ON rt.vartotojas_id = v.id
             WHERE rt.token = ? AND rt.expires_at > CURRENT_TIMESTAMP
@@ -64,7 +64,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
         $stmt->execute([$hashed_token]);
         $user = $stmt->fetch();
         
-        if ($user) {
+        if ($user && (!isset($user['aktyvus']) || $user['aktyvus'])) {
             session_regenerate_id(true);
             $_SESSION['vartotojas_id'] = $user['id'];
             $_SESSION['vardas'] = $user['vardas'];
@@ -111,15 +111,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Vartotojo paieška pagal vardą arba el. paštą (jei yra @ — ieškoma el. paštu)
             if (str_contains($vardas, '@')) {
-                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE el_pastas = :vardas LIMIT 1");
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role, aktyvus FROM vartotojai WHERE el_pastas = :vardas LIMIT 1");
             } else {
-                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role FROM vartotojai WHERE vardas = :vardas ORDER BY (role IN ('administratorius','admin')) DESC, id ASC LIMIT 1");
+                $stmt = $pdo->prepare("SELECT id, vardas, pavarde, slaptazodis, role, aktyvus FROM vartotojai WHERE vardas = :vardas ORDER BY (role IN ('administratorius','admin')) DESC, id ASC LIMIT 1");
             }
             $stmt->execute(['vardas' => $vardas]);
             $naudotojas = $stmt->fetch();
 
             // Slaptažodžio tikrinimas su password_verify (bcrypt)
             if ($naudotojas && password_verify($slaptazodis, $naudotojas['slaptazodis'])) {
+                if (isset($naudotojas['aktyvus']) && !$naudotojas['aktyvus']) {
+                    $klaida = 'Ši paskyra išjungta. Kreipkitės į administratorių.';
+                } else {
                 // Sėkmingas prisijungimas: sesijos kintamųjų nustatymas
                 session_regenerate_id(true);
                 
@@ -155,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(200);
                 echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/moduliai.php"></head><body><p>Nukreipiama...</p><script>window.location.replace("/moduliai.php")</script></body></html>';
                 exit;
+                } // aktyvus tikrinimas
             } else {
                 $klaida = "Neteisingi prisijungimo duomenys.";
             }

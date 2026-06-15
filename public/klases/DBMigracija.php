@@ -59,6 +59,7 @@ class DBMigracija {
         $this->pataisytiKomponentuVarchar();
         $this->pridetiPerziurosTokena();
         $this->normalizuotiRolesDB();
+        $this->pridetiAktyvusStulpeli();
     }
 
     /**
@@ -655,6 +656,20 @@ class DBMigracija {
             }
             $this->conn->exec("UPDATE pretenzijos SET perziuros_token = md5(id::text || '-' || EXTRACT(EPOCH FROM COALESCE(sukurta, now()))::text || '-' || random()::text) WHERE perziuros_token IS NULL OR perziuros_token = ''");
             $this->conn->exec("CREATE UNIQUE INDEX IF NOT EXISTS pretenzijos_perziuros_token_idx ON pretenzijos(perziuros_token)");
+        } catch (PDOException $e) {}
+    }
+
+    /**
+     * Prideda aktyvus stulpelį į vartotojai lentelę.
+     * Leidžia administratoriui sustabdyti vartotojo prisijungimą
+     * neištrindamas paskyros. Visi esami vartotojai lieka aktyvūs (true).
+     */
+    private function pridetiAktyvusStulpeli(): void {
+        try {
+            $exists = $this->conn->query("SELECT column_name FROM information_schema.columns WHERE table_name='vartotojai' AND column_name='aktyvus'")->fetchColumn();
+            if (!$exists) {
+                $this->conn->exec("ALTER TABLE vartotojai ADD COLUMN aktyvus BOOLEAN NOT NULL DEFAULT true");
+            }
         } catch (PDOException $e) {}
     }
 
