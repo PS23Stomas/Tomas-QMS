@@ -1599,8 +1599,15 @@ class TomoQMS {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row || !$row[$pdf_column]) return;
 
+            $pdfVal = $row[$pdf_column];
+            if (is_resource($pdfVal)) {
+                $pdfVal = stream_get_contents($pdfVal);
+            }
+            if (!$pdfVal) return;
+            $hexPdf = '\\x' . bin2hex($pdfVal);
+
             $upd = $conn->prepare("UPDATE gaminiai SET $pdf_column = :pdf, $failas_column = :failas WHERE id = :id");
-            $upd->bindValue(':pdf', $row[$pdf_column], PDO::PARAM_LOB);
+            $upd->bindValue(':pdf', $hexPdf, PDO::PARAM_STR);
             $upd->bindValue(':failas', $row[$failas_column]);
             $upd->bindValue(':id', $tomo_gid);
             $upd->execute();
