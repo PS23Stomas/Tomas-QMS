@@ -34,6 +34,7 @@ $allowed = [
     'paso'         => ['pdf_col' => 'mt_paso_pdf',        'failas_col' => 'mt_paso_failas'],
     'dielektriniu' => ['pdf_col' => 'mt_dielektriniu_pdf', 'failas_col' => 'mt_dielektriniu_failas'],
     'funkciniu'    => ['pdf_col' => 'mt_funkciniu_pdf',    'failas_col' => 'mt_funkciniu_failas'],
+    'nustatymu'    => ['pdf_col' => null,                  'failas_col' => null],
 ];
 
 if ($gaminio_id <= 0 || !isset($allowed[$pdf_type])) {

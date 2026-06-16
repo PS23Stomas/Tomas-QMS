@@ -351,6 +351,7 @@ $stmt_orders = $pdo->prepare('
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'paso\') as paso_ikeltu_sk,
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'dielektriniu\') as dielektriniu_ikeltu_sk,
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'funkciniu\') as funkciniu_ikeltu_sk,
+           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'nustatymu\') as nustatymu_ikeltu_sk,
            (SELECT g2.id FROM gaminiai g2 WHERE g2.uzsakymo_id = u.id ORDER BY g2.id DESC LIMIT 1) as pirmasis_gaminio_id
     FROM uzsakymai u
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
@@ -816,6 +817,7 @@ require_once __DIR__ . '/includes/header.php';
                         <th>Pasas</th>
                         <th>Dielektr.</th>
                         <th>Funkc.</th>
+                        <th>Nust. prot.</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
@@ -1043,6 +1045,46 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php endif; ?>
                                 <?php if ($gali_ikelti): ?>
                                     <button type="button" class="btn-ikelti-pdf" onclick="atidartiIkelimoPdf(<?= $o['id'] ?>, 'funkciniu')" title="Įkelti funkcinių bandymų PDF" data-testid="button-ikelti-funkciniu-<?= $o['id'] ?>">↑</button>
+                                <?php endif; ?>
+                                </span>
+                            </td>
+                            <td data-label="Nust. prot." class="uzs-cell-pdfs" style="text-align: center;">
+                                <?php
+                                $nust_ikelti_all = [];
+                                if (($o['nustatymu_ikeltu_sk'] ?? 0) > 0) {
+                                    $stmt_ni = $pdo->prepare("SELECT pf.id, pf.failas_vardas, g.gaminio_numeris FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = ? AND pf.pdf_tipas = 'nustatymu' ORDER BY pf.ikelta DESC");
+                                    $stmt_ni->execute([$o['id']]);
+                                    $nust_ikelti_all = $stmt_ni->fetchAll(PDO::FETCH_ASSOC);
+                                }
+                                ?>
+                                <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center;">
+                                <?php if (!empty($nust_ikelti_all)): ?>
+                                    <?php if (count($nust_ikelti_all) === 1): ?>
+                                    <a href="/MT/ikeltu_pdf_rodyti.php?id=<?= $nust_ikelti_all[0]['id'] ?>" target="_blank" class="btn btn-outline-success btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($nust_ikelti_all[0]['failas_vardas']) ?>">↑PDF</a>
+                                    <?php if ($is_admin): ?>
+                                    <button type="button" class="pdf-del-btn" onclick="deleteIkeltasPdf(<?= $nust_ikelti_all[0]['id'] ?>)" title="Ištrinti įkeltą PDF">&times;</button>
+                                    <?php endif; ?>
+                                    <?php else: ?>
+                                    <div class="pdf-dropdown">
+                                        <button type="button" class="btn btn-outline-success btn-sm pdf-dropdown-btn" style="font-size:11px;padding:2px 8px;" onclick="togglePdfDropdown(this)">↑<?= count($nust_ikelti_all) ?> ▾</button>
+                                        <div class="pdf-dropdown-list">
+                                        <?php foreach ($nust_ikelti_all as $pf): ?>
+                                            <span class="pdf-dropdown-item-wrap">
+                                                <a href="/MT/ikeltu_pdf_rodyti.php?id=<?= $pf['id'] ?>" target="_blank"><?= h($pf['failas_vardas']) ?></a>
+                                                <?php if ($is_admin): ?>
+                                                <button type="button" class="pdf-del-btn-sm" onclick="event.stopPropagation(); deleteIkeltasPdf(<?= $pf['id'] ?>)" title="Ištrinti">&times;</button>
+                                                <?php endif; ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (empty($nust_ikelti_all) && !$gali_ikelti): ?>
+                                    <span style="color:var(--text-secondary);font-size:11px;">-</span>
+                                <?php endif; ?>
+                                <?php if ($gali_ikelti): ?>
+                                    <button type="button" class="btn-ikelti-pdf" onclick="atidartiIkelimoPdf(<?= $o['id'] ?>, 'nustatymu')" title="Įkelti nustatymų protokolą" data-testid="button-ikelti-nustatymu-<?= $o['id'] ?>">↑</button>
                                 <?php endif; ?>
                                 </span>
                             </td>
@@ -1454,7 +1496,7 @@ function deletePdf(gaminioId, pdfType) {
 }
 
 function atidartiIkelimoPdf(uzsakymoId, pdfType) {
-    var tipai = {paso: 'paso PDF', dielektriniu: 'Dielektrinių bandymų PDF', funkciniu: 'Funkcinių bandymų PDF'};
+    var tipai = {paso: 'paso PDF', dielektriniu: 'Dielektrinių bandymų PDF', funkciniu: 'Funkcinių bandymų PDF', nustatymu: 'nustatymų protokolą'};
     document.getElementById('ikeltiPdfUzsModalTitle').textContent = 'Įkelti ' + (tipai[pdfType] || 'PDF');
     document.getElementById('ikeltiPdfType').value = pdfType;
     document.getElementById('ikeltiPdfFailasInput').value = '';
