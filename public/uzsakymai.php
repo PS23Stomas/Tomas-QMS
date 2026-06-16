@@ -320,10 +320,10 @@ if ($view_id) {
             $uzbaigtumo_zingsniai['dielektriniai'] = ($diel_cnt + $izem_cnt) > 0;
 
             if ($filtro_grupe === 'MT') {
-                $st = $pdo->prepare("SELECT mt_paso_failas FROM gaminiai WHERE id = ?");
+                $st = $pdo->prepare("SELECT mt_paso_failas, (mt_paso_pdf IS NOT NULL) AS has_paso_pdf FROM gaminiai WHERE id = ?");
                 $st->execute([$gaminio_id_mt]);
-                $paso_f = $st->fetchColumn();
-                $uzbaigtumo_zingsniai['pasas'] = !empty($paso_f);
+                $paso_r = $st->fetch(PDO::FETCH_ASSOC);
+                $uzbaigtumo_zingsniai['pasas'] = !empty($paso_r['mt_paso_failas']) || !empty($paso_r['has_paso_pdf']);
             }
         }
         $uzbaigtumo_atlikta = array_sum($uzbaigtumo_zingsniai);
@@ -345,7 +345,7 @@ if ($view_id) {
 $stmt_orders = $pdo->prepare('
     SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk,
-           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_paso_failas IS NOT NULL) as paso_pdf_sk,
+           (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND (g.mt_paso_failas IS NOT NULL OR g.mt_paso_pdf IS NOT NULL)) as paso_pdf_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_dielektriniu_failas IS NOT NULL) as dielektriniu_pdf_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_funkciniu_failas IS NOT NULL) as funkciniu_pdf_sk,
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'paso\') as paso_ikeltu_sk,
@@ -400,10 +400,10 @@ if (!empty($all_gaminio_ids)) {
     $izem_map = [];
     while ($r = $izem_st->fetch(PDO::FETCH_ASSOC)) { $izem_map[(int)$r['gaminys_id']] = (int)$r['cnt']; }
 
-    $paso_st = $pdo->prepare("SELECT id, mt_paso_failas FROM gaminiai WHERE id IN ($placeholders)");
+    $paso_st = $pdo->prepare("SELECT id, mt_paso_failas, (mt_paso_pdf IS NOT NULL) AS has_paso_pdf FROM gaminiai WHERE id IN ($placeholders)");
     $paso_st->execute(array_values($all_gaminio_ids));
     $paso_map = [];
-    while ($r = $paso_st->fetch(PDO::FETCH_ASSOC)) { $paso_map[(int)$r['id']] = !empty($r['mt_paso_failas']); }
+    while ($r = $paso_st->fetch(PDO::FETCH_ASSOC)) { $paso_map[(int)$r['id']] = !empty($r['mt_paso_failas']) || (bool)$r['has_paso_pdf']; }
 
     $total_steps = ($filtro_grupe === 'MT') ? 4 : 2;
     foreach ($all_gaminio_ids as $gid) {
@@ -862,7 +862,7 @@ require_once __DIR__ . '/includes/header.php';
                                 }
                                 $pdf_g_paso = null;
                                 if (($o['paso_pdf_sk'] ?? 0) > 0) {
-                                    $stmt_gen = $pdo->prepare("SELECT id FROM gaminiai WHERE uzsakymo_id = ? AND mt_paso_failas IS NOT NULL LIMIT 1");
+                                    $stmt_gen = $pdo->prepare("SELECT id, mt_paso_failas FROM gaminiai WHERE uzsakymo_id = ? AND (mt_paso_failas IS NOT NULL OR mt_paso_pdf IS NOT NULL) LIMIT 1");
                                     $stmt_gen->execute([$o['id']]);
                                     $pdf_g_paso = $stmt_gen->fetch();
                                 }

@@ -99,6 +99,16 @@ function surinktDarbus(): array {
     $qt = qtConn();
     [$tqById, $tqByNr, $jau_nust] = tqGaminiai();
 
+    // Išankstinis quality_tomas gaminiai ID → gaminio_numeris žemėlapis
+    // (naudojamas kaip 3-ias sutapimo būdas kai gaminys_id nurodytas, bet jo nėra Tomo_QMS pagal ID)
+    $qtGamNrByGamId = [];
+    try {
+        $qt_gam_rows = $qt->query("SELECT id, gaminio_numeris FROM gaminiai WHERE gaminio_numeris IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($qt_gam_rows as $qg) {
+            $qtGamNrByGamId[(int)$qg['id']] = $qg['gaminio_numeris'];
+        }
+    } catch (Exception $e) { /* lentelė gali neegzistuoti — praleisti */ }
+
     $paso  = [];  // bus rašoma į Tomo_QMS.gaminiai.mt_paso_pdf
     $nust  = [];  // bus rašoma į Tomo_QMS.gaminiu_pdf_failai (tipas=nustatymu)
     $praleista = [];
@@ -112,6 +122,7 @@ function surinktDarbus(): array {
     foreach ($rows as $r) {
         $gid = (int)$r['gaminys_id'];
         if ($gid && isset($tqById[$gid])) {
+            // 1a. Tiesioginis sutapimas pagal ID
             $tqRow = $tqById[$gid];
             $paso[] = [
                 'qt_dok_id'    => $r['id'],
@@ -121,16 +132,28 @@ function surinktDarbus(): array {
                 'jau_turi'     => (bool)$tqRow['turi_paso'],
                 'šaltinis'     => 'mt_deklaracija (ID)',
             ];
+        } elseif ($gid && isset($qtGamNrByGamId[$gid]) && isset($tqByNr[$qtGamNrByGamId[$gid]])) {
+            // 1b. ID žinomas, bet nerasta Tomo_QMS — bandyti per QT gaminio_numeris
+            $qtNr  = $qtGamNrByGamId[$gid];
+            $tqRow = $tqByNr[$qtNr];
+            $paso[] = [
+                'qt_dok_id'    => $r['id'],
+                'tq_gam_id'    => $tqRow['id'],
+                'failas'       => $r['failas'],
+                'dydis'        => $r['dydis'],
+                'jau_turi'     => (bool)$tqRow['turi_paso'],
+                'šaltinis'     => 'mt_deklaracija (QT gam. nr. ' . h($qtNr) . ')',
+            ];
         } else {
-            // Bandyti pagal numerį iš failo vardo
+            // 1c. Bandyti pagal numerį iš failo vardo
             $nr = nrIsFailo($r['failas']);
-            if ($nr && isset($tqByNr[$nr]) && !$tqByNr[$nr]['turi_paso']) {
+            if ($nr && isset($tqByNr[$nr])) {
                 $paso[] = [
                     'qt_dok_id'    => $r['id'],
                     'tq_gam_id'    => $tqByNr[$nr]['id'],
                     'failas'       => $r['failas'],
                     'dydis'        => $r['dydis'],
-                    'jau_turi'     => false,
+                    'jau_turi'     => (bool)$tqByNr[$nr]['turi_paso'],
                     'šaltinis'     => 'mt_deklaracija (failas nr.)',
                 ];
             } else {
