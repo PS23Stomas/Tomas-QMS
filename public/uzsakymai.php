@@ -41,6 +41,7 @@ $objects = $pdo->query('SELECT id, pavadinimas FROM objektai ORDER BY pavadinima
 
 $user = currentUser();
 $is_admin = (($user['role'] ?? '') === 'administratorius');
+$gali_ikelti = in_array($user['role'] ?? '', ['administratorius', 'vartotojas']);
 $imones_nust = null;
 $imones_logo_src = '';
 $imones_has_logo = false;
@@ -402,6 +403,12 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 <?php if ($error): ?>
 <div class="alert alert-danger" role="alert"><?= h($error) ?></div>
+<?php endif; ?>
+<?php if (isset($_GET['pdf_ikeltas'])): ?>
+<div class="alert alert-success" role="alert">PDF failas įkeltas sėkmingai!</div>
+<?php endif; ?>
+<?php if (isset($_GET['pdf_klaida']) && $_GET['pdf_klaida'] !== ''): ?>
+<div class="alert alert-danger" role="alert">PDF įkėlimo klaida: <?= h($_GET['pdf_klaida']) ?></div>
 <?php endif; ?>
 
 <?php if ($view_id && $order): ?>
@@ -838,7 +845,11 @@ require_once __DIR__ . '/includes/header.php';
                                     </span>
                                     <?php endif; ?>
                                 <?php else: ?>
+                                    <?php if ($gali_ikelti): ?>
+                                    <button type="button" class="btn-ikelti-pdf" onclick="atidartiIkelimoPdf(<?= $o['id'] ?>, 'paso')" title="Įkelti paso PDF" data-testid="button-ikelti-paso-<?= $o['id'] ?>">↑</button>
+                                    <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td data-label="Dielektr." class="uzs-cell-pdfs" style="text-align: center;">
@@ -870,7 +881,11 @@ require_once __DIR__ . '/includes/header.php';
                                     </div>
                                     <?php endif; ?>
                                 <?php else: ?>
+                                    <?php if ($gali_ikelti): ?>
+                                    <button type="button" class="btn-ikelti-pdf" onclick="atidartiIkelimoPdf(<?= $o['id'] ?>, 'dielektriniu')" title="Įkelti dielektrinių bandymų PDF" data-testid="button-ikelti-dielektriniu-<?= $o['id'] ?>">↑</button>
+                                    <?php else: ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td data-label="Funkc." class="uzs-cell-pdfs" style="text-align: center;">
@@ -914,13 +929,18 @@ require_once __DIR__ . '/includes/header.php';
                                     </span>
                                     <?php endif; ?>
                                 <?php else: ?>
+                                    <span style="display:inline-flex;align-items:center;gap:3px;">
                                     <?php if ($uzb_funk_err > 0): ?>
                                     <span class="uzbaigtumo-warn" title="<?= $uzb_funk_err ?> neatitikimų/nepadarytų">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                     </span>
-                                    <?php else: ?>
+                                    <?php endif; ?>
+                                    <?php if ($gali_ikelti): ?>
+                                    <button type="button" class="btn-ikelti-pdf" onclick="atidartiIkelimoPdf(<?= $o['id'] ?>, 'funkciniu')" title="Įkelti funkcinių bandymų PDF" data-testid="button-ikelti-funkciniu-<?= $o['id'] ?>">↑</button>
+                                    <?php elseif ($uzb_funk_err === 0): ?>
                                     <span style="color: var(--text-secondary); font-size: 11px;">-</span>
                                     <?php endif; ?>
+                                    </span>
                                 <?php endif; ?>
                             </td>
                             <td class="uzs-cell-actions">
@@ -1114,6 +1134,31 @@ document.getElementById('deleteConfirmInput').addEventListener('input', function
 .quick-add-row input { flex: 1; min-width: 0; }
 .quick-add-row .btn { white-space: nowrap; }
 .quick-add-error { color: #dc2626; font-size: 0.8rem; }
+.btn-ikelti-pdf {
+    background: none;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 1px 6px;
+    color: var(--text-secondary, #6b7280);
+    line-height: 1.4;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.btn-ikelti-pdf:hover {
+    background: var(--bg-hover, #f3f4f6);
+    color: var(--primary, #2563eb);
+    border-color: var(--primary, #2563eb);
+}
+#ikeltiPdfGaminioSelect {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--bg-card, #fff);
+    color: var(--text-primary, #111827);
+}
 </style>
 <script>
 function toggleQuickAdd(type, prefix) {
@@ -1297,10 +1342,102 @@ function deletePdf(gaminioId, pdfType) {
     f.querySelector('[name="pdf_type"]').value = pdfType;
     f.submit();
 }
+
+function atidartiIkelimoPdf(uzsakymoId, pdfType) {
+    var tipai = {paso: 'paso PDF', dielektriniu: 'Dielektrinių bandymų PDF', funkciniu: 'Funkcinių bandymų PDF'};
+    document.getElementById('ikeltiPdfUzsModalTitle').textContent = 'Įkelti ' + (tipai[pdfType] || 'PDF');
+    document.getElementById('ikeltiPdfType').value = pdfType;
+    document.getElementById('ikeltiPdfFailasInput').value = '';
+
+    var grupe = <?= json_encode($filtro_grupe) ?>;
+    document.getElementById('ikeltiPdfRedirect').value = '/uzsakymai.php?grupe=' + encodeURIComponent(grupe) + '&pdf_ikeltas=1';
+
+    var gaminioWrap   = document.getElementById('ikeltiPdfGaminioWrap');
+    var gaminioSelect = document.getElementById('ikeltiPdfGaminioSelect');
+    var gaminioIdInput = document.getElementById('ikeltiPdfGaminioId');
+    var submitBtn     = document.getElementById('ikeltiPdfSubmitBtn');
+    var loadingEl     = document.getElementById('ikeltiPdfLoading');
+
+    gaminioSelect.innerHTML = '';
+    gaminioWrap.style.display = 'block';
+    if (loadingEl) loadingEl.style.display = 'block';
+    submitBtn.disabled = true;
+
+    fetch('/MT/gaminiai_uzsakymui.php?uzsakymo_id=' + encodeURIComponent(uzsakymoId))
+        .then(function(r) { return r.json(); })
+        .then(function(gaminiai) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            submitBtn.disabled = false;
+            if (!Array.isArray(gaminiai) || gaminiai.length === 0) {
+                gaminioSelect.innerHTML = '<option value="">— nėra gaminių —</option>';
+                gaminioIdInput.value = '';
+                gaminioWrap.style.display = 'block';
+                return;
+            }
+            if (gaminiai.length === 1) {
+                gaminioIdInput.value = gaminiai[0].id;
+                gaminioWrap.style.display = 'none';
+            } else {
+                gaminiai.forEach(function(g) {
+                    var opt = document.createElement('option');
+                    opt.value = g.id;
+                    opt.textContent = (g.gaminio_numeris || '—') + (g.pavadinimas ? ' — ' + g.pavadinimas : '');
+                    gaminioSelect.appendChild(opt);
+                });
+                gaminioIdInput.value = gaminiai[0].id;
+                gaminioSelect.style.display = 'block';
+                gaminioSelect.onchange = function() {
+                    gaminioIdInput.value = this.value;
+                };
+                gaminioWrap.style.display = 'block';
+            }
+        })
+        .catch(function() {
+            if (loadingEl) loadingEl.style.display = 'none';
+            submitBtn.disabled = false;
+            gaminioSelect.innerHTML = '<option value="">Klaida kraunant gaminius</option>';
+            gaminioIdInput.value = '';
+        });
+
+    openModal('ikeltiPdfUzsModal');
+}
 </script>
 <form id="delete-pdf-form" method="POST" action="/uzsakymai.php?grupe=<?= urlencode($filtro_grupe) ?>" style="display:none;">
     <input type="hidden" name="action" value="delete_pdf">
     <input type="hidden" name="gaminio_id" value="">
     <input type="hidden" name="pdf_type" value="">
 </form>
+
+<div class="modal-overlay" id="ikeltiPdfUzsModal">
+    <div class="modal" style="max-width: 460px;">
+        <div class="modal-header">
+            <h3 id="ikeltiPdfUzsModalTitle">Įkelti PDF</h3>
+            <button class="modal-close" onclick="closeModal('ikeltiPdfUzsModal')" aria-label="Uždaryti">&times;</button>
+        </div>
+        <form method="POST" action="/MT/ikelti_pdf.php" enctype="multipart/form-data">
+            <input type="hidden" name="gaminio_id" id="ikeltiPdfGaminioId" value="">
+            <input type="hidden" name="pdf_type" id="ikeltiPdfType" value="">
+            <input type="hidden" name="redirect_url" id="ikeltiPdfRedirect" value="">
+            <input type="hidden" name="_csrf" value="<?= csrfToken() ?>">
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:14px;">
+                <div id="ikeltiPdfGaminioWrap">
+                    <label style="font-size:13px; font-weight:600; margin-bottom:5px; display:block;">Gaminys</label>
+                    <div id="ikeltiPdfLoading" style="font-size:12px; color:var(--text-secondary);">Kraunama...</div>
+                    <select id="ikeltiPdfGaminioSelect" style="display:none; width:100%; padding:6px 10px; border:1px solid var(--border,#e5e7eb); border-radius:6px; font-size:13px; background:var(--bg-card,#fff); color:var(--text-primary,#111827);"></select>
+                </div>
+                <div>
+                    <label style="font-size:13px; font-weight:600; margin-bottom:5px; display:block;">PDF failas</label>
+                    <input type="file" id="ikeltiPdfFailasInput" name="pdf_failas" accept=".pdf" required
+                           style="width:100%; padding:6px; border:1px solid var(--border,#e5e7eb); border-radius:6px; font-size:13px; box-sizing:border-box;">
+                    <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Tik .pdf formato failai, max 20 MB.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('ikeltiPdfUzsModal')">Atšaukti</button>
+                <button type="submit" class="btn btn-primary" id="ikeltiPdfSubmitBtn">Įkelti</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
