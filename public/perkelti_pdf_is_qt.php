@@ -39,6 +39,17 @@ function tqConn(): PDO {
 
 // ── Pagalbinės funkcijos ───────────────────────────────────────────────────────
 
+/**
+ * BYTEA iš PostgreSQL PDO grąžinamas kaip resource (stream).
+ * Konvertuojame į PostgreSQL hex-escaped formatą (\xAABB...) kurį PDO::PARAM_STR priima.
+ */
+function byteaHex(mixed $val): ?string {
+    if ($val === null) return null;
+    $bin = is_resource($val) ? stream_get_contents($val) : (string)$val;
+    if ($bin === '' || $bin === false) return null;
+    return '\\x' . bin2hex($bin);
+}
+
 /** Ištraukia pirmą skaičių iš failo vardo */
 function nrIsFailo(string $failas): string {
     preg_match('/^(\d+)/', $failas, $m);
@@ -62,7 +73,8 @@ function uztikriniGaminPdfFailai(PDO $tq): void {
 
 /** Surinkia Tomo_QMS gaminiai: ID → [id, gaminio_numeris, turi_paso] */
 function tqGaminiai(): array {
-    $rows = tqConn()->query(
+    $tq = tqConn();
+    $rows = $tq->query(
         "SELECT id, gaminio_numeris, mt_paso_pdf IS NOT NULL AS turi_paso FROM gaminiai"
     )->fetchAll(PDO::FETCH_ASSOC);
     $byId = $byNr = [];
@@ -70,13 +82,22 @@ function tqGaminiai(): array {
         $byId[(int)$r['id']] = $r;
         $byNr[$r['gaminio_numeris']] = $r;
     }
-    return [$byId, $byNr];
+
+    // Patikrinti ar egzistuoja lentelė ir jau perkelta nustatymu
+    $exists = $tq->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gaminiu_pdf_failai' AND table_schema='public'")->fetchColumn();
+    $jau_nust = [];
+    if ($exists) {
+        $rows2 = $tq->query("SELECT gaminio_id, failas_vardas FROM gaminiu_pdf_failai WHERE pdf_tipas='nustatymu'")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows2 as $r) $jau_nust[$r['gaminio_id'] . '|' . $r['failas_vardas']] = true;
+    }
+
+    return [$byId, $byNr, $jau_nust];
 }
 
 // ── Duomenų rinkinys peržiūrai / vykdymui ─────────────────────────────────────
 function surinktDarbus(): array {
     $qt = qtConn();
-    [$tqById, $tqByNr] = tqGaminiai();
+    [$tqById, $tqByNr, $jau_nust] = tqGaminiai();
 
     $paso  = [];  // bus rašoma į Tomo_QMS.gaminiai.mt_paso_pdf
     $nust  = [];  // bus rašoma į Tomo_QMS.gaminiu_pdf_failai (tipas=nustatymu)
@@ -150,11 +171,14 @@ function surinktDarbus(): array {
     foreach ($rows3 as $r) {
         $nr = nrIsFailo($r['failas']);
         if ($nr && isset($tqByNr[$nr])) {
+            $tq_gam_id = $tqByNr[$nr]['id'];
+            $key = $tq_gam_id . '|' . $r['failas'];
             $nust[] = [
-                'qt_dok_id' => $r['id'],
-                'tq_gam_id' => $tqByNr[$nr]['id'],
-                'failas'    => $r['failas'],
-                'dydis'     => $r['dydis'],
+                'qt_dok_id'     => $r['id'],
+                'tq_gam_id'     => $tq_gam_id,
+                'failas'        => $r['failas'],
+                'dydis'         => $r['dydis'],
+                'jau_perkeltas' => isset($jau_nust[$key]),
             ];
         } else {
             $praleista[] = ['tipas' => 'nustatymu_protokolas', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
@@ -188,9 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
         try {
             $sel_turinys->execute([$d['qt_dok_id']]);
             $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
-            if (!$row || !$row['turinys_lob']) { $paso_pral++; continue; }
+            $turinys = byteaHex($row['turinys_lob'] ?? null);
+            if (!$row || !$turinys) { $paso_pral++; continue; }
 
-            $upd_paso->bindValue(':pdf', $row['turinys_lob'], PDO::PARAM_LOB);
+            $upd_paso->bindValue(':pdf', $turinys, PDO::PARAM_STR);
             $upd_paso->bindValue(':failas', $row['failas']);
             $upd_paso->bindValue(':id', $d['tq_gam_id']);
             $upd_paso->execute();
@@ -217,16 +242,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
     );
 
     foreach ($nust as $d) {
+        if ($d['jau_perkeltas']) { $nust_pral++; continue; }
         $key = $d['tq_gam_id'] . '|' . $d['failas'];
         if (isset($jau_set[$key])) { $nust_pral++; continue; }
         try {
             $sel_turinys->execute([$d['qt_dok_id']]);
             $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
-            if (!$row || !$row['turinys_lob']) { $nust_pral++; continue; }
+            $turinys = byteaHex($row['turinys_lob'] ?? null);
+            if (!$row || !$turinys) { $nust_pral++; continue; }
 
             $ins_nust->bindValue(':gam_id', $d['tq_gam_id']);
             $ins_nust->bindValue(':failas', $row['failas']);
-            $ins_nust->bindValue(':turinys', $row['turinys_lob'], PDO::PARAM_LOB);
+            $ins_nust->bindValue(':turinys', $turinys, PDO::PARAM_STR);
             $ins_nust->execute();
             $nust_ok++;
         } catch (Exception $e) {
@@ -245,7 +272,9 @@ try {
     [$paso, $nust, $praleista] = surinktDarbus();
     $paso_nauji   = array_filter($paso, fn($d) => !$d['jau_turi']);
     $paso_jau     = array_filter($paso, fn($d) => $d['jau_turi']);
-    $prazv_duomenys = compact('paso', 'paso_nauji', 'paso_jau', 'nust', 'praleista');
+    $nust_nauji   = array_filter($nust, fn($d) => !$d['jau_perkeltas']);
+    $nust_jau     = array_filter($nust, fn($d) => $d['jau_perkeltas']);
+    $prazv_duomenys = compact('paso', 'paso_nauji', 'paso_jau', 'nust', 'nust_nauji', 'nust_jau', 'praleista');
 } catch (Exception $e) {
     $conn_klaida = $e->getMessage();
 }
@@ -288,18 +317,22 @@ include __DIR__ . '/includes/header.php';
 
 <?php else: ?>
     <!-- ── Peržiūra ── -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;">
         <div class="card" style="padding:16px;text-align:center;">
             <div style="font-size:28px;font-weight:700;color:var(--primary);"><?= count($prazv_duomenys['paso_nauji']) ?></div>
             <div style="font-size:13px;color:var(--text-secondary);">MT paso PDF bus perkelti</div>
         </div>
         <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:#2e7d32;"><?= count($prazv_duomenys['nust']) ?></div>
+            <div style="font-size:28px;font-weight:700;color:#2e7d32;"><?= count($prazv_duomenys['nust_nauji']) ?></div>
             <div style="font-size:13px;color:var(--text-secondary);">Nustatymų protokolai bus perkelti</div>
         </div>
         <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:var(--text-secondary);"><?= count($prazv_duomenys['praleista']) + count($prazv_duomenys['paso_jau']) ?></div>
-            <div style="font-size:13px;color:var(--text-secondary);">Bus praleista (nerastos / jau turi)</div>
+            <div style="font-size:28px;font-weight:700;color:#1565c0;"><?= count($prazv_duomenys['paso_jau']) + count($prazv_duomenys['nust_jau']) ?></div>
+            <div style="font-size:13px;color:var(--text-secondary);">Jau perkelti anksčiau</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+            <div style="font-size:28px;font-weight:700;color:var(--text-secondary);"><?= count($prazv_duomenys['praleista']) ?></div>
+            <div style="font-size:13px;color:var(--text-secondary);">Nerasta Tomo_QMS</div>
         </div>
     </div>
 
@@ -335,15 +368,15 @@ include __DIR__ . '/includes/header.php';
     <!-- Nustatymų protokolai -->
     <div class="card" style="margin-bottom:20px;">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;">
-            📋 Nustatymų protokolai — bus perkelti (<?= count($prazv_duomenys['nust']) ?> vnt.)
+            📋 Nustatymų protokolai — bus perkelti (<?= count($prazv_duomenys['nust_nauji']) ?> vnt.)
         </div>
-        <?php if (empty($prazv_duomenys['nust'])): ?>
-            <div style="padding:14px 16px;color:var(--text-secondary);">Nerasta nustatymų protokolų su atitinkamais gaminiais Tomo_QMS.</div>
+        <?php if (empty($prazv_duomenys['nust_nauji'])): ?>
+            <div style="padding:14px 16px;color:var(--text-secondary);">Nerasta naujų nustatymų protokolų — visi jau perkelti arba nėra sutampančių gaminių.</div>
         <?php else: ?>
         <table class="table" style="margin:0;">
             <thead><tr><th>Failo vardas</th><th>Dydis</th><th>Tomo_QMS gaminio ID</th></tr></thead>
             <tbody>
-            <?php foreach ($prazv_duomenys['nust'] as $d): ?>
+            <?php foreach ($prazv_duomenys['nust_nauji'] as $d): ?>
                 <tr>
                     <td style="font-size:13px;"><?= h($d['failas']) ?></td>
                     <td style="font-size:12px;white-space:nowrap;"><?= round($d['dydis']/1024) ?> KB</td>
@@ -352,6 +385,11 @@ include __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php endif; ?>
+        <?php if (!empty($prazv_duomenys['nust_jau'])): ?>
+            <div style="padding:8px 16px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);">
+                ✅ Jau perkelti Tomo_QMS: <?= count($prazv_duomenys['nust_jau']) ?> vnt.
+            </div>
         <?php endif; ?>
     </div>
 
@@ -377,12 +415,12 @@ include __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <!-- Vykdymo mygtukas -->
-    <?php if (count($prazv_duomenys['paso_nauji']) > 0 || count($prazv_duomenys['nust']) > 0): ?>
+    <?php if (count($prazv_duomenys['paso_nauji']) > 0 || count($prazv_duomenys['nust_nauji']) > 0): ?>
     <div class="card" style="padding:20px;background:var(--bg-secondary);">
         <p style="margin:0 0 12px;">
             <strong>Pasiruošta perkelti:</strong>
             <?= count($prazv_duomenys['paso_nauji']) ?> paso PDF ir
-            <?= count($prazv_duomenys['nust']) ?> nustatymų protokolų
+            <?= count($prazv_duomenys['nust_nauji']) ?> nustatymų protokolų
             į Tomo_QMS duomenų bazę.
             Jau turintys paso PDF gaminiai <strong>nebus perrašyti</strong>.
         </p>
