@@ -205,6 +205,14 @@ $nuoroda_atgal = "/uzsakymai.php?view=" . urlencode($uzsakymo_id);
 
 $turi_pdf = !empty($gaminio_info['mt_paso_failas']);
 
+$user_role = currentUser()['role'] ?? '';
+$gali_ikelti_pdf = $user_role !== 'skaitytojas';
+$redirect_url_paso = '/MT/mt_pasas.php?' . http_build_query([
+    'gaminio_id'  => $gaminio_id,
+    'uzsakymo_id' => $uzsakymo_id,
+    'lang'        => $lang,
+]);
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -520,6 +528,11 @@ require_once __DIR__ . '/../includes/header.php';
         <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= urlencode($gaminio_id) ?>" target="_blank" class="btn btn-primary btn-sm" data-testid="button-perziureti-pdf">Peržiūrėti PDF</a>
         <a href="/MT/mt_paso_pdf.php?gaminio_id=<?= urlencode($gaminio_id) ?>&atsisiusti=1" class="btn btn-outline-secondary btn-sm" data-testid="button-atsisiusti-pdf">Atsisiųsti PDF</a>
         <?php endif; ?>
+        <?php if ($gali_ikelti_pdf): ?>
+        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#ikeltiPdfModal" data-testid="button-ikelti-paso-pdf">
+            <?= $turi_pdf ? '↑ Pakeisti PDF' : '↑ Įkelti PDF' ?>
+        </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -530,9 +543,16 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 <?php endif; ?>
 
+<?php if (isset($_GET['pdf_ikeltas'])): ?>
+<div class="alert alert-success alert-dismissible fade show no-print" role="alert" style="margin-bottom: 15px;">
+    PDF failas įkeltas sėkmingai!
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
+
 <?php if (isset($_GET['pdf_klaida'])): ?>
 <div class="alert alert-danger alert-dismissible fade show no-print" role="alert" style="margin-bottom: 15px;">
-    Klaida generuojant PDF: <?= htmlspecialchars(urldecode($_GET['pdf_klaida'])) ?>
+    Klaida: <?= htmlspecialchars(urldecode($_GET['pdf_klaida'])) ?>
     <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
 </div>
 <?php endif; ?>
@@ -1155,5 +1175,43 @@ function issaugotiSaugiklius(sekcija) {
     });
 }
 </script>
+
+<?php if ($gali_ikelti_pdf): ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<div class="modal fade" id="ikeltiPdfModal" tabindex="-1" aria-labelledby="ikeltiPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ikeltiPdfModalLabel">Įkelti paso PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Uždaryti"></button>
+            </div>
+            <form method="POST" action="/MT/ikelti_pdf.php" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="gaminio_id"   value="<?= htmlspecialchars($gaminio_id) ?>">
+                    <input type="hidden" name="pdf_type"     value="paso">
+                    <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($redirect_url_paso) ?>">
+                    <input type="hidden" name="_csrf"        value="<?= csrfToken() ?>">
+                    <div class="mb-3">
+                        <label for="paso-pdf-failas" class="form-label fw-semibold">PDF failas</label>
+                        <input type="file" class="form-control" id="paso-pdf-failas" name="pdf_failas"
+                               accept=".pdf" required data-testid="input-paso-pdf-failas">
+                        <div class="form-text">Tik .pdf formato failai, max 20 MB.</div>
+                    </div>
+                    <?php if ($turi_pdf): ?>
+                    <div class="alert alert-warning py-2 mb-0" style="font-size:13px;">
+                        ⚠️ Esamas paso PDF bus pakeistas nauju.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-success" data-testid="button-patvirtinti-paso-pdf-ikelima">Įkelti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

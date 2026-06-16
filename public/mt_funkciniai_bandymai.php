@@ -29,6 +29,15 @@ $uzsakymo_numeris = $_GET['uzsakymo_numeris'] ?? '';
 $uzsakovas        = $_GET['uzsakovas'] ?? '';
 $gaminio_id       = (int)($_GET['gaminio_id'] ?? 0);
 $uzsakymo_id      = $_GET['uzsakymo_id'] ?? '';
+$pdf_ikeltas_funk = $_GET['pdf_ikeltas'] ?? '';
+$pdf_klaida_funk  = $_GET['pdf_klaida'] ?? '';
+
+$vartotojo_role_funk = $_SESSION['role'] ?? '';
+$gali_ikelti_funk = $vartotojo_role_funk !== 'skaitytojas';
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token_funk = $_SESSION['_csrf_token'];
 
 $conn = Database::getConnection();
 
@@ -404,8 +413,26 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $gaminio_id ?>" target="_blank" class="btn btn-outline-primary" data-testid="button-perziureti-funkciniu-pdf">Peržiūrėti PDF</a>
         <a href="/MT/mt_funkciniu_pdf.php?gaminio_id=<?= $gaminio_id ?>&atsisiusti" class="btn btn-outline-secondary" data-testid="button-atsisiusti-funkciniu-pdf">Atsisiųsti PDF</a>
         <?php endif; ?>
+        <?php if ($gali_ikelti_funk): ?>
+        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ikeltiPdfFunkModal" data-testid="button-ikelti-funkciniu-pdf">
+            <?= $turi_funkciniu_pdf ? '↑ Pakeisti PDF' : '↑ Įkelti PDF' ?>
+        </button>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if ($pdf_ikeltas_funk): ?>
+<div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+    PDF failas įkeltas sėkmingai!
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
+<?php if ($pdf_klaida_funk): ?>
+<div class="alert alert-danger alert-dismissible fade show mt-2" role="alert">
+    Klaida: <?= htmlspecialchars(urldecode($pdf_klaida_funk)) ?>
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
 <div class="modal-overlay" id="siuntimo-modal">
     <div class="modal-box">
         <h5>Siųsti el. pranešimus</h5>
@@ -429,6 +456,42 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         </div>
     </div>
 </div>
+
+<?php if ($gali_ikelti_funk): ?>
+<div class="modal fade" id="ikeltiPdfFunkModal" tabindex="-1" aria-labelledby="ikeltiPdfFunkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ikeltiPdfFunkModalLabel">Įkelti funkcinių bandymų PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Uždaryti"></button>
+            </div>
+            <form method="POST" action="/MT/ikelti_pdf.php" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="gaminio_id"   value="<?= (int)$gaminio_id ?>">
+                    <input type="hidden" name="pdf_type"     value="funkciniu">
+                    <input type="hidden" name="redirect_url" value="<?= htmlspecialchars('/mt_funkciniai_bandymai.php?' . http_build_query(['gaminio_id' => $gaminio_id, 'uzsakymo_id' => $uzsakymo_id])) ?>">
+                    <input type="hidden" name="_csrf"        value="<?= htmlspecialchars($csrf_token_funk) ?>">
+                    <div class="mb-3">
+                        <label for="funk-pdf-failas" class="form-label fw-semibold">PDF failas</label>
+                        <input type="file" class="form-control" id="funk-pdf-failas" name="pdf_failas"
+                               accept=".pdf" required data-testid="input-funkciniu-pdf-failas">
+                        <div class="form-text">Tik .pdf formato failai, max 20 MB.</div>
+                    </div>
+                    <?php if ($turi_funkciniu_pdf): ?>
+                    <div class="alert alert-warning py-2 mb-0" style="font-size:13px;">
+                        ⚠️ Esamas funkcinių bandymų PDF bus pakeistas nauju.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-success" data-testid="button-patvirtinti-funkciniu-pdf-ikelima">Įkelti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

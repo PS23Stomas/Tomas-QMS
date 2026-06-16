@@ -3,7 +3,13 @@ import { spawn } from "child_process";
 function startPhp() {
   const phpProcess = spawn(
     "php",
-    ["-S", "0.0.0.0:5000", "-t", "public", "public/router.php"],
+    [
+      "-d", "upload_max_filesize=25M",
+      "-d", "post_max_size=26M",
+      "-S", "0.0.0.0:5000",
+      "-t", "public",
+      "public/router.php",
+    ],
     { cwd: process.cwd(), stdio: "inherit" }
   );
 

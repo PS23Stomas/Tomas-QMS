@@ -46,6 +46,19 @@ $issaugota         = $_REQUEST['issaugota'] ?? '';
 $istrinta          = $_REQUEST['istrinta']  ?? '';
 $pdf_sukurtas      = $_REQUEST['pdf_sukurtas'] ?? '';
 $pdf_klaida        = $_REQUEST['pdf_klaida'] ?? '';
+$pdf_ikeltas       = $_REQUEST['pdf_ikeltas'] ?? '';
+
+$vartotojo_role = $_SESSION['role'] ?? '';
+$gali_ikelti_pdf = $vartotojo_role !== 'skaitytojas';
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token_diel = $_SESSION['_csrf_token'];
+$redirect_url_diel = '/MT/mt_dielektriniai.php?' . http_build_query([
+    'gaminys_id'  => $gaminys_id ?? 0,
+    'uzsakymo_id' => $uzsakymo_id ?? '',
+    'grupe'       => $grupe ?? 'MT',
+]);
 
 if ($gaminys_id <= 0) die("Klaida: nėra gaminio ID");
 
@@ -658,7 +671,25 @@ function removeIzemRow(btn) {
     <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?=$gaminys_id?>" target="_blank" class="btn btn-outline-primary" data-testid="button-perziureti-dielektriniu-pdf">Peržiūrėti PDF</a>
     <a href="/MT/mt_dielektriniu_pdf.php?gaminio_id=<?=$gaminys_id?>&atsisiusti" class="btn btn-outline-secondary" data-testid="button-atsisiusti-dielektriniu-pdf">Atsisiųsti PDF</a>
     <?php endif; ?>
+    <?php if ($gali_ikelti_pdf): ?>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ikeltiDielPdfModal" data-testid="button-ikelti-dielektriniu-pdf">
+        <?= $turi_dielektriniu_pdf ? '↑ Pakeisti PDF' : '↑ Įkelti PDF' ?>
+    </button>
+    <?php endif; ?>
 </div>
+
+<?php if ($pdf_ikeltas): ?>
+<div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+    PDF failas įkeltas sėkmingai!
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
+<?php if ($pdf_klaida && !$pdf_sukurtas): ?>
+<div class="alert alert-danger alert-dismissible fade show mt-2" role="alert">
+    Klaida: <?= htmlspecialchars(urldecode($pdf_klaida)) ?>
+    <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+</div>
+<?php endif; ?>
 
 <div class="mt-3 p-2 border rounded d-flex align-items-center justify-content-between mb-4" style="background:#f9f9f9;">
     <div style="flex:1; font-size:14px; line-height:1.4;">
@@ -674,6 +705,42 @@ function removeIzemRow(btn) {
 </div>
 
 </div>
+<?php if ($gali_ikelti_pdf): ?>
+<div class="modal fade" id="ikeltiDielPdfModal" tabindex="-1" aria-labelledby="ikeltiDielPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ikeltiDielPdfModalLabel">Įkelti dielektrinių bandymų PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Uždaryti"></button>
+            </div>
+            <form method="POST" action="/MT/ikelti_pdf.php" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="gaminio_id"   value="<?= htmlspecialchars($gaminys_id) ?>">
+                    <input type="hidden" name="pdf_type"     value="dielektriniu">
+                    <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($redirect_url_diel) ?>">
+                    <input type="hidden" name="_csrf"        value="<?= htmlspecialchars($csrf_token_diel) ?>">
+                    <div class="mb-3">
+                        <label for="diel-pdf-failas" class="form-label fw-semibold">PDF failas</label>
+                        <input type="file" class="form-control" id="diel-pdf-failas" name="pdf_failas"
+                               accept=".pdf" required data-testid="input-dielektriniu-pdf-failas">
+                        <div class="form-text">Tik .pdf formato failai, max 20 MB.</div>
+                    </div>
+                    <?php if ($turi_dielektriniu_pdf): ?>
+                    <div class="alert alert-warning py-2 mb-0" style="font-size:13px;">
+                        ⚠️ Esamas dielektrinių bandymų PDF bus pakeistas nauju.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-success" data-testid="button-patvirtinti-dielektriniu-pdf-ikelima">Įkelti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
