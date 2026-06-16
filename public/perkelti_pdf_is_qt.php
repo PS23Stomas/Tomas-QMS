@@ -94,20 +94,99 @@ function tqGaminiai(): array {
     return [$byId, $byNr, $jau_nust];
 }
 
+/**
+ * Papildomas sutapimo būdas kai paprastas nrIsFailo() nerado.
+ * Bando: B1) skaičius-su-brūkšniu modelis (pvz. "23001-1"), B2) QT gaminio_numeris
+ * kaip failo vardo prefiksas, B3) per QT uzsakymo_numeris → Tomo_QMS gaminiai.
+ * Grąžina ['row' => [...], 'saltinis' => '...'] arba null jei neranda.
+ */
+function suraskPagalFaila(
+    string $failas,
+    array $tqByNr,
+    array $qtByGamNr,
+    array $qtUzsNrByGamId,
+    array $tqByUzsNr
+): ?array {
+    // B1: skaičius su brūkšniais iš failo vardo (pvz. "23001-1 pasas.pdf" → "23001-1")
+    preg_match('/^(\d[\d\-]+\d)(?=[^\d]|$)/', $failas, $m);
+    $nr2 = $m[1] ?? '';
+    if ($nr2 && isset($tqByNr[$nr2])) {
+        return ['row' => $tqByNr[$nr2], 'saltinis' => 'failas nr. (su brūkšniu "' . $nr2 . '")'];
+    }
+
+    // B2 + B3: ieškome QT gaminio, kurio gaminio_numeris yra failo vardo prefiksas
+    foreach ($qtByGamNr as $qtGamNr => $qtGamId) {
+        if (!str_starts_with($failas, (string)$qtGamNr)) continue;
+
+        // B2: tas pats gaminio_numeris Tomo_QMS
+        if (isset($tqByNr[$qtGamNr])) {
+            return ['row' => $tqByNr[$qtGamNr], 'saltinis' => 'QT gam. nr. "' . $qtGamNr . '"'];
+        }
+
+        // B3: per QT uzsakymo_numeris → Tomo_QMS gaminiai
+        if (!empty($qtUzsNrByGamId[$qtGamId])) {
+            $uzsNr = $qtUzsNrByGamId[$qtGamId];
+            if (!empty($tqByUzsNr[$uzsNr])) {
+                $candidates = $tqByUzsNr[$uzsNr];
+                // Bandyti suderinti pagal gaminio_numeris failo varde
+                foreach ($candidates as $c) {
+                    if (str_contains($failas, (string)$c['gaminio_numeris'])) {
+                        return ['row' => $c, 'saltinis' => 'QT uzs. nr. "' . $uzsNr . '" → gam. "' . $c['gaminio_numeris'] . '"'];
+                    }
+                }
+                // Jei tik vienas gaminys tame užsakyme
+                if (count($candidates) === 1) {
+                    return ['row' => $candidates[0], 'saltinis' => 'QT uzs. nr. "' . $uzsNr . '" (1 gaminys)'];
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
 // ── Duomenų rinkinys peržiūrai / vykdymui ─────────────────────────────────────
 function surinktDarbus(): array {
     $qt = qtConn();
     [$tqById, $tqByNr, $jau_nust] = tqGaminiai();
 
-    // Išankstinis quality_tomas gaminiai ID → gaminio_numeris žemėlapis
-    // (naudojamas kaip 3-ias sutapimo būdas kai gaminys_id nurodytas, bet jo nėra Tomo_QMS pagal ID)
-    $qtGamNrByGamId = [];
+    // ─ QT žemėlapiai papildomam sutapimui ─────────────────────────────────────
+    $qtGamNrByGamId = [];  // QT gaminys_id → gaminio_numeris
+    $qtByGamNr      = [];  // QT gaminio_numeris → gaminys_id
+    $qtUzsNrByGamId = [];  // QT gaminys_id → uzsakymo_numeris
+
     try {
         $qt_gam_rows = $qt->query("SELECT id, gaminio_numeris FROM gaminiai WHERE gaminio_numeris IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
         foreach ($qt_gam_rows as $qg) {
             $qtGamNrByGamId[(int)$qg['id']] = $qg['gaminio_numeris'];
+            $qtByGamNr[$qg['gaminio_numeris']] = (int)$qg['id'];
+        }
+        // Pabandyti prisijungti su uzsakymai
+        $qt_uzs_rows = $qt->query("
+            SELECT g.id AS gaminys_id, u.uzsakymo_numeris
+            FROM gaminiai g
+            JOIN uzsakymai u ON u.id = g.uzsakymo_id
+            WHERE u.uzsakymo_numeris IS NOT NULL
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($qt_uzs_rows as $qur) {
+            $qtUzsNrByGamId[(int)$qur['gaminys_id']] = $qur['uzsakymo_numeris'];
         }
     } catch (Exception $e) { /* lentelė gali neegzistuoti — praleisti */ }
+
+    // Tomo_QMS: uzsakymo_numeris → gaminiai masyvai (B3 sutapimui)
+    $tqByUzsNr = [];
+    try {
+        $tq_uzs_rows = tqConn()->query("
+            SELECT g.id, g.gaminio_numeris, u.uzsakymo_numeris,
+                   (g.mt_paso_pdf IS NOT NULL) AS turi_paso
+            FROM gaminiai g
+            JOIN uzsakymai u ON u.id = g.uzsakymo_id
+            WHERE u.uzsakymo_numeris IS NOT NULL
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($tq_uzs_rows as $tur) {
+            $tqByUzsNr[$tur['uzsakymo_numeris']][] = $tur;
+        }
+    } catch (Exception $e) { /* Tomo_QMS gali neturėti uzsakymai lentelės — praleisti */ }
 
     $paso  = [];  // bus rašoma į Tomo_QMS.gaminiai.mt_paso_pdf
     $nust  = [];  // bus rašoma į Tomo_QMS.gaminiu_pdf_failai (tipas=nustatymu)
@@ -125,39 +204,52 @@ function surinktDarbus(): array {
             // 1a. Tiesioginis sutapimas pagal ID
             $tqRow = $tqById[$gid];
             $paso[] = [
-                'qt_dok_id'    => $r['id'],
-                'tq_gam_id'    => $tqRow['id'],
-                'failas'       => $r['failas'],
-                'dydis'        => $r['dydis'],
-                'jau_turi'     => (bool)$tqRow['turi_paso'],
-                'šaltinis'     => 'mt_deklaracija (ID)',
+                'qt_dok_id' => $r['id'],
+                'tq_gam_id' => $tqRow['id'],
+                'failas'    => $r['failas'],
+                'dydis'     => $r['dydis'],
+                'jau_turi'  => (bool)$tqRow['turi_paso'],
+                'šaltinis'  => 'mt_deklaracija (ID)',
             ];
         } elseif ($gid && isset($qtGamNrByGamId[$gid]) && isset($tqByNr[$qtGamNrByGamId[$gid]])) {
-            // 1b. ID žinomas, bet nerasta Tomo_QMS — bandyti per QT gaminio_numeris
+            // 1b. ID žinomas, bet Tomo_QMS neturi — bandyti per QT gaminio_numeris
             $qtNr  = $qtGamNrByGamId[$gid];
             $tqRow = $tqByNr[$qtNr];
             $paso[] = [
-                'qt_dok_id'    => $r['id'],
-                'tq_gam_id'    => $tqRow['id'],
-                'failas'       => $r['failas'],
-                'dydis'        => $r['dydis'],
-                'jau_turi'     => (bool)$tqRow['turi_paso'],
-                'šaltinis'     => 'mt_deklaracija (QT gam. nr. ' . h($qtNr) . ')',
+                'qt_dok_id' => $r['id'],
+                'tq_gam_id' => $tqRow['id'],
+                'failas'    => $r['failas'],
+                'dydis'     => $r['dydis'],
+                'jau_turi'  => (bool)$tqRow['turi_paso'],
+                'šaltinis'  => 'mt_deklaracija (QT gam. nr. "' . h($qtNr) . '")',
             ];
         } else {
             // 1c. Bandyti pagal numerį iš failo vardo
             $nr = nrIsFailo($r['failas']);
             if ($nr && isset($tqByNr[$nr])) {
                 $paso[] = [
-                    'qt_dok_id'    => $r['id'],
-                    'tq_gam_id'    => $tqByNr[$nr]['id'],
-                    'failas'       => $r['failas'],
-                    'dydis'        => $r['dydis'],
-                    'jau_turi'     => (bool)$tqByNr[$nr]['turi_paso'],
-                    'šaltinis'     => 'mt_deklaracija (failas nr.)',
+                    'qt_dok_id' => $r['id'],
+                    'tq_gam_id' => $tqByNr[$nr]['id'],
+                    'failas'    => $r['failas'],
+                    'dydis'     => $r['dydis'],
+                    'jau_turi'  => (bool)$tqByNr[$nr]['turi_paso'],
+                    'šaltinis'  => 'mt_deklaracija (failas nr.)',
                 ];
             } else {
-                $praleista[] = ['tipas' => 'mt_deklaracija', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
+                // 1d. Papildomi atsarginiai metodai (brūkšninis nr., QT gaminio_numeris, uzsakymo_numeris)
+                $ext = suraskPagalFaila($r['failas'], $tqByNr, $qtByGamNr, $qtUzsNrByGamId, $tqByUzsNr);
+                if ($ext) {
+                    $paso[] = [
+                        'qt_dok_id' => $r['id'],
+                        'tq_gam_id' => (int)$ext['row']['id'],
+                        'failas'    => $r['failas'],
+                        'dydis'     => $r['dydis'],
+                        'jau_turi'  => (bool)$ext['row']['turi_paso'],
+                        'šaltinis'  => 'mt_deklaracija (' . $ext['saltinis'] . ')',
+                    ];
+                } else {
+                    $praleista[] = ['tipas' => 'mt_deklaracija', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
+                }
             }
         }
     }
@@ -181,7 +273,20 @@ function surinktDarbus(): array {
                 'šaltinis'  => 'mt_deklaracija_pdf (failas nr.)',
             ];
         } else {
-            $praleista[] = ['tipas' => 'mt_deklaracija_pdf', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
+            // Papildomi atsarginiai metodai
+            $ext = suraskPagalFaila($r['failas'], $tqByNr, $qtByGamNr, $qtUzsNrByGamId, $tqByUzsNr);
+            if ($ext) {
+                $paso[] = [
+                    'qt_dok_id' => $r['id'],
+                    'tq_gam_id' => (int)$ext['row']['id'],
+                    'failas'    => $r['failas'],
+                    'dydis'     => $r['dydis'],
+                    'jau_turi'  => (bool)$ext['row']['turi_paso'],
+                    'šaltinis'  => 'mt_deklaracija_pdf (' . $ext['saltinis'] . ')',
+                ];
+            } else {
+                $praleista[] = ['tipas' => 'mt_deklaracija_pdf', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
+            }
         }
     }
 
