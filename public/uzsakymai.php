@@ -1350,7 +1350,7 @@ function atidartiIkelimoPdf(uzsakymoId, pdfType) {
     document.getElementById('ikeltiPdfFailasInput').value = '';
 
     var grupe = <?= json_encode($filtro_grupe) ?>;
-    document.getElementById('ikeltiPdfRedirect').value = '/uzsakymai.php?grupe=' + encodeURIComponent(grupe) + '&pdf_ikeltas=1';
+    document.getElementById('ikeltiPdfRedirect').value = '/uzsakymai.php?grupe=' + encodeURIComponent(grupe);
 
     var gaminioWrap   = document.getElementById('ikeltiPdfGaminioWrap');
     var gaminioSelect = document.getElementById('ikeltiPdfGaminioSelect');
@@ -1370,8 +1370,10 @@ function atidartiIkelimoPdf(uzsakymoId, pdfType) {
             submitBtn.disabled = false;
             if (!Array.isArray(gaminiai) || gaminiai.length === 0) {
                 gaminioSelect.innerHTML = '<option value="">— nėra gaminių —</option>';
+                gaminioSelect.style.display = 'block';
                 gaminioIdInput.value = '';
                 gaminioWrap.style.display = 'block';
+                submitBtn.disabled = true;
                 return;
             }
             if (gaminiai.length === 1) {
@@ -1394,9 +1396,11 @@ function atidartiIkelimoPdf(uzsakymoId, pdfType) {
         })
         .catch(function() {
             if (loadingEl) loadingEl.style.display = 'none';
-            submitBtn.disabled = false;
             gaminioSelect.innerHTML = '<option value="">Klaida kraunant gaminius</option>';
+            gaminioSelect.style.display = 'block';
             gaminioIdInput.value = '';
+            gaminioWrap.style.display = 'block';
+            submitBtn.disabled = true;
         });
 
     openModal('ikeltiPdfUzsModal');
