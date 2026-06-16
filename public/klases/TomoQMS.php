@@ -1604,11 +1604,24 @@ class TomoQMS {
                 $pdfVal = stream_get_contents($pdfVal);
             }
             if (!$pdfVal) return;
-            $hexPdf = '\\x' . bin2hex($pdfVal);
+            // Jei PDO grąžino BYTEA kaip \x... hex eilutę — perduodame tiesiai,
+            // kitaip (gryna binarinė eilutė) — hex-koduojame bin2hex().
+            if (str_starts_with((string)$pdfVal, '\\x')) {
+                $hexPdf = $pdfVal;
+            } else {
+                $hexPdf = '\\x' . bin2hex($pdfVal);
+            }
+
+            // Jei failo vardo nėra — naudojame numatytąjį pagal PDF tipą
+            $failasVal = $row[$failas_column] ?? null;
+            if (!$failasVal) {
+                $tipas = str_replace(['mt_', '_pdf'], '', $pdf_column); // paso / dielektriniu / funkciniu
+                $failasVal = 'mt_' . $tipas . '.pdf';
+            }
 
             $upd = $conn->prepare("UPDATE gaminiai SET $pdf_column = :pdf, $failas_column = :failas WHERE id = :id");
             $upd->bindValue(':pdf', $hexPdf, PDO::PARAM_STR);
-            $upd->bindValue(':failas', $row[$failas_column]);
+            $upd->bindValue(':failas', $failasVal);
             $upd->bindValue(':id', $tomo_gid);
             $upd->execute();
             $pdf_type = str_replace(['mt_', '_pdf'], '', $pdf_column);

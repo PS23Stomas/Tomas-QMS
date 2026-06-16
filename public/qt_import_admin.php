@@ -100,7 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($gaminiai as $g) {
             foreach ($pdf_stulpeliai as [$pdf_col, $failas_col]) {
-                $chk = $pdo->prepare("SELECT 1 FROM gaminiai WHERE id = ? AND $failas_col IS NOT NULL");
+                // Tikrinti tik PDF BYTEA — failo vardas gali būti NULL (sinchPDF() suformuos numatytąjį)
+                $chk = $pdo->prepare("SELECT 1 FROM gaminiai WHERE id = ? AND $pdf_col IS NOT NULL");
                 $chk->execute([$g['id']]);
                 if (!$chk->fetchColumn()) continue;
                 try {
