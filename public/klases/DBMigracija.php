@@ -60,6 +60,7 @@ class DBMigracija {
         $this->pridetiPerziurosTokena();
         $this->normalizuotiRolesDB();
         $this->pridetiAktyvusStulpeli();
+        $this->sukurtiGaminioFailuLentele();
     }
 
     /**
@@ -679,6 +680,29 @@ class DBMigracija {
      * arba lietuviškas su didžiąja raide ("Vartotojas", "Skaitytojas").
      * Šis metodas vieną kartą sutvarkys visas reikšmes į vienodą formatą.
      */
+    /**
+     * Sukuria gaminiu_pdf_failai lentelę, jei jos dar nėra.
+     * Šioje lentelėje saugomi visi rankiniu būdu įkelti PDF dokumentai
+     * (paso, dielektrinių ir funkcinių bandymų) — kiekvienas įkėlimas
+     * pridedamas kaip nauja eilutė, esamų failų neperrašant.
+     */
+    private function sukurtiGaminioFailuLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS gaminiu_pdf_failai (
+                    id SERIAL PRIMARY KEY,
+                    gaminio_id INTEGER NOT NULL,
+                    pdf_tipas VARCHAR(20) NOT NULL,
+                    failas_vardas VARCHAR(500) NOT NULL,
+                    turinys BYTEA NOT NULL,
+                    ikelta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    vartotojas_id INTEGER
+                )
+            ");
+            $this->conn->exec("CREATE INDEX IF NOT EXISTS idx_gaminiu_pdf_failai_gid ON gaminiu_pdf_failai(gaminio_id, pdf_tipas)");
+        } catch (PDOException $e) {}
+    }
+
     private function normalizuotiRolesDB(): void {
         try {
             $this->conn->exec("UPDATE vartotojai SET role = 'administratorius' WHERE role IN ('admin', 'administrator', 'Administratorius')");

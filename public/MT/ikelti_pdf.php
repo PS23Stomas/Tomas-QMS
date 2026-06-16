@@ -79,20 +79,24 @@ if ($mime !== 'application/pdf' || $ext !== 'pdf') {
     exit;
 }
 
-// Nuskaitome binarinį turinį ir išsaugome DB
+// Nuskaitome binarinį turinį ir išsaugome naujoje lentelėje
+// (kiekvienas įkėlimas sukuria naują eilutę — esami failai neperrašomi)
 $pdf_data    = file_get_contents($failas['tmp_name']);
 $failas_name = basename($failas['name']);
 
-$cols = $allowed[$pdf_type];
-$conn = Database::getConnection();
+$conn        = Database::getConnection();
+$vartotojas_id = $user['id'] ?? null;
 
 try {
     $stmt = $conn->prepare(
-        "UPDATE gaminiai SET {$cols['pdf_col']} = :pdf, {$cols['failas_col']} = :failas WHERE id = :id"
+        "INSERT INTO gaminiu_pdf_failai (gaminio_id, pdf_tipas, failas_vardas, turinys, vartotojas_id)
+         VALUES (:gaminio_id, :tipas, :vardas, :turinys, :vartotojas_id)"
     );
-    $stmt->bindValue(':pdf',    $pdf_data, PDO::PARAM_LOB);
-    $stmt->bindValue(':failas', $failas_name);
-    $stmt->bindValue(':id',     $gaminio_id, PDO::PARAM_INT);
+    $stmt->bindValue(':gaminio_id',    $gaminio_id,   PDO::PARAM_INT);
+    $stmt->bindValue(':tipas',         $pdf_type);
+    $stmt->bindValue(':vardas',        $failas_name);
+    $stmt->bindValue(':turinys',       $pdf_data,     PDO::PARAM_LOB);
+    $stmt->bindValue(':vartotojas_id', $vartotojas_id, PDO::PARAM_INT);
     $stmt->execute();
 } catch (PDOException $e) {
     header('Location: ' . $redirect . $redir_sep . 'pdf_klaida=' . urlencode('Duomenų bazės klaida įkeliant PDF.'));
