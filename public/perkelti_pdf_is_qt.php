@@ -40,14 +40,65 @@ function tqConn(): PDO {
 // ── Pagalbinės funkcijos ───────────────────────────────────────────────────────
 
 /**
- * BYTEA iš PostgreSQL PDO grąžinamas kaip resource (stream).
- * Konvertuojame į PostgreSQL hex-escaped formatą (\xAABB...) kurį PDO::PARAM_STR priima.
+ * Nustato gvx_dokumentai.turinys_lob stulpelio tipą quality_tomas DB.
+ * Grąžina 'oid', 'bytea' arba null jei nepavyko nustatyti.
+ * OID = PostgreSQL Large Object (lo_get() reikalingas turiniui skaityti).
+ * BYTEA = įprastas dvejetainis stulpelis (tiesioginis skaitymas).
+ */
+function qtLobTipas(): ?string {
+    static $tipas = false;
+    if ($tipas !== false) return $tipas;
+    try {
+        $t = qtConn()->query("
+            SELECT data_type FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name   = 'gvx_dokumentai'
+              AND column_name  = 'turinys_lob'
+            LIMIT 1
+        ")->fetchColumn();
+        $tipas = $t ?: null;
+    } catch (Exception $e) {
+        $tipas = null;
+    }
+    return $tipas;
+}
+
+/**
+ * SQL išraiška dydžiui (baitais) gauti be viso turinio nuskaitymo.
+ * OID: skaičiuojame iš pg_largeobject sisteminės lentelės.
+ * BYTEA: tiesiog octet_length().
+ */
+function dydisSQL(): string {
+    if (qtLobTipas() === 'oid') {
+        return "COALESCE((SELECT SUM(octet_length(data)) FROM pg_largeobject WHERE loid = turinys_lob::oid), 0)";
+    }
+    return "COALESCE(octet_length(turinys_lob), 0)";
+}
+
+/**
+ * BYTEA iš PostgreSQL PDO → PostgreSQL hex-escaped formatas (\xAABB...).
+ *
+ * Tvarko 3 atvejus:
+ *  1. PHP resource (stream) — dideliems BYTEA stulpeliams
+ *  2. Eilutė prasidedanti \x — jau hex formatas, perduodame tiesiai
+ *  3. Gryna binarinė eilutė — koduojame bin2hex()
  */
 function byteaHex(mixed $val): ?string {
     if ($val === null) return null;
-    $bin = is_resource($val) ? stream_get_contents($val) : (string)$val;
-    if ($bin === '' || $bin === false) return null;
-    return '\\x' . bin2hex($bin);
+    if (is_resource($val)) {
+        $bin = stream_get_contents($val);
+        if ($bin === '' || $bin === false) return null;
+        return '\\x' . bin2hex($bin);
+    }
+    $s = (string)$val;
+    if ($s === '') return null;
+    // PostgreSQL gali grąžinti BYTEA kaip hex eilutę: \x414243...
+    // Tokiu atveju perduodame kaip yra — PDO::PARAM_STR priima šį formatą.
+    if (str_starts_with($s, '\\x') || str_starts_with($s, "\x5cx")) {
+        return $s;
+    }
+    // Gryna binarinė eilutė (PDO ją automatiškai dekodavo)
+    return '\\x' . bin2hex($s);
 }
 
 /** Ištraukia pirmą skaičių iš failo vardo */
@@ -193,8 +244,9 @@ function surinktDarbus(): array {
     $praleista = [];
 
     // 1. mt_deklaracija — sutapimas pagal gaminys_id
+    $dydis_sql = dydisSQL();
     $rows = $qt->query(
-        "SELECT id, gaminys_id, failas, length(turinys_lob) AS dydis
+        "SELECT id, gaminys_id, failas, {$dydis_sql} AS dydis
          FROM gvx_dokumentai WHERE tipas = 'mt_deklaracija' ORDER BY id"
     )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -256,7 +308,7 @@ function surinktDarbus(): array {
 
     // 2. mt_deklaracija_pdf — gaminys_id yra NULL, sutapimas pagal failo vardą
     $rows2 = $qt->query(
-        "SELECT id, failas, length(turinys_lob) AS dydis
+        "SELECT id, failas, {$dydis_sql} AS dydis
          FROM gvx_dokumentai WHERE tipas = 'mt_deklaracija_pdf' ORDER BY id"
     )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -292,7 +344,7 @@ function surinktDarbus(): array {
 
     // 3. nustatymu_protokolas — gaminys_id yra NULL, sutapimas pagal failo vardą
     $rows3 = $qt->query(
-        "SELECT id, failas, length(turinys_lob) AS dydis
+        "SELECT id, failas, {$dydis_sql} AS dydis
          FROM gvx_dokumentai WHERE tipas = 'nustatymu_protokolas' ORDER BY id"
     )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -320,7 +372,8 @@ function surinktDarbus(): array {
 $rezultatai = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') {
     ignore_user_abort(true);
-    set_time_limit(300);
+    set_time_limit(600);
+    ini_set('memory_limit', '512M');
 
     [$paso, $nust, $praleista] = surinktDarbus();
     $tq = tqConn();
@@ -333,15 +386,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
     $upd_paso = $tq->prepare(
         "UPDATE gaminiai SET mt_paso_pdf = :pdf, mt_paso_failas = :failas WHERE id = :id AND mt_paso_pdf IS NULL"
     );
-    $sel_turinys = $qt->prepare("SELECT turinys_lob, failas FROM gvx_dokumentai WHERE id = ?");
+
+    // Jei turinys_lob yra OID (Large Object) — naudojame lo_get() turinys nuskaitymui.
+    // Jei BYTEA — skaitome tiesiogiai.
+    $isOid = qtLobTipas() === 'oid';
+    $turinys_select = $isOid
+        ? "SELECT lo_get(turinys_lob) AS turinys_lob, failas FROM gvx_dokumentai WHERE id = ?"
+        : "SELECT turinys_lob, failas FROM gvx_dokumentai WHERE id = ?";
+    $sel_turinys = $qt->prepare($turinys_select);
 
     foreach ($paso as $d) {
         if ($d['jau_turi']) { $paso_pral++; continue; }
         try {
+            // lo_get() reikalauja transakcinės aplinkos kai kuriose PG versijose
+            if ($isOid) $qt->beginTransaction();
             $sel_turinys->execute([$d['qt_dok_id']]);
             $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
+            if ($isOid) $qt->commit();
+
+            if (!$row) {
+                $klaidos[] = 'Paso [' . $d['failas'] . ']: įrašas nerastas gvx_dokumentai';
+                $paso_pral++; continue;
+            }
             $turinys = byteaHex($row['turinys_lob'] ?? null);
-            if (!$row || !$turinys) { $paso_pral++; continue; }
+            if (!$turinys) {
+                $klaidos[] = 'Paso [' . $d['failas'] . ']: turinys tuščias' . ($isOid ? ' (lo_get grąžino null — OID gali būti neegzistuojantis)' : ' (BYTEA NULL)');
+                $paso_pral++; continue;
+            }
 
             $upd_paso->bindValue(':pdf', $turinys, PDO::PARAM_STR);
             $upd_paso->bindValue(':failas', $row['failas']);
@@ -349,6 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
             $upd_paso->execute();
             $paso_ok++;
         } catch (Exception $e) {
+            if ($isOid && $qt->inTransaction()) $qt->rollBack();
             $klaidos[] = 'Paso [' . $d['failas'] . ']: ' . $e->getMessage();
             $paso_pral++;
         }
@@ -374,10 +446,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
         $key = $d['tq_gam_id'] . '|' . $d['failas'];
         if (isset($jau_set[$key])) { $nust_pral++; continue; }
         try {
+            if ($isOid) $qt->beginTransaction();
             $sel_turinys->execute([$d['qt_dok_id']]);
             $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
+            if ($isOid) $qt->commit();
+
+            if (!$row) {
+                $klaidos[] = 'Nust. [' . $d['failas'] . ']: įrašas nerastas gvx_dokumentai';
+                $nust_pral++; continue;
+            }
             $turinys = byteaHex($row['turinys_lob'] ?? null);
-            if (!$row || !$turinys) { $nust_pral++; continue; }
+            if (!$turinys) {
+                $klaidos[] = 'Nust. [' . $d['failas'] . ']: turinys tuščias' . ($isOid ? ' (lo_get null)' : ' (BYTEA NULL)');
+                $nust_pral++; continue;
+            }
 
             $ins_nust->bindValue(':gam_id', $d['tq_gam_id']);
             $ins_nust->bindValue(':failas', $row['failas']);
@@ -385,6 +467,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
             $ins_nust->execute();
             $nust_ok++;
         } catch (Exception $e) {
+            if ($isOid && $qt->inTransaction()) $qt->rollBack();
             $klaidos[] = 'Nust. [' . $d['failas'] . ']: ' . $e->getMessage();
             $nust_pral++;
         }
@@ -396,7 +479,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') 
 // ── Peržiūra GET ───────────────────────────────────────────────────────────────
 $prazv_duomenys = null;
 $conn_klaida    = null;
+$qt_lob_tipas   = null;
 try {
+    $qt_lob_tipas = qtLobTipas();
     [$paso, $nust, $praleista] = surinktDarbus();
     $paso_nauji   = array_filter($paso, fn($d) => !$d['jau_turi']);
     $paso_jau     = array_filter($paso, fn($d) => $d['jau_turi']);
@@ -420,9 +505,25 @@ include __DIR__ . '/includes/header.php';
 </nav>
 
 <h2 style="margin-bottom:4px;">PDF perkėlimas: quality_tomas → Tomo_QMS</h2>
-<p style="color:var(--text-secondary);margin-bottom:24px;">
+<p style="color:var(--text-secondary);margin-bottom:16px;">
     Perkeliami <strong>MT paso PDF</strong> ir <strong>Nustatymų protokolai</strong> iš quality_tomas į Tomo_QMS duomenų bazę.
 </p>
+
+<?php if ($qt_lob_tipas !== null): ?>
+<div style="margin-bottom:16px;padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);font-size:13px;">
+    🔍 <strong>quality_tomas turinys_lob tipas:</strong>
+    <?php if ($qt_lob_tipas === 'oid'): ?>
+        <code style="background:#fff3cd;padding:2px 6px;border-radius:3px;">oid</code>
+        — PostgreSQL Large Object. Naudojamas <code>lo_get()</code> turiniui skaityti. ✅
+    <?php elseif ($qt_lob_tipas === 'bytea'): ?>
+        <code style="background:#d4edda;padding:2px 6px;border-radius:3px;">bytea</code>
+        — Tiesioginis BYTEA skaitymas. ✅
+    <?php else: ?>
+        <code><?= h($qt_lob_tipas) ?></code>
+        — Neatpažintas tipas. Naudojamas BYTEA skaitymas.
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <?php if ($conn_klaida): ?>
     <div class="alert alert-danger">Prisijungimo klaida: <?= h($conn_klaida) ?></div>
