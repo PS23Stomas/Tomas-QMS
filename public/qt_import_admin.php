@@ -76,6 +76,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
 
+    } elseif ($veiksmas === 'sinchronizuoti_pdf') {
+        $pradzia = microtime(true);
+        set_time_limit(600);
+
+        $pdf_stulpeliai = [
+            ['mt_paso_pdf',        'mt_paso_failas'],
+            ['mt_dielektriniu_pdf', 'mt_dielektriniu_failas'],
+            ['mt_funkciniu_pdf',   'mt_funkciniu_failas'],
+        ];
+
+        $gaminiai = $pdo->query("
+            SELECT g.id, u.uzsakymo_numeris
+            FROM gaminiai g
+            JOIN uzsakymai u ON u.id = g.uzsakymo_id
+            WHERE g.mt_paso_pdf IS NOT NULL
+               OR g.mt_dielektriniu_pdf IS NOT NULL
+               OR g.mt_funkciniu_pdf IS NOT NULL
+            ORDER BY g.id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $pdf_ok = 0; $pdf_klaidu = 0; $pdf_klaidos_list = [];
+
+        foreach ($gaminiai as $g) {
+            foreach ($pdf_stulpeliai as [$pdf_col, $failas_col]) {
+                $chk = $pdo->prepare("SELECT 1 FROM gaminiai WHERE id = ? AND $failas_col IS NOT NULL");
+                $chk->execute([$g['id']]);
+                if (!$chk->fetchColumn()) continue;
+                try {
+                    TomoQMS::sinchPDF($pdo, (int)$g['id'], $pdf_col, $failas_col);
+                    $pdf_ok++;
+                } catch (Throwable $e) {
+                    $pdf_klaidu++;
+                    $pdf_klaidos_list[] = $g['uzsakymo_numeris'] . ' [' . $pdf_col . ']: ' . $e->getMessage();
+                }
+            }
+        }
+
+        $trukme = round(microtime(true) - $pradzia, 2);
+        $rezultatas = [
+            'tipas'   => 'pdf_sync',
+            'trukme'  => $trukme,
+            'duomenys' => ['ok' => $pdf_ok, 'klaidu' => $pdf_klaidu, 'klaidos' => $pdf_klaidos_list],
+        ];
+
     } elseif ($veiksmas === 'importuoti_viska') {
         $pradzia = microtime(true);
         $rez1 = TomoQMS::importuotiIsQualityTomas();
@@ -218,6 +262,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <?php endif; ?>
 
+    <?php if ($rezultatas['tipas'] === 'pdf_sync'): ?>
+    <?php $r = $rezultatas['duomenys']; ?>
+    <h3>📄 PDF persiuntimas į Tomo_QMS</h3>
+    <div class="stat-row">
+        <div class="stat-pill"><strong style="color:#22c55e;"><?= $r['ok'] ?></strong>Persiųsta PDF</div>
+        <?php if ($r['klaidu'] > 0): ?>
+        <div class="stat-pill"><strong style="color:#ef4444;"><?= $r['klaidu'] ?></strong>Klaidos</div>
+        <?php endif; ?>
+    </div>
+    <?php if (empty($r['klaidos'])): ?>
+    <p style="color:#16a34a;font-size:0.88rem;margin:8px 0 0;">✓ Visi PDF persiųsti sėkmingai. Patikrinkite nkokybe.elga.tech užsakymų sąraše — PASAS / DIELEKTR. / FUNKC. skiltyse turi atsirasti PDF ikonos.</p>
+    <?php else: ?>
+    <details class="err-list">
+        <summary><?= count($r['klaidos']) ?> klaida(-os)</summary>
+        <ul><?php foreach (array_slice($r['klaidos'], 0, 20) as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
+    </details>
+    <?php endif; ?>
+    <?php endif; ?>
+
     <div style="margin-top:14px;font-size:0.83rem;color:var(--text-secondary);">Trukmė: <?= $rezultatas['trukme'] ?> sek.</div>
 </div>
 <?php endif; ?>
@@ -249,6 +312,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--text-secondary);">▼ Į TOMO QMS (išorinė DB)</div>
 <div class="import-grid">
+    <div class="import-card" style="border-color:#7c3aed;background:#faf5ff;">
+        <h3 style="color:#7c3aed;">📄 Persiųsti PDF į Tomo_QMS</h3>
+        <p>Paso, dielektrinių ir funkcinių bandymų PDF iš šios sistemos DB → Tomo_QMS. Tik PDF, be kitų duomenų. Greičiau nei pilnas sinchronizavimas.</p>
+        <form method="POST" onsubmit="return confirm('Persiųsti visus PDF į Tomo_QMS? Gali užtrukti kelias minutes.')">
+            <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
+            <input type="hidden" name="veiksmas" value="sinchronizuoti_pdf">
+            <button type="submit" class="btn btn-import" style="background:#7c3aed;color:#fff;border:none;" data-testid="button-sync-pdf">Persiųsti PDF → Tomo_QMS</button>
+        </form>
+    </div>
+
     <div class="import-card main">
         <h3>🔄 Viskas iš karto</h3>
         <p>Užsakymai + gaminiai + bandymai + komponentai + pretenzijos + nuotraukos + el. pašto istorija.</p>
