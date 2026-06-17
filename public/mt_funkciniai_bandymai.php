@@ -97,6 +97,11 @@ $turi_funkciniu_pdf = !empty($gaminio_info['mt_funkciniu_failas']);
 $pdf_sukurtas = $_GET['pdf_sukurtas'] ?? '';
 $pdf_klaida = $_GET['pdf_klaida'] ?? '';
 
+/* --- Užtikrinimas, kad defekto_sunkumas stulpelis egzistuoja (vietinė migracija) --- */
+try {
+    $conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN IF NOT EXISTS defekto_sunkumas VARCHAR(20) DEFAULT ''");
+} catch (PDOException $e) {}
+
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
 $stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam, defekto_sunkumas FROM funkciniai_bandymai WHERE gaminio_id = ?");
