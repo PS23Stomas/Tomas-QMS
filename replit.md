@@ -7,6 +7,7 @@ MT Modulis is a manufacturing order management system designed for Lithuanian us
 - Preferred communication style: Simple, everyday language
 - Language: Lithuanian (lietuvių kalba)
 - Technology preference: PHP, CSS, JavaScript, HTML
+- **DB schema**: Naujų lentelių kurti nereikia — plėsti esamas. Naujos lentelės sukelia dev/prod struktūros skirtumus. Jei reikia naujų stulpelių, juos pridėti prie esamų lentelių per `DBMigracija.php`.
 
 ## Workflow & Server Configuration
 

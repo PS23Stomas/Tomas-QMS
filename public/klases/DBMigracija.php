@@ -61,6 +61,7 @@ class DBMigracija {
         $this->normalizuotiRolesDB();
         $this->pridetiAktyvusStulpeli();
         $this->sukurtiGaminioFailuLentele();
+        $this->sukurtiGvxDokumentaiLentele();
     }
 
     /**
@@ -708,6 +709,25 @@ class DBMigracija {
             $this->conn->exec("UPDATE vartotojai SET role = 'administratorius' WHERE role IN ('admin', 'administrator', 'Administratorius')");
             $this->conn->exec("UPDATE vartotojai SET role = 'vartotojas'       WHERE role IN ('user', 'Vartotojas')");
             $this->conn->exec("UPDATE vartotojai SET role = 'skaitytojas'      WHERE role IN ('Skaitytojas', 'reader')");
+        } catch (PDOException $e) {}
+    }
+
+    private function sukurtiGvxDokumentaiLentele(): void {
+        try {
+            $this->conn->exec("
+                CREATE TABLE IF NOT EXISTS gvx_dokumentai (
+                    id SERIAL PRIMARY KEY,
+                    uzsakymo_id INTEGER NOT NULL,
+                    tipas VARCHAR(50) NOT NULL,
+                    pavadinimas VARCHAR(500),
+                    failas VARCHAR(500),
+                    dydis_b INTEGER,
+                    turinys_lob BYTEA,
+                    sukurta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    sukurejas VARCHAR(200)
+                )
+            ");
+            $this->conn->exec("CREATE INDEX IF NOT EXISTS idx_gvx_dokumentai_uzs ON gvx_dokumentai(uzsakymo_id, tipas)");
         } catch (PDOException $e) {}
     }
 }
