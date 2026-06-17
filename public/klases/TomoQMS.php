@@ -1579,31 +1579,227 @@ class TomoQMS {
         return $rez;
     }
 
-    public static function sinchPDF(PDO $localConn, int $local_gaminio_id, string $pdf_column, string $failas_column): void {
+    /**
+     * Grąžina kiek vietinių gaminių turi kiekvieną PDF tipą.
+     * Naudojama persiusti_pdf.php peržiūroje prieš perkėlimą.
+     */
+    public static function gautiLokalusPDFKieki(PDO $localConn): array {
+        $resultado = [
+            'paso'        => 0,
+            'dielektriniu' => 0,
+            'funkciniu'   => 0,
+            'viso_gaminiu' => 0,
+        ];
+        try {
+            $resultado['paso']        = (int)$localConn->query("SELECT COUNT(*) FROM gaminiai WHERE mt_paso_pdf IS NOT NULL")->fetchColumn();
+            $resultado['dielektriniu'] = (int)$localConn->query("SELECT COUNT(*) FROM gaminiai WHERE mt_dielektriniu_pdf IS NOT NULL")->fetchColumn();
+            $resultado['funkciniu']   = (int)$localConn->query("SELECT COUNT(*) FROM gaminiai WHERE mt_funkciniu_pdf IS NOT NULL")->fetchColumn();
+            $resultado['viso_gaminiu'] = (int)$localConn->query("SELECT COUNT(*) FROM gaminiai WHERE mt_paso_pdf IS NOT NULL OR mt_dielektriniu_pdf IS NOT NULL OR mt_funkciniu_pdf IS NOT NULL")->fetchColumn();
+        } catch (Exception $e) {
+            error_log('TomoQMS gautiLokalusPDFKieki klaida: ' . $e->getMessage());
+        }
+        return $resultado;
+    }
+
+    /**
+     * Persiunta VISUS vietinius PDF į Tomo_QMS, praleidžiant tuos,
+     * kurie jau yra Tomo_QMS (stulpelis IS NOT NULL).
+     * Veikia greičiau nei pilnas sinchronizavimas — sinchronizuoja TIK PDF.
+     *
+     * @param PDO $localConn Ryšys su vietine DB
+     * @return array ['perkelti' => int, 'praleisti' => int, 'klaidos' => string[], 'trukme' => float]
+     */
+    public static function sinchVisusPDF(PDO $localConn): array {
         $conn = self::getConnection();
-        if (!$conn) return;
+        if (!$conn) {
+            return ['klaida' => 'Nepavyko prisijungti prie Tomo_QMS duomenų bazės (TOMO_QMS_DATABASE_URL nenustatytas)'];
+        }
+
+        $pradzia = microtime(true);
+
+        $pdf_stulpeliai = [
+            ['pdf' => 'mt_paso_pdf',        'failas' => 'mt_paso_failas',        'pav' => 'paso'],
+            ['pdf' => 'mt_dielektriniu_pdf', 'failas' => 'mt_dielektriniu_failas', 'pav' => 'dielektrinių'],
+            ['pdf' => 'mt_funkciniu_pdf',    'failas' => 'mt_funkciniu_failas',    'pav' => 'funkcinių'],
+        ];
+
+        $tomo_cols = $conn->query(
+            "SELECT column_name FROM information_schema.columns WHERE table_name='gaminiai' AND table_schema='public'"
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        $perkelti  = 0;
+        $praleisti = 0;
+        $klaidos   = [];
+
+        foreach ($pdf_stulpeliai as $col) {
+            if (!in_array($col['pdf'], $tomo_cols)) continue;
+
+            $stmt = $localConn->prepare(
+                "SELECT id FROM gaminiai WHERE {$col['pdf']} IS NOT NULL AND {$col['failas']} IS NOT NULL"
+            );
+            $stmt->execute();
+            $local_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($local_ids as $local_gid) {
+                $local_gid = (int)$local_gid;
+
+                $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gid);
+                if (!$tomo_gid) {
+                    $praleisti++;
+                    continue;
+                }
+
+                $chk = $conn->prepare("SELECT {$col['pdf']} IS NOT NULL AS turi FROM gaminiai WHERE id = ?");
+                $chk->execute([$tomo_gid]);
+                $turi = $chk->fetchColumn();
+                if ($turi) {
+                    $praleisti++;
+                    continue;
+                }
+
+                try {
+                    $ok = self::sinchPDF($localConn, $local_gid, $col['pdf'], $col['failas']);
+                    if ($ok) {
+                        $perkelti++;
+                    } else {
+                        $praleisti++;
+                    }
+                } catch (Exception $e) {
+                    $klaidos[] = ucfirst($col['pav']) . ' PDF (gaminio ID ' . $local_gid . '): ' . $e->getMessage();
+                    $praleisti++;
+                }
+            }
+        }
+
+        return [
+            'perkelti'  => $perkelti,
+            'praleisti' => $praleisti,
+            'klaidos'   => $klaidos,
+            'trukme'    => round(microtime(true) - $pradzia, 2),
+        ];
+    }
+
+    /**
+     * Grąžina tikslų skaičių PDF, kurie yra vietinėje DB bet dar nėra Tomo_QMS.
+     * Naudoja batch užklausas (ne po vieną) — efektyviai lygina abi DB.
+     *
+     * @return array ['paso'=>int, 'dielektriniu'=>int, 'funkciniu'=>int,
+     *               'viso_laukia'=>int, 'viso_jau_turi'=>int]
+     *               arba ['klaida'=>string] jei nėra Tomo_QMS ryšio
+     */
+    public static function gautiPDFSkirtuma(PDO $localConn): array {
+        $conn = self::getConnection();
+        if (!$conn) {
+            return ['klaida' => 'Nėra Tomo_QMS ryšio'];
+        }
+
+        $tomo_cols = $conn->query(
+            "SELECT column_name FROM information_schema.columns WHERE table_name='gaminiai' AND table_schema='public'"
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        $visi = [
+            ['pdf' => 'mt_paso_pdf',        'pav' => 'paso'],
+            ['pdf' => 'mt_dielektriniu_pdf', 'pav' => 'dielektriniu'],
+            ['pdf' => 'mt_funkciniu_pdf',    'pav' => 'funkciniu'],
+        ];
+        $aktyvus = array_filter($visi, fn($c) => in_array($c['pdf'], $tomo_cols));
+        $aktyvus = array_values($aktyvus);
+
+        $out = ['paso' => 0, 'dielektriniu' => 0, 'funkciniu' => 0, 'viso_laukia' => 0, 'viso_jau_turi' => 0];
+
+        if (empty($aktyvus)) return $out;
+
+        // ── Batch: Tomo_QMS orders (nr → uzs_id) ──────────────────────────────
+        $tomo_uzs_by_nr = [];
+        foreach ($conn->query("SELECT id, TRIM(uzsakymo_numeris) AS nr FROM uzsakymai")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $tomo_uzs_by_nr[trim($r['nr'])] = (int)$r['id'];
+        }
+
+        // ── Batch: Tomo_QMS gaminiai PDF flags (uzsakymo_id → row) ────────────
+        $tomo_gam_by_uzs = [];
+        if (!empty($tomo_uzs_by_nr)) {
+            $ids = array_values($tomo_uzs_by_nr);
+            $ph  = implode(',', array_fill(0, count($ids), '?'));
+            $null_checks = implode(', ', array_map(fn($c) => "{$c['pdf']} IS NOT NULL AS turi_{$c['pav']}", $aktyvus));
+            $stmt = $conn->prepare("SELECT uzsakymo_id, $null_checks FROM gaminiai WHERE uzsakymo_id IN ($ph) ORDER BY id ASC");
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $uid = (int)$r['uzsakymo_id'];
+                if (!isset($tomo_gam_by_uzs[$uid])) {
+                    $tomo_gam_by_uzs[$uid] = $r;
+                }
+            }
+        }
+
+        // ── Batch: local gaminiai with any PDF ────────────────────────────────
+        $local_where = implode(' OR ', array_map(fn($c) => "g.{$c['pdf']} IS NOT NULL", $aktyvus));
+        $local_cols  = implode(', ', array_map(fn($c) => "g.{$c['pdf']} IS NOT NULL AS turi_{$c['pav']}", $aktyvus));
+        $local_rows  = $localConn->query("
+            SELECT $local_cols, TRIM(u.uzsakymo_numeris) AS nr
+            FROM gaminiai g
+            JOIN uzsakymai u ON u.id = g.uzsakymo_id
+            WHERE $local_where
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        // ── Join & count ───────────────────────────────────────────────────────
+        foreach ($local_rows as $r) {
+            $nr          = trim($r['nr']);
+            $tomo_uzs_id = $tomo_uzs_by_nr[$nr] ?? null;
+            $tomo_gam    = $tomo_uzs_id ? ($tomo_gam_by_uzs[$tomo_uzs_id] ?? null) : null;
+
+            foreach ($aktyvus as $c) {
+                if (!$r["turi_{$c['pav']}"]) continue;
+
+                if ($tomo_gam === null) {
+                    // Order or gaminys not yet in Tomo_QMS — will be created+transferred
+                    $out[$c['pav']]++;
+                    $out['viso_laukia']++;
+                } elseif ($tomo_gam["turi_{$c['pav']}"]) {
+                    // Already present in Tomo_QMS — will be skipped
+                    $out['viso_jau_turi']++;
+                } else {
+                    // Gaminys exists but PDF is null — will be transferred
+                    $out[$c['pav']]++;
+                    $out['viso_laukia']++;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Persiunta vieną PDF į Tomo_QMS. Grąžina true jei sėkmingai perkelta,
+     * false jei praleista (nėra duomenų / stulpelio). Meta Exception jei klaida.
+     *
+     * @throws Exception jei UPDATE nepavyksta
+     */
+    public static function sinchPDF(PDO $localConn, int $local_gaminio_id, string $pdf_column, string $failas_column): bool {
+        $conn = self::getConnection();
+        if (!$conn) return false;
 
         $allowed_columns = ['mt_paso_pdf', 'mt_dielektriniu_pdf', 'mt_funkciniu_pdf'];
         $allowed_failas = ['mt_paso_failas', 'mt_dielektriniu_failas', 'mt_funkciniu_failas'];
-        if (!in_array($pdf_column, $allowed_columns) || !in_array($failas_column, $allowed_failas)) return;
+        if (!in_array($pdf_column, $allowed_columns) || !in_array($failas_column, $allowed_failas)) return false;
 
         $tomo_cols = $conn->query("SELECT column_name FROM information_schema.columns WHERE table_name='gaminiai' AND table_schema='public'")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array($pdf_column, $tomo_cols)) return;
+        if (!in_array($pdf_column, $tomo_cols)) return false;
 
         $uzs_nr = self::gautiUzsakymoNr($localConn, $local_gaminio_id);
         $tomo_gid = self::gautiTomoGaminioId($localConn, $local_gaminio_id);
-        if (!$tomo_gid) return;
+        if (!$tomo_gid) return false;
+
         try {
             $stmt = $localConn->prepare("SELECT $pdf_column, $failas_column FROM gaminiai WHERE id = ?");
             $stmt->execute([$local_gaminio_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$row || !$row[$pdf_column]) return;
+            if (!$row || !$row[$pdf_column]) return false;
 
             $pdfVal = $row[$pdf_column];
             if (is_resource($pdfVal)) {
                 $pdfVal = stream_get_contents($pdfVal);
             }
-            if (!$pdfVal) return;
+            if (!$pdfVal) return false;
             // Jei PDO grąžino BYTEA kaip \x... hex eilutę — perduodame tiesiai,
             // kitaip (gryna binarinė eilutė) — hex-koduojame bin2hex().
             if (str_starts_with((string)$pdfVal, '\\x')) {
@@ -1626,9 +1822,11 @@ class TomoQMS {
             $upd->execute();
             $pdf_type = str_replace(['mt_', '_pdf'], '', $pdf_column);
             self::irasytLog("PDF ($pdf_type)", 'gaminiai', $uzs_nr, 1);
+            return true;
         } catch (Exception $e) {
             self::irasytLog("PDF klaida ($pdf_column)", 'gaminiai', $uzs_nr, 0, 'klaida', $e->getMessage());
             error_log("TomoQMS sinchPDF ($pdf_column) klaida: " . $e->getMessage());
+            throw $e;
         }
     }
 }

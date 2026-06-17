@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $masinis = ($_POST['masinis'] ?? '') === '1';
 $masinis_sarasas = ($_POST['masinis_sarasas'] ?? '') === '1';
 $importas = ($_POST['importas'] ?? '') === '1';
+$pdf_tik = ($_POST['pdf_tik'] ?? '') === '1';
 $conn = $pdo;
 
 $importas_stream = ($_POST['importas_stream'] ?? '') === '1';
@@ -83,6 +84,30 @@ if ($importas_stream) {
     } catch (Throwable $e) {
         echo "data: " . json_encode(['proc' => 100, 'baigta' => true, 'success' => false, 'klaida' => $e->getMessage()]) . "\n\n";
         flush();
+    }
+    exit;
+}
+
+if ($pdf_tik) {
+    ignore_user_abort(true);
+    set_time_limit(300);
+    try {
+        $rezultatas = TomoQMS::sinchVisusPDF($conn);
+        if (isset($rezultatas['klaida'])) {
+            echo json_encode(['success' => false, 'message' => $rezultatas['klaida']]);
+        } else {
+            $success = empty($rezultatas['klaidos']);
+            echo json_encode([
+                'success'   => $success,
+                'perkelti'  => $rezultatas['perkelti'],
+                'praleisti' => $rezultatas['praleisti'],
+                'klaidos'   => $rezultatas['klaidos'],
+                'trukme'    => $rezultatas['trukme'],
+                'message'   => 'Perkelta: ' . $rezultatas['perkelti'] . ' PDF. Praleista: ' . $rezultatas['praleisti'] . '. Trukmė: ' . $rezultatas['trukme'] . ' sek.',
+            ]);
+        }
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'message' => 'PDF perkėlimo klaida: ' . $e->getMessage()]);
     }
     exit;
 }
