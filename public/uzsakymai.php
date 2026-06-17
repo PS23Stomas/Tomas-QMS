@@ -342,18 +342,23 @@ if ($view_id) {
     }
 }
 
-$stmt_orders = $pdo->prepare('
+$gvx_lentele_yra = (bool)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gvx_dokumentai' AND table_schema='public'")->fetchColumn();
+$gvx_subquery = $gvx_lentele_yra
+    ? "(SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas IN ('mt_deklaracija','mt_deklaracija_pdf')) as gvx_paso_sk,
+           (SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas = 'nustatymu_protokolas') as gvx_nust_sk,"
+    : "0 as gvx_paso_sk, 0 as gvx_nust_sk,";
+
+$stmt_orders = $pdo->prepare("
     SELECT u.*, uz.uzsakovas, o.pavadinimas as objektas, v.vardas, v.pavarde,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id) as gaminiu_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND (g.mt_paso_failas IS NOT NULL OR g.mt_paso_pdf IS NOT NULL)) as paso_pdf_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_dielektriniu_failas IS NOT NULL) as dielektriniu_pdf_sk,
            (SELECT COUNT(*) FROM gaminiai g WHERE g.uzsakymo_id = u.id AND g.mt_funkciniu_failas IS NOT NULL) as funkciniu_pdf_sk,
-           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'paso\') as paso_ikeltu_sk,
-           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'dielektriniu\') as dielektriniu_ikeltu_sk,
-           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'funkciniu\') as funkciniu_ikeltu_sk,
-           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'nustatymu\') as nustatymu_ikeltu_sk,
-           (SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas IN (\'mt_deklaracija\',\'mt_deklaracija_pdf\')) as gvx_paso_sk,
-           (SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas = \'nustatymu_protokolas\') as gvx_nust_sk,
+           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = 'paso') as paso_ikeltu_sk,
+           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = 'dielektriniu') as dielektriniu_ikeltu_sk,
+           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = 'funkciniu') as funkciniu_ikeltu_sk,
+           (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = 'nustatymu') as nustatymu_ikeltu_sk,
+           {$gvx_subquery}
            (SELECT g2.id FROM gaminiai g2 WHERE g2.uzsakymo_id = u.id ORDER BY g2.id DESC LIMIT 1) as pirmasis_gaminio_id
     FROM uzsakymai u
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
@@ -361,7 +366,7 @@ $stmt_orders = $pdo->prepare('
     LEFT JOIN vartotojai v ON u.vartotojas_id = v.id
     WHERE u.gaminiu_rusis_id = ?
     ORDER BY u.sukurtas DESC, u.id DESC
-');
+");
 $stmt_orders->execute([$filtro_rusis_id]);
 $orders = $stmt_orders->fetchAll();
 
