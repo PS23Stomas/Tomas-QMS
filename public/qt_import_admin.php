@@ -92,7 +92,7 @@ function importuotiGvxPdf(PDO $local): array {
         return ['perkelti' => 0, 'praleista' => 0, 'nesusieta' => 0, 'klaidos' => ['quality_tomas gvx_dokumentai schemos nerasta']];
     }
 
-    $ins = $local->prepare("INSERT INTO gvx_dokumentai (uzsakymo_id,tipas,pavadinimas,failas,dydis_b,turinys_lob,sukurejas) VALUES (?,?,?,?,?,?,?)");
+    $ins = $local->prepare("INSERT INTO gvx_dokumentai (uzsakymo_id,tipas,pavadinimas,failas,dydis_b,turinys_lob,sukurejas) VALUES (?,?,?,?,?,decode(?,'hex'),?)");
     $perkelti = $praleista = $nesusieta = 0;
     $klaidos = [];
 
@@ -125,7 +125,7 @@ function importuotiGvxPdf(PDO $local): array {
         if (empty($content)) { $klaidos[] = h($failas) . ': turinys tuščias'; continue; }
 
         try {
-            $ins->execute([$local_uzs_id, $r['tipas'], $r['pavadinimas'] ?? '', $failas, strlen($content), $content, 'qt_import']);
+            $ins->execute([$local_uzs_id, $r['tipas'], $r['pavadinimas'] ?? '', $failas, strlen($content), bin2hex($content), 'qt_import']);
             $jau[$key] = true;
             $perkelti++;
         } catch (Exception $e) {

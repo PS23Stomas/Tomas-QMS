@@ -1,0 +1,1 @@
+- [PostgreSQL BYTEA via PDO](bytea-pdo.md) — binary data must use decode(?,'hex') + bin2hex() or PDO rejects it as invalid UTF-8
