@@ -879,23 +879,28 @@ require_once __DIR__ . '/includes/header.php';
                                     $stmt_gp->execute([$o['id']]);
                                     $gvx_paso_all = $stmt_gp->fetchAll(PDO::FETCH_ASSOC);
                                 }
-                                // Sujungti visus šaltinius į vieną numeruotą sąrašą
+                                // Sujungti visus šaltinius į vieną sąrašą
                                 $paso_merged = [];
                                 if (!empty($pdf_g_paso)) {
-                                    $paso_merged[] = ['url' => '/MT/mt_paso_pdf.php?gaminio_id=' . $pdf_g_paso['id'], 'title' => 'Generuotas paso PDF', 'del' => "deletePdf({$pdf_g_paso['id']},'paso')"];
+                                    $paso_merged[] = ['url' => '/MT/mt_paso_pdf.php?gaminio_id=' . $pdf_g_paso['id'], 'title' => 'Generuotas paso PDF', 'del' => "deletePdf({$pdf_g_paso['id']},'paso')", 'gvx_id' => null];
                                 }
                                 foreach ($paso_ikelti_all as $pf) {
-                                    $paso_merged[] = ['url' => '/MT/ikeltu_pdf_rodyti.php?id=' . $pf['id'], 'title' => $pf['failas_vardas'], 'del' => "deleteIkeltasPdf({$pf['id']})"];
+                                    $paso_merged[] = ['url' => '/MT/ikeltu_pdf_rodyti.php?id=' . $pf['id'], 'title' => $pf['failas_vardas'], 'del' => "deleteIkeltasPdf({$pf['id']})", 'gvx_id' => null];
                                 }
                                 foreach ($gvx_paso_all as $gd) {
-                                    $paso_merged[] = ['url' => '/gvx_dokumentai_rodyti.php?id=' . $gd['id'], 'title' => $gd['failas'] ?: $gd['pavadinimas'], 'del' => null];
+                                    $paso_merged[] = ['url' => '/gvx_dokumentai_rodyti.php?id=' . $gd['id'], 'title' => $gd['failas'] ?: $gd['pavadinimas'], 'del' => null, 'gvx_id' => $gd['id']];
                                 }
+                                $paso_total = count($paso_merged);
                                 ?>
                                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center;">
                                 <?php foreach ($paso_merged as $n => $p): ?>
-                                    <a href="<?= h($p['url']) ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($p['title']) ?>" data-testid="button-paso-pdf-<?= $o['id'] ?>-<?= $n+1 ?>"><?= $n + 1 ?></a>
-                                    <?php if ($is_admin && $p['del']): ?>
-                                    <button type="button" class="pdf-del-btn" onclick="<?= $p['del'] ?>" title="Ištrinti">&times;</button>
+                                    <a href="<?= h($p['url']) ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($p['title']) ?>" data-testid="button-paso-pdf-<?= $o['id'] ?>-<?= $n+1 ?>"><?= $paso_total > 1 ? ($n + 1) . ' ' : '' ?>PDF</a>
+                                    <?php if ($is_admin): ?>
+                                        <?php if ($p['gvx_id']): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="deleteGvxDok(<?= $p['gvx_id'] ?>, this)" title="Ištrinti">&times;</button>
+                                        <?php elseif ($p['del']): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="<?= $p['del'] ?>" title="Ištrinti">&times;</button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                                 <?php if (empty($paso_merged) && !$gali_ikelti): ?>
@@ -1063,20 +1068,25 @@ require_once __DIR__ . '/includes/header.php';
                                     $stmt_gn->execute([$o['id']]);
                                     $gvx_nust_all = $stmt_gn->fetchAll(PDO::FETCH_ASSOC);
                                 }
-                                // Sujungti visus šaltinius į vieną numeruotą sąrašą
+                                // Sujungti visus šaltinius į vieną sąrašą
                                 $nust_merged = [];
                                 foreach ($nust_ikelti_all as $pf) {
-                                    $nust_merged[] = ['url' => '/MT/ikeltu_pdf_rodyti.php?id=' . $pf['id'], 'title' => $pf['failas_vardas'], 'del' => "deleteIkeltasPdf({$pf['id']})"];
+                                    $nust_merged[] = ['url' => '/MT/ikeltu_pdf_rodyti.php?id=' . $pf['id'], 'title' => $pf['failas_vardas'], 'del' => "deleteIkeltasPdf({$pf['id']})", 'gvx_id' => null];
                                 }
                                 foreach ($gvx_nust_all as $gd) {
-                                    $nust_merged[] = ['url' => '/gvx_dokumentai_rodyti.php?id=' . $gd['id'], 'title' => $gd['failas'] ?: $gd['pavadinimas'], 'del' => null];
+                                    $nust_merged[] = ['url' => '/gvx_dokumentai_rodyti.php?id=' . $gd['id'], 'title' => $gd['failas'] ?: $gd['pavadinimas'], 'del' => null, 'gvx_id' => $gd['id']];
                                 }
+                                $nust_total = count($nust_merged);
                                 ?>
                                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center;">
                                 <?php foreach ($nust_merged as $n => $p): ?>
-                                    <a href="<?= h($p['url']) ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($p['title']) ?>" data-testid="button-nust-pdf-<?= $o['id'] ?>-<?= $n+1 ?>"><?= $n + 1 ?></a>
-                                    <?php if ($is_admin && $p['del']): ?>
-                                    <button type="button" class="pdf-del-btn" onclick="<?= $p['del'] ?>" title="Ištrinti">&times;</button>
+                                    <a href="<?= h($p['url']) ?>" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($p['title']) ?>" data-testid="button-nust-pdf-<?= $o['id'] ?>-<?= $n+1 ?>"><?= $nust_total > 1 ? ($n + 1) . ' ' : '' ?>PDF</a>
+                                    <?php if ($is_admin): ?>
+                                        <?php if ($p['gvx_id']): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="deleteGvxDok(<?= $p['gvx_id'] ?>, this)" title="Ištrinti">&times;</button>
+                                        <?php elseif ($p['del']): ?>
+                                        <button type="button" class="pdf-del-btn" onclick="<?= $p['del'] ?>" title="Ištrinti">&times;</button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                                 <?php if (empty($nust_merged) && !$gali_ikelti): ?>
@@ -1492,6 +1502,24 @@ function deletePdf(gaminioId, pdfType) {
     f.querySelector('[name="gaminio_id"]').value = gaminioId;
     f.querySelector('[name="pdf_type"]').value = pdfType;
     f.submit();
+}
+
+function deleteGvxDok(id, btn) {
+    if (!confirm('Ar tikrai norite ištrinti šį PDF dokumentą?')) return;
+    var csrf = document.querySelector('meta[name="csrf"]') ? document.querySelector('meta[name="csrf"]').content
+             : (document.getElementById('csrf-token') ? document.getElementById('csrf-token').value : '');
+    // fallback: read from any hidden csrf field on page
+    if (!csrf) { var cf = document.querySelector('[name="_csrf"]'); if (cf) csrf = cf.value; }
+    var row = btn ? btn.closest('span') : null;
+    fetch('/gvx_dok_trinti.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: '_csrf=' + encodeURIComponent(csrf) + '&id=' + encodeURIComponent(id)
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) {
+            if (row) { location.reload(); } else { location.reload(); }
+        } else { alert('Klaida: ' + (d.klaida || 'Nežinoma klaida')); }
+    }).catch(function(){ alert('Ryšio klaida'); });
 }
 
 function atidartiIkelimoPdf(uzsakymoId, pdfType) {
