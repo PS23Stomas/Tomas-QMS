@@ -1,8 +1,13 @@
 <?php
 /**
  * Perkelti PDF iš quality_tomas į Tomo_QMS
- * - MT paso PDF (mt_deklaracija + mt_deklaracija_pdf) → Tomo_QMS.gaminiai.mt_paso_pdf
- * - Nustatymų protokolai (nustatymu_protokolas)      → Tomo_QMS.gaminiu_pdf_failai
+ *
+ * Kopijuoja quality_tomas.gvx_dokumentai įrašus (tipas IN mt_deklaracija,
+ * mt_deklaracija_pdf, nustatymu_protokolas) → tomas_qms.gvx_dokumentai.
+ *
+ * Užsakymo siejimas: quality_tomas.uzsakymai.uzsakymo_numeris
+ *                  → tomas_qms.uzsakymai.uzsakymo_numeris
+ * (ID reikšmės skiriasi tarp sistemų)
  */
 require_once __DIR__ . '/includes/config.php';
 requireLogin();
@@ -13,6 +18,7 @@ if (currentUser()['role'] !== 'administratorius') {
 }
 
 // ── Prisijungimai ──────────────────────────────────────────────────────────────
+
 function qtConn(): PDO {
     static $conn = null;
     if ($conn) return $conn;
@@ -41,9 +47,7 @@ function tqConn(): PDO {
 
 /**
  * Nustato gvx_dokumentai.turinys_lob stulpelio tipą quality_tomas DB.
- * Grąžina 'oid', 'bytea' arba null jei nepavyko nustatyti.
- * OID = PostgreSQL Large Object (lo_get() reikalingas turiniui skaityti).
- * BYTEA = įprastas dvejetainis stulpelis (tiesioginis skaitymas).
+ * Grąžina 'oid', 'bytea' arba null.
  */
 function qtLobTipas(): ?string {
     static $tipas = false;
@@ -64,9 +68,7 @@ function qtLobTipas(): ?string {
 }
 
 /**
- * SQL išraiška dydžiui (baitais) gauti be viso turinio nuskaitymo.
- * OID: skaičiuojame iš pg_largeobject sisteminės lentelės.
- * BYTEA: tiesiog octet_length().
+ * SQL dydžio išraiška pagal turinys_lob tipą.
  */
 function dydisSQL(): string {
     if (qtLobTipas() === 'oid') {
@@ -76,12 +78,8 @@ function dydisSQL(): string {
 }
 
 /**
- * BYTEA iš PostgreSQL PDO → PostgreSQL hex-escaped formatas (\xAABB...).
- *
- * Tvarko 3 atvejus:
- *  1. PHP resource (stream) — dideliems BYTEA stulpeliams
- *  2. Eilutė prasidedanti \x — jau hex formatas, perduodame tiesiai
- *  3. Gryna binarinė eilutė — koduojame bin2hex()
+ * BYTEA → PostgreSQL hex-escaped formatas (\xAABB...).
+ * Tvarko: resource (stream), \x... eilutė, gryna binarinė eilutė.
  */
 function byteaHex(mixed $val): ?string {
     if ($val === null) return null;
@@ -92,407 +90,263 @@ function byteaHex(mixed $val): ?string {
     }
     $s = (string)$val;
     if ($s === '') return null;
-    // PostgreSQL gali grąžinti BYTEA kaip hex eilutę: \x414243...
-    // Tokiu atveju perduodame kaip yra — PDO::PARAM_STR priima šį formatą.
     if (str_starts_with($s, '\\x') || str_starts_with($s, "\x5cx")) {
         return $s;
     }
-    // Gryna binarinė eilutė (PDO ją automatiškai dekodavo)
     return '\\x' . bin2hex($s);
 }
 
-/** Ištraukia pirmą skaičių iš failo vardo */
-function nrIsFailo(string $failas): string {
-    preg_match('/^(\d+)/', $failas, $m);
-    return $m[1] ?? '';
-}
-
-/** Sukuria gaminiu_pdf_failai Tomo_QMS jei neegzistuoja */
-function uztikriniGaminPdfFailai(PDO $tq): void {
+/**
+ * Sukuria tomas_qms.gvx_dokumentai lentelę jei jos dar nėra.
+ */
+function uztikriniGvxDokumentai(PDO $tq): void {
     $tq->exec("
-        CREATE TABLE IF NOT EXISTS gaminiu_pdf_failai (
-            id           SERIAL PRIMARY KEY,
-            gaminio_id   INTEGER NOT NULL,
-            pdf_tipas    VARCHAR(50) NOT NULL,
-            failas_vardas VARCHAR(255),
-            turinys      BYTEA,
-            ikelta       TIMESTAMP DEFAULT NOW(),
-            vartotojas_id INTEGER
+        CREATE TABLE IF NOT EXISTS gvx_dokumentai (
+            id          SERIAL PRIMARY KEY,
+            uzsakymo_id INTEGER,
+            tipas       VARCHAR(100),
+            pavadinimas VARCHAR(500),
+            failas      VARCHAR(500),
+            dydis_b     INTEGER,
+            turinys_lob BYTEA,
+            sukurta     TIMESTAMP DEFAULT NOW(),
+            sukurejas   VARCHAR(255)
         )
     ");
 }
 
-/** Surinkia Tomo_QMS gaminiai: ID → [id, gaminio_numeris, turi_paso] */
-function tqGaminiai(): array {
+/**
+ * Surinkia žemėlapius siejimui:
+ *   qt_uzs_id_to_nr  : quality_tomas uzsakymai.id → uzsakymo_numeris
+ *   tq_nr_to_uzs_id  : tomas_qms uzsakymo_numeris → uzsakymai.id
+ *   tq_jau           : jau perkelti įrašai (uzsakymo_id|tipas|failas → true)
+ */
+function surinktZemelapius(): array {
+    $qt = qtConn();
     $tq = tqConn();
-    $rows = $tq->query(
-        "SELECT id, gaminio_numeris, mt_paso_pdf IS NOT NULL AS turi_paso FROM gaminiai"
-    )->fetchAll(PDO::FETCH_ASSOC);
-    $byId = $byNr = [];
-    foreach ($rows as $r) {
-        $byId[(int)$r['id']] = $r;
-        $byNr[$r['gaminio_numeris']] = $r;
-    }
 
-    // Patikrinti ar egzistuoja lentelė ir jau perkelta nustatymu
-    $exists = $tq->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gaminiu_pdf_failai' AND table_schema='public'")->fetchColumn();
-    $jau_nust = [];
-    if ($exists) {
-        $rows2 = $tq->query("SELECT gaminio_id, failas_vardas FROM gaminiu_pdf_failai WHERE pdf_tipas='nustatymu'")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($rows2 as $r) $jau_nust[$r['gaminio_id'] . '|' . $r['failas_vardas']] = true;
-    }
+    // quality_tomas: uzsakymai.id → uzsakymo_numeris
+    $qt_uzs_id_to_nr = [];
+    try {
+        $rows = $qt->query("SELECT id, uzsakymo_numeris FROM uzsakymai WHERE uzsakymo_numeris IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) $qt_uzs_id_to_nr[(int)$r['id']] = $r['uzsakymo_numeris'];
+    } catch (Exception $e) { /* gali neegzistuoti */ }
 
-    return [$byId, $byNr, $jau_nust];
+    // tomas_qms: uzsakymo_numeris → uzsakymai.id
+    $tq_nr_to_uzs_id = [];
+    try {
+        $rows = $tq->query("SELECT id, uzsakymo_numeris FROM uzsakymai WHERE uzsakymo_numeris IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) $tq_nr_to_uzs_id[$r['uzsakymo_numeris']] = (int)$r['id'];
+    } catch (Exception $e) { /* gali neegzistuoti */ }
+
+    // Jau perkelti į tomas_qms.gvx_dokumentai
+    $tq_jau = [];
+    try {
+        $exists = $tq->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gvx_dokumentai' AND table_schema='public'")->fetchColumn();
+        if ($exists) {
+            $rows = $tq->query("SELECT uzsakymo_id, tipas, failas FROM gvx_dokumentai")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $r) {
+                $tq_jau[$r['uzsakymo_id'] . '|' . $r['tipas'] . '|' . $r['failas']] = true;
+            }
+        }
+    } catch (Exception $e) { /* praleisti */ }
+
+    return [$qt_uzs_id_to_nr, $tq_nr_to_uzs_id, $tq_jau];
 }
 
 /**
- * Papildomas sutapimo būdas kai paprastas nrIsFailo() nerado.
- * Bando: B1) skaičius-su-brūkšniu modelis (pvz. "23001-1"), B2) QT gaminio_numeris
- * kaip failo vardo prefiksas, B3) per QT uzsakymo_numeris → Tomo_QMS gaminiai.
- * Grąžina ['row' => [...], 'saltinis' => '...'] arba null jei neranda.
+ * Surinkia visus darbus (peržiūrai ir vykdymui).
+ * Grąžina [perkelti[], praleista[]].
+ * perkelti[]: qt_dok_id, tq_uzs_id, qt_uzs_nr, tipas, pavadinimas, failas, dydis, jau_perkeltas
+ * praleista[]: tipas, failas, priežastis
  */
-function suraskPagalFaila(
-    string $failas,
-    array $tqByNr,
-    array $qtByGamNr,
-    array $qtUzsNrByGamId,
-    array $tqByUzsNr
-): ?array {
-    // B1: skaičius su brūkšniais iš failo vardo (pvz. "23001-1 pasas.pdf" → "23001-1")
-    preg_match('/^(\d[\d\-]+\d)(?=[^\d]|$)/', $failas, $m);
-    $nr2 = $m[1] ?? '';
-    if ($nr2 && isset($tqByNr[$nr2])) {
-        return ['row' => $tqByNr[$nr2], 'saltinis' => 'failas nr. (su brūkšniu "' . $nr2 . '")'];
-    }
-
-    // B2 + B3: ieškome QT gaminio, kurio gaminio_numeris yra failo vardo prefiksas
-    foreach ($qtByGamNr as $qtGamNr => $qtGamId) {
-        if (!str_starts_with($failas, (string)$qtGamNr)) continue;
-
-        // B2: tas pats gaminio_numeris Tomo_QMS
-        if (isset($tqByNr[$qtGamNr])) {
-            return ['row' => $tqByNr[$qtGamNr], 'saltinis' => 'QT gam. nr. "' . $qtGamNr . '"'];
-        }
-
-        // B3: per QT uzsakymo_numeris → Tomo_QMS gaminiai
-        if (!empty($qtUzsNrByGamId[$qtGamId])) {
-            $uzsNr = $qtUzsNrByGamId[$qtGamId];
-            if (!empty($tqByUzsNr[$uzsNr])) {
-                $candidates = $tqByUzsNr[$uzsNr];
-                // Bandyti suderinti pagal gaminio_numeris failo varde
-                foreach ($candidates as $c) {
-                    if (str_contains($failas, (string)$c['gaminio_numeris'])) {
-                        return ['row' => $c, 'saltinis' => 'QT uzs. nr. "' . $uzsNr . '" → gam. "' . $c['gaminio_numeris'] . '"'];
-                    }
-                }
-                // Jei tik vienas gaminys tame užsakyme
-                if (count($candidates) === 1) {
-                    return ['row' => $candidates[0], 'saltinis' => 'QT uzs. nr. "' . $uzsNr . '" (1 gaminys)'];
-                }
-            }
-        }
-    }
-
-    return null;
-}
-
-// ── Duomenų rinkinys peržiūrai / vykdymui ─────────────────────────────────────
 function surinktDarbus(): array {
     $qt = qtConn();
-    [$tqById, $tqByNr, $jau_nust] = tqGaminiai();
+    [$qt_uzs_id_to_nr, $tq_nr_to_uzs_id, $tq_jau] = surinktZemelapius();
 
-    // ─ QT žemėlapiai papildomam sutapimui ─────────────────────────────────────
-    $qtGamNrByGamId = [];  // QT gaminys_id → gaminio_numeris
-    $qtByGamNr      = [];  // QT gaminio_numeris → gaminys_id
-    $qtUzsNrByGamId = [];  // QT gaminys_id → uzsakymo_numeris
+    $dydis_sql = dydisSQL();
+    $tipai = "'mt_deklaracija','mt_deklaracija_pdf','nustatymu_protokolas'";
 
+    // Bandyti su uzsakymo_id stulpeliu
+    $has_uzs_id = false;
     try {
-        $qt_gam_rows = $qt->query("SELECT id, gaminio_numeris FROM gaminiai WHERE gaminio_numeris IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($qt_gam_rows as $qg) {
-            $qtGamNrByGamId[(int)$qg['id']] = $qg['gaminio_numeris'];
-            $qtByGamNr[$qg['gaminio_numeris']] = (int)$qg['id'];
-        }
-        // Pabandyti prisijungti su uzsakymai
-        $qt_uzs_rows = $qt->query("
-            SELECT g.id AS gaminys_id, u.uzsakymo_numeris
-            FROM gaminiai g
-            JOIN uzsakymai u ON u.id = g.uzsakymo_id
-            WHERE u.uzsakymo_numeris IS NOT NULL
-        ")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($qt_uzs_rows as $qur) {
-            $qtUzsNrByGamId[(int)$qur['gaminys_id']] = $qur['uzsakymo_numeris'];
-        }
-    } catch (Exception $e) { /* lentelė gali neegzistuoti — praleisti */ }
+        $qt->query("SELECT uzsakymo_id FROM gvx_dokumentai LIMIT 0");
+        $has_uzs_id = true;
+    } catch (Exception $e) {}
 
-    // Tomo_QMS: uzsakymo_numeris → gaminiai masyvai (B3 sutapimui)
-    $tqByUzsNr = [];
+    // Bandyti su gaminys_id stulpeliu (senas variantas)
+    $has_gam_id = false;
     try {
-        $tq_uzs_rows = tqConn()->query("
-            SELECT g.id, g.gaminio_numeris, u.uzsakymo_numeris,
-                   (g.mt_paso_pdf IS NOT NULL) AS turi_paso
-            FROM gaminiai g
-            JOIN uzsakymai u ON u.id = g.uzsakymo_id
-            WHERE u.uzsakymo_numeris IS NOT NULL
-        ")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($tq_uzs_rows as $tur) {
-            $tqByUzsNr[$tur['uzsakymo_numeris']][] = $tur;
-        }
-    } catch (Exception $e) { /* Tomo_QMS gali neturėti uzsakymai lentelės — praleisti */ }
+        $qt->query("SELECT gaminys_id FROM gvx_dokumentai LIMIT 0");
+        $has_gam_id = true;
+    } catch (Exception $e) {}
 
-    $paso  = [];  // bus rašoma į Tomo_QMS.gaminiai.mt_paso_pdf
-    $nust  = [];  // bus rašoma į Tomo_QMS.gaminiu_pdf_failai (tipas=nustatymu)
+    // Nuskaityti dokumentus
+    if ($has_uzs_id) {
+        $rows = $qt->query("
+            SELECT id, uzsakymo_id, tipas, pavadinimas, failas, {$dydis_sql} AS dydis
+            FROM gvx_dokumentai
+            WHERE tipas IN ({$tipai})
+            ORDER BY tipas, id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($has_gam_id) {
+        // Sena struktūra: gaminys_id → bandyti per gaminiai.uzsakymo_id → uzsakymai
+        $rows = $qt->query("
+            SELECT d.id, u.id AS uzsakymo_id, d.tipas, d.pavadinimas, d.failas, {$dydis_sql} AS dydis
+            FROM gvx_dokumentai d
+            LEFT JOIN gaminiai g ON g.id = d.gaminys_id
+            LEFT JOIN uzsakymai u ON u.id = g.uzsakymo_id
+            WHERE d.tipas IN ({$tipai})
+            ORDER BY d.tipas, d.id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $rows = [];
+    }
+
+    $perkelti  = [];
     $praleista = [];
 
-    // 1. mt_deklaracija — sutapimas pagal gaminys_id
-    $dydis_sql = dydisSQL();
-    $rows = $qt->query(
-        "SELECT id, gaminys_id, failas, {$dydis_sql} AS dydis
-         FROM gvx_dokumentai WHERE tipas = 'mt_deklaracija' ORDER BY id"
-    )->fetchAll(PDO::FETCH_ASSOC);
-
     foreach ($rows as $r) {
-        $gid = (int)$r['gaminys_id'];
-        if ($gid && isset($tqById[$gid])) {
-            // 1a. Tiesioginis sutapimas pagal ID
-            $tqRow = $tqById[$gid];
-            $paso[] = [
-                'qt_dok_id' => $r['id'],
-                'tq_gam_id' => $tqRow['id'],
-                'failas'    => $r['failas'],
-                'dydis'     => $r['dydis'],
-                'jau_turi'  => (bool)$tqRow['turi_paso'],
-                'šaltinis'  => 'mt_deklaracija (ID)',
-            ];
-        } elseif ($gid && isset($qtGamNrByGamId[$gid]) && isset($tqByNr[$qtGamNrByGamId[$gid]])) {
-            // 1b. ID žinomas, bet Tomo_QMS neturi — bandyti per QT gaminio_numeris
-            $qtNr  = $qtGamNrByGamId[$gid];
-            $tqRow = $tqByNr[$qtNr];
-            $paso[] = [
-                'qt_dok_id' => $r['id'],
-                'tq_gam_id' => $tqRow['id'],
-                'failas'    => $r['failas'],
-                'dydis'     => $r['dydis'],
-                'jau_turi'  => (bool)$tqRow['turi_paso'],
-                'šaltinis'  => 'mt_deklaracija (QT gam. nr. "' . h($qtNr) . '")',
-            ];
-        } else {
-            // 1c. Bandyti pagal numerį iš failo vardo
-            $nr = nrIsFailo($r['failas']);
-            if ($nr && isset($tqByNr[$nr])) {
-                $paso[] = [
-                    'qt_dok_id' => $r['id'],
-                    'tq_gam_id' => $tqByNr[$nr]['id'],
-                    'failas'    => $r['failas'],
-                    'dydis'     => $r['dydis'],
-                    'jau_turi'  => (bool)$tqByNr[$nr]['turi_paso'],
-                    'šaltinis'  => 'mt_deklaracija (failas nr.)',
-                ];
-            } else {
-                // 1d. Papildomi atsarginiai metodai (brūkšninis nr., QT gaminio_numeris, uzsakymo_numeris)
-                $ext = suraskPagalFaila($r['failas'], $tqByNr, $qtByGamNr, $qtUzsNrByGamId, $tqByUzsNr);
-                if ($ext) {
-                    $paso[] = [
-                        'qt_dok_id' => $r['id'],
-                        'tq_gam_id' => (int)$ext['row']['id'],
-                        'failas'    => $r['failas'],
-                        'dydis'     => $r['dydis'],
-                        'jau_turi'  => (bool)$ext['row']['turi_paso'],
-                        'šaltinis'  => 'mt_deklaracija (' . $ext['saltinis'] . ')',
-                    ];
-                } else {
-                    $praleista[] = ['tipas' => 'mt_deklaracija', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
+        $qt_uzs_id = (int)($r['uzsakymo_id'] ?? 0);
+        $uzs_nr    = $qt_uzs_id ? ($qt_uzs_id_to_nr[$qt_uzs_id] ?? null) : null;
+
+        // Jei uzsakymo_numeris nerastas — bandyti rasti pagal failą
+        if (!$uzs_nr) {
+            // Ieškoti numerio iš failo vardo (pvz. "23001 pasas.pdf" → "23001")
+            preg_match('/^(\d{4,6})/', $r['failas'] ?? '', $m);
+            if ($m[1] ?? '') {
+                foreach ($tq_nr_to_uzs_id as $nr => $id) {
+                    if (str_starts_with((string)$nr, $m[1]) || str_starts_with($m[1], (string)$nr)) {
+                        $uzs_nr = (string)$nr;
+                        break;
+                    }
                 }
             }
         }
-    }
 
-    // 2. mt_deklaracija_pdf — gaminys_id yra NULL, sutapimas pagal failo vardą
-    $rows2 = $qt->query(
-        "SELECT id, failas, {$dydis_sql} AS dydis
-         FROM gvx_dokumentai WHERE tipas = 'mt_deklaracija_pdf' ORDER BY id"
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rows2 as $r) {
-        $nr = nrIsFailo($r['failas']);
-        if ($nr && isset($tqByNr[$nr])) {
-            $tqRow = $tqByNr[$nr];
-            $paso[] = [
-                'qt_dok_id' => $r['id'],
-                'tq_gam_id' => $tqRow['id'],
-                'failas'    => $r['failas'],
-                'dydis'     => $r['dydis'],
-                'jau_turi'  => (bool)$tqRow['turi_paso'],
-                'šaltinis'  => 'mt_deklaracija_pdf (failas nr.)',
+        if (!$uzs_nr || !isset($tq_nr_to_uzs_id[$uzs_nr])) {
+            $praleista[] = [
+                'tipas'     => $r['tipas'],
+                'failas'    => $r['failas'] ?? '?',
+                'priežastis' => $uzs_nr
+                    ? "Užsakymas \"{$uzs_nr}\" nerastas tomas_qms"
+                    : 'Uzsakymo numeris nerastas',
             ];
-        } else {
-            // Papildomi atsarginiai metodai
-            $ext = suraskPagalFaila($r['failas'], $tqByNr, $qtByGamNr, $qtUzsNrByGamId, $tqByUzsNr);
-            if ($ext) {
-                $paso[] = [
-                    'qt_dok_id' => $r['id'],
-                    'tq_gam_id' => (int)$ext['row']['id'],
-                    'failas'    => $r['failas'],
-                    'dydis'     => $r['dydis'],
-                    'jau_turi'  => (bool)$ext['row']['turi_paso'],
-                    'šaltinis'  => 'mt_deklaracija_pdf (' . $ext['saltinis'] . ')',
-                ];
-            } else {
-                $praleista[] = ['tipas' => 'mt_deklaracija_pdf', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
-            }
+            continue;
         }
+
+        $tq_uzs_id = $tq_nr_to_uzs_id[$uzs_nr];
+        $jau_key   = $tq_uzs_id . '|' . $r['tipas'] . '|' . ($r['failas'] ?? '');
+
+        $perkelti[] = [
+            'qt_dok_id'    => $r['id'],
+            'tq_uzs_id'    => $tq_uzs_id,
+            'qt_uzs_nr'    => $uzs_nr,
+            'tipas'        => $r['tipas'],
+            'pavadinimas'  => $r['pavadinimas'] ?? '',
+            'failas'       => $r['failas'] ?? '',
+            'dydis'        => $r['dydis'],
+            'jau_perkeltas' => isset($tq_jau[$jau_key]),
+        ];
     }
 
-    // 3. nustatymu_protokolas — gaminys_id yra NULL, sutapimas pagal failo vardą
-    $rows3 = $qt->query(
-        "SELECT id, failas, {$dydis_sql} AS dydis
-         FROM gvx_dokumentai WHERE tipas = 'nustatymu_protokolas' ORDER BY id"
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rows3 as $r) {
-        $nr = nrIsFailo($r['failas']);
-        if ($nr && isset($tqByNr[$nr])) {
-            $tq_gam_id = $tqByNr[$nr]['id'];
-            $key = $tq_gam_id . '|' . $r['failas'];
-            $nust[] = [
-                'qt_dok_id'     => $r['id'],
-                'tq_gam_id'     => $tq_gam_id,
-                'failas'        => $r['failas'],
-                'dydis'         => $r['dydis'],
-                'jau_perkeltas' => isset($jau_nust[$key]),
-            ];
-        } else {
-            $praleista[] = ['tipas' => 'nustatymu_protokolas', 'failas' => $r['failas'], 'priežastis' => 'Gaminys nerastas Tomo_QMS'];
-        }
-    }
-
-    return [$paso, $nust, $praleista];
+    return [$perkelti, $praleista];
 }
 
 // ── Vykdymas POST ──────────────────────────────────────────────────────────────
-$rezultatai = null;
+$rezultatai  = null;
+$conn_klaida = null;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['vykdyti'] ?? '') === '1') {
     ignore_user_abort(true);
     set_time_limit(600);
     ini_set('memory_limit', '512M');
 
-    [$paso, $nust, $praleista] = surinktDarbus();
-    $tq = tqConn();
-    $qt = qtConn();
+    try {
+        [$perkelti, $praleista] = surinktDarbus();
+        $tq = tqConn();
+        $qt = qtConn();
 
-    $paso_ok = $paso_pral = $nust_ok = $nust_pral = 0;
-    $klaidos = [];
+        uztikriniGvxDokumentai($tq);
 
-    // ─ Paso PDFs ─
-    $upd_paso = $tq->prepare(
-        "UPDATE gaminiai SET mt_paso_pdf = :pdf, mt_paso_failas = :failas WHERE id = :id AND mt_paso_pdf IS NULL"
-    );
+        $isOid = qtLobTipas() === 'oid';
+        $turinys_select = $isOid
+            ? "SELECT lo_get(turinys_lob) AS turinys_lob, failas, pavadinimas FROM gvx_dokumentai WHERE id = ?"
+            : "SELECT turinys_lob, failas, pavadinimas FROM gvx_dokumentai WHERE id = ?";
+        $sel = $qt->prepare($turinys_select);
 
-    // Jei turinys_lob yra OID (Large Object) — naudojame lo_get() turinys nuskaitymui.
-    // Jei BYTEA — skaitome tiesiogiai.
-    $isOid = qtLobTipas() === 'oid';
-    $turinys_select = $isOid
-        ? "SELECT lo_get(turinys_lob) AS turinys_lob, failas FROM gvx_dokumentai WHERE id = ?"
-        : "SELECT turinys_lob, failas FROM gvx_dokumentai WHERE id = ?";
-    $sel_turinys = $qt->prepare($turinys_select);
+        $ins = $tq->prepare("
+            INSERT INTO gvx_dokumentai
+                (uzsakymo_id, tipas, pavadinimas, failas, dydis_b, turinys_lob, sukurta)
+            VALUES
+                (:uzs_id, :tipas, :pavadinimas, :failas, :dydis_b, :turinys, NOW())
+        ");
 
-    foreach ($paso as $d) {
-        if ($d['jau_turi']) { $paso_pral++; continue; }
-        try {
-            // lo_get() reikalauja transakcinės aplinkos kai kuriose PG versijose
-            if ($isOid) $qt->beginTransaction();
-            $sel_turinys->execute([$d['qt_dok_id']]);
-            $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
-            if ($isOid) $qt->commit();
+        $ok = $pral = 0;
+        $klaidos = [];
 
-            if (!$row) {
-                $klaidos[] = 'Paso [' . $d['failas'] . ']: įrašas nerastas gvx_dokumentai';
-                $paso_pral++; continue;
+        foreach ($perkelti as $d) {
+            if ($d['jau_perkeltas']) { $pral++; continue; }
+            try {
+                if ($isOid) $qt->beginTransaction();
+                $sel->execute([$d['qt_dok_id']]);
+                $row = $sel->fetch(PDO::FETCH_ASSOC);
+                if ($isOid) $qt->commit();
+
+                if (!$row) {
+                    $klaidos[] = '[' . $d['failas'] . ']: įrašas nerastas gvx_dokumentai';
+                    $pral++; continue;
+                }
+                $turinys = byteaHex($row['turinys_lob'] ?? null);
+                if (!$turinys) {
+                    $klaidos[] = '[' . $d['failas'] . ']: turinys tuščias';
+                    $pral++; continue;
+                }
+
+                $ins->bindValue(':uzs_id',     $d['tq_uzs_id']);
+                $ins->bindValue(':tipas',       $d['tipas']);
+                $ins->bindValue(':pavadinimas', $row['pavadinimas'] ?? $d['pavadinimas']);
+                $ins->bindValue(':failas',      $row['failas'] ?? $d['failas']);
+                $ins->bindValue(':dydis_b',     (int)$d['dydis']);
+                $ins->bindValue(':turinys',     $turinys, PDO::PARAM_STR);
+                $ins->execute();
+                $ok++;
+            } catch (Exception $e) {
+                if ($isOid && $qt->inTransaction()) $qt->rollBack();
+                $klaidos[] = '[' . $d['failas'] . ']: ' . $e->getMessage();
+                $pral++;
             }
-            $turinys = byteaHex($row['turinys_lob'] ?? null);
-            if (!$turinys) {
-                $klaidos[] = 'Paso [' . $d['failas'] . ']: turinys tuščias' . ($isOid ? ' (lo_get grąžino null — OID gali būti neegzistuojantis)' : ' (BYTEA NULL)');
-                $paso_pral++; continue;
-            }
-
-            $upd_paso->bindValue(':pdf', $turinys, PDO::PARAM_STR);
-            $upd_paso->bindValue(':failas', $row['failas']);
-            $upd_paso->bindValue(':id', $d['tq_gam_id']);
-            $upd_paso->execute();
-            $paso_ok++;
-        } catch (Exception $e) {
-            if ($isOid && $qt->inTransaction()) $qt->rollBack();
-            $klaidos[] = 'Paso [' . $d['failas'] . ']: ' . $e->getMessage();
-            $paso_pral++;
         }
+
+        $rezultatai = compact('ok', 'pral', 'klaidos', 'praleista');
+    } catch (Exception $e) {
+        $conn_klaida = $e->getMessage();
     }
-
-    // ─ Nustatymų protokolai ─
-    uztikriniGaminPdfFailai($tq);
-
-    // Patikrinti kas jau įkelta
-    $jau_nust = $tq->query(
-        "SELECT gaminio_id, failas_vardas FROM gaminiu_pdf_failai WHERE pdf_tipas = 'nustatymu'"
-    )->fetchAll(PDO::FETCH_ASSOC);
-    $jau_set = [];
-    foreach ($jau_nust as $j) $jau_set[$j['gaminio_id'] . '|' . $j['failas_vardas']] = true;
-
-    $ins_nust = $tq->prepare(
-        "INSERT INTO gaminiu_pdf_failai (gaminio_id, pdf_tipas, failas_vardas, turinys, ikelta)
-         VALUES (:gam_id, 'nustatymu', :failas, :turinys, NOW())"
-    );
-
-    foreach ($nust as $d) {
-        if ($d['jau_perkeltas']) { $nust_pral++; continue; }
-        $key = $d['tq_gam_id'] . '|' . $d['failas'];
-        if (isset($jau_set[$key])) { $nust_pral++; continue; }
-        try {
-            if ($isOid) $qt->beginTransaction();
-            $sel_turinys->execute([$d['qt_dok_id']]);
-            $row = $sel_turinys->fetch(PDO::FETCH_ASSOC);
-            if ($isOid) $qt->commit();
-
-            if (!$row) {
-                $klaidos[] = 'Nust. [' . $d['failas'] . ']: įrašas nerastas gvx_dokumentai';
-                $nust_pral++; continue;
-            }
-            $turinys = byteaHex($row['turinys_lob'] ?? null);
-            if (!$turinys) {
-                $klaidos[] = 'Nust. [' . $d['failas'] . ']: turinys tuščias' . ($isOid ? ' (lo_get null)' : ' (BYTEA NULL)');
-                $nust_pral++; continue;
-            }
-
-            $ins_nust->bindValue(':gam_id', $d['tq_gam_id']);
-            $ins_nust->bindValue(':failas', $row['failas']);
-            $ins_nust->bindValue(':turinys', $turinys, PDO::PARAM_STR);
-            $ins_nust->execute();
-            $nust_ok++;
-        } catch (Exception $e) {
-            if ($isOid && $qt->inTransaction()) $qt->rollBack();
-            $klaidos[] = 'Nust. [' . $d['failas'] . ']: ' . $e->getMessage();
-            $nust_pral++;
-        }
-    }
-
-    $rezultatai = compact('paso_ok', 'paso_pral', 'nust_ok', 'nust_pral', 'klaidos', 'praleista');
 }
 
 // ── Peržiūra GET ───────────────────────────────────────────────────────────────
-$prazv_duomenys = null;
-$conn_klaida    = null;
-$qt_lob_tipas   = null;
-try {
-    $qt_lob_tipas = qtLobTipas();
-    [$paso, $nust, $praleista] = surinktDarbus();
-    $paso_nauji   = array_filter($paso, fn($d) => !$d['jau_turi']);
-    $paso_jau     = array_filter($paso, fn($d) => $d['jau_turi']);
-    $nust_nauji   = array_filter($nust, fn($d) => !$d['jau_perkeltas']);
-    $nust_jau     = array_filter($nust, fn($d) => $d['jau_perkeltas']);
-    $prazv_duomenys = compact('paso', 'paso_nauji', 'paso_jau', 'nust', 'nust_nauji', 'nust_jau', 'praleista');
-} catch (Exception $e) {
-    $conn_klaida = $e->getMessage();
+$prazv      = null;
+$qt_lob_tipas = null;
+if (!$rezultatai && !$conn_klaida) {
+    try {
+        $qt_lob_tipas = qtLobTipas();
+        [$perkelti, $praleista] = surinktDarbus();
+        $nauji = array_filter($perkelti, fn($d) => !$d['jau_perkeltas']);
+        $jau   = array_filter($perkelti, fn($d) => $d['jau_perkeltas']);
+        $prazv = compact('perkelti', 'nauji', 'jau', 'praleista');
+    } catch (Exception $e) {
+        $conn_klaida = $e->getMessage();
+    }
 }
 
+// ── HTML ───────────────────────────────────────────────────────────────────────
 include __DIR__ . '/includes/header.php';
+
+function fmt_b(int $b): string {
+    if ($b >= 1048576) return round($b / 1048576, 1) . ' MB';
+    if ($b >= 1024)    return round($b / 1024, 0)    . ' KB';
+    return $b . ' B';
+}
 ?>
 
 <div class="container" style="max-width:980px;margin:0 auto;padding:24px 16px;">
@@ -500,174 +354,178 @@ include __DIR__ . '/includes/header.php';
 <nav aria-label="breadcrumb" style="margin-bottom:16px;">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/index.php">Pagrindinis</a></li>
-        <li class="breadcrumb-item active">PDF perkėlimas iš quality_tomas</li>
+        <li class="breadcrumb-item"><a href="/qt_import_admin.php">quality_tomas importas</a></li>
+        <li class="breadcrumb-item active">PDF perkėlimas</li>
     </ol>
 </nav>
 
 <h2 style="margin-bottom:4px;">PDF perkėlimas: quality_tomas → Tomo_QMS</h2>
 <p style="color:var(--text-secondary);margin-bottom:16px;">
-    Perkeliami <strong>MT paso PDF</strong> ir <strong>Nustatymų protokolai</strong> iš quality_tomas į Tomo_QMS duomenų bazę.
+    Perkeliami <strong>MT paso PDF</strong> ir <strong>Nustatymų protokolai</strong>
+    iš <code>quality_tomas.gvx_dokumentai</code> į <code>tomas_qms.gvx_dokumentai</code>.
+    Siejama pagal <strong>užsakymo numerį</strong>.
 </p>
 
 <?php if ($qt_lob_tipas !== null): ?>
-<div style="margin-bottom:16px;padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);font-size:13px;">
+<div style="margin-bottom:14px;padding:9px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);font-size:13px;">
     🔍 <strong>quality_tomas turinys_lob tipas:</strong>
     <?php if ($qt_lob_tipas === 'oid'): ?>
-        <code style="background:#fff3cd;padding:2px 6px;border-radius:3px;">oid</code>
-        — PostgreSQL Large Object. Naudojamas <code>lo_get()</code> turiniui skaityti. ✅
+        <code style="background:#fff3cd;padding:2px 5px;border-radius:3px;">oid</code> — lo_get() bus naudojamas ✅
     <?php elseif ($qt_lob_tipas === 'bytea'): ?>
-        <code style="background:#d4edda;padding:2px 6px;border-radius:3px;">bytea</code>
-        — Tiesioginis BYTEA skaitymas. ✅
+        <code style="background:#d4edda;padding:2px 5px;border-radius:3px;">bytea</code> — tiesioginis skaitymas ✅
     <?php else: ?>
-        <code><?= h($qt_lob_tipas) ?></code>
-        — Neatpažintas tipas. Naudojamas BYTEA skaitymas.
+        <code><?= h((string)$qt_lob_tipas) ?></code>
     <?php endif; ?>
 </div>
 <?php endif; ?>
 
 <?php if ($conn_klaida): ?>
-    <div class="alert alert-danger">Prisijungimo klaida: <?= h($conn_klaida) ?></div>
+<div class="alert alert-danger" role="alert">
+    <strong>Prisijungimo klaida:</strong> <?= h($conn_klaida) ?>
+</div>
+
 <?php elseif ($rezultatai): ?>
-    <!-- ── Rezultatai ── -->
-    <div class="alert <?= empty($rezultatai['klaidos']) ? 'alert-success' : 'alert-warning' ?>">
-        <strong>Baigta!</strong><br>
-        ✅ MT paso PDF perkelti: <strong><?= $rezultatai['paso_ok'] ?></strong> vnt.<br>
-        ✅ Nustatymų protokolai perkelti: <strong><?= $rezultatai['nust_ok'] ?></strong> vnt.<br>
-        ⏭️ Praleista (jau turėjo arba nerasta): <?= $rezultatai['paso_pral'] + $rezultatai['nust_pral'] ?> vnt.
-        <?php if (!empty($rezultatai['klaidos'])): ?>
-            <hr>
-            <strong>Klaidos (<?= count($rezultatai['klaidos']) ?>):</strong><br>
-            <?php foreach ($rezultatai['klaidos'] as $kl): ?>
-                <code style="font-size:12px;display:block;"><?= h($kl) ?></code>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-    <a href="/perkelti_pdf_is_qt.php" class="btn btn-secondary">← Grįžti į peržiūrą</a>
+<!-- ── Rezultatai ── -->
+<div class="alert <?= empty($rezultatai['klaidos']) ? 'alert-success' : 'alert-warning' ?>" role="alert">
+    <strong>Baigta!</strong><br>
+    ✅ Perkelti: <strong><?= $rezultatai['ok'] ?></strong> dokumentų<br>
+    ⏭️ Praleista (jau buvo arba klaida): <strong><?= $rezultatai['pral'] ?></strong>
+    <?php if (!empty($rezultatai['klaidos'])): ?>
+    <hr style="margin:10px 0;">
+    <strong>Klaidos (<?= count($rezultatai['klaidos']) ?>):</strong><br>
+    <?php foreach (array_slice($rezultatai['klaidos'], 0, 30) as $kl): ?>
+        <code style="font-size:12px;display:block;margin-top:2px;"><?= h($kl) ?></code>
+    <?php endforeach; ?>
+    <?php endif; ?>
+    <?php if (!empty($rezultatai['praleista'])): ?>
+    <hr style="margin:10px 0;">
+    <strong>Nesusieti (<?= count($rezultatai['praleista']) ?>):</strong><br>
+    <?php foreach (array_slice($rezultatai['praleista'], 0, 20) as $p): ?>
+        <code style="font-size:12px;display:block;margin-top:2px;"><?= h($p['tipas']) ?> / <?= h($p['failas']) ?> — <?= h($p['priežastis']) ?></code>
+    <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+<p><a href="/perkelti_pdf_is_qt.php" class="btn btn-secondary btn-sm">← Atnaujinti peržiūrą</a></p>
 
+<?php elseif ($prazv !== null): ?>
+<!-- ── Peržiūra ── -->
+<?php
+    $naujiC   = count($prazv['nauji']);
+    $jauC     = count($prazv['jau']);
+    $pral_c   = count($prazv['praleista']);
+    $viso     = count($prazv['perkelti']);
+?>
+
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+    <div style="flex:1;min-width:140px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:700;color:#16a34a;"><?= $naujiC ?></div>
+        <div style="font-size:0.84rem;color:#166534;">Bus perkelti</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px 18px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:700;color:#64748b;"><?= $jauC ?></div>
+        <div style="font-size:0.84rem;color:#64748b;">Jau perkelti</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:<?= $pral_c ? '#fef9c3' : '#f8fafc' ?>;border:1px solid <?= $pral_c ? '#fde047' : 'var(--border)' ?>;border-radius:8px;padding:14px 18px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:700;color:<?= $pral_c ? '#a16207' : '#64748b' ?>;"><?= $pral_c ?></div>
+        <div style="font-size:0.84rem;color:<?= $pral_c ? '#854d0e' : '#64748b' ?>;">Nesusieti</div>
+    </div>
+</div>
+
+<?php if ($naujiC > 0): ?>
+<form method="POST" onsubmit="return confirm('Perkelti <?= $naujiC ?> dokumentą(-ų) į tomas_qms.gvx_dokumentai?')">
+    <input type="hidden" name="vykdyti" value="1">
+    <button type="submit" class="btn btn-primary" style="margin-bottom:20px;" data-testid="button-perkelti">
+        📤 Perkelti <?= $naujiC ?> dokumentą(-ų) →
+    </button>
+</form>
 <?php else: ?>
-    <!-- ── Peržiūra ── -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;">
-        <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:var(--primary);"><?= count($prazv_duomenys['paso_nauji']) ?></div>
-            <div style="font-size:13px;color:var(--text-secondary);">MT paso PDF bus perkelti</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:#2e7d32;"><?= count($prazv_duomenys['nust_nauji']) ?></div>
-            <div style="font-size:13px;color:var(--text-secondary);">Nustatymų protokolai bus perkelti</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:#1565c0;"><?= count($prazv_duomenys['paso_jau']) + count($prazv_duomenys['nust_jau']) ?></div>
-            <div style="font-size:13px;color:var(--text-secondary);">Jau perkelti anksčiau</div>
-        </div>
-        <div class="card" style="padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:700;color:var(--text-secondary);"><?= count($prazv_duomenys['praleista']) ?></div>
-            <div style="font-size:13px;color:var(--text-secondary);">Nerasta Tomo_QMS</div>
-        </div>
-    </div>
+<div class="alert alert-success" role="alert">✅ Visi rasti dokumentai jau perkelti į tomas_qms.</div>
+<?php endif; ?>
 
-    <!-- Paso PDF -->
-    <div class="card" style="margin-bottom:20px;">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;">
-            📄 MT paso PDF — bus perkelti (<?= count($prazv_duomenys['paso_nauji']) ?> vnt.)
-        </div>
-        <?php if (empty($prazv_duomenys['paso_nauji'])): ?>
-            <div style="padding:14px 16px;color:var(--text-secondary);">Visi paso PDF jau perkelti arba nerasta sutampančių gaminių.</div>
-        <?php else: ?>
-        <table class="table" style="margin:0;">
-            <thead><tr><th>Failo vardas</th><th>Dydis</th><th>Šaltinis</th><th>Tomo_QMS ID</th></tr></thead>
-            <tbody>
-            <?php foreach ($prazv_duomenys['paso_nauji'] as $d): ?>
-                <tr>
-                    <td style="font-size:13px;"><?= h($d['failas']) ?></td>
-                    <td style="font-size:12px;white-space:nowrap;"><?= round($d['dydis']/1024) ?> KB</td>
-                    <td style="font-size:11px;color:var(--text-secondary);"><?= h($d['šaltinis']) ?></td>
-                    <td style="font-size:12px;"><?= $d['tq_gam_id'] ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php endif; ?>
-        <?php if (!empty($prazv_duomenys['paso_jau'])): ?>
-            <div style="padding:8px 16px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);">
-                ⏭️ Jau turi paso PDF Tomo_QMS: <?= count($prazv_duomenys['paso_jau']) ?> vnt. — bus praleisti.
-            </div>
-        <?php endif; ?>
+<?php if (!empty($prazv['nauji'])): ?>
+<details open style="margin-bottom:16px;">
+    <summary style="cursor:pointer;font-weight:600;padding:10px 0;font-size:0.95rem;">
+        📋 Bus perkelti (<?= $naujiC ?> vnt.)
+    </summary>
+    <div style="overflow-x:auto;margin-top:8px;">
+    <table class="table table-sm" style="font-size:0.83rem;">
+        <thead><tr>
+            <th>Tipas</th>
+            <th>Failo vardas</th>
+            <th>Pavadinimas</th>
+            <th>Užsakymas</th>
+            <th style="text-align:right;">Dydis</th>
+        </tr></thead>
+        <tbody>
+        <?php foreach ($prazv['nauji'] as $d): ?>
+        <tr>
+            <td><code style="font-size:11px;"><?= h($d['tipas']) ?></code></td>
+            <td><?= h($d['failas']) ?></td>
+            <td style="color:var(--text-secondary);max-width:240px;overflow:hidden;text-overflow:ellipsis;"><?= h($d['pavadinimas']) ?></td>
+            <td><?= h($d['qt_uzs_nr']) ?></td>
+            <td style="text-align:right;white-space:nowrap;"><?= fmt_b((int)$d['dydis']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
     </div>
+</details>
+<?php endif; ?>
 
-    <!-- Nustatymų protokolai -->
-    <div class="card" style="margin-bottom:20px;">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;">
-            📋 Nustatymų protokolai — bus perkelti (<?= count($prazv_duomenys['nust_nauji']) ?> vnt.)
-        </div>
-        <?php if (empty($prazv_duomenys['nust_nauji'])): ?>
-            <div style="padding:14px 16px;color:var(--text-secondary);">Nerasta naujų nustatymų protokolų — visi jau perkelti arba nėra sutampančių gaminių.</div>
-        <?php else: ?>
-        <table class="table" style="margin:0;">
-            <thead><tr><th>Failo vardas</th><th>Dydis</th><th>Tomo_QMS gaminio ID</th></tr></thead>
-            <tbody>
-            <?php foreach ($prazv_duomenys['nust_nauji'] as $d): ?>
-                <tr>
-                    <td style="font-size:13px;"><?= h($d['failas']) ?></td>
-                    <td style="font-size:12px;white-space:nowrap;"><?= round($d['dydis']/1024) ?> KB</td>
-                    <td style="font-size:12px;"><?= $d['tq_gam_id'] ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php endif; ?>
-        <?php if (!empty($prazv_duomenys['nust_jau'])): ?>
-            <div style="padding:8px 16px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);">
-                ✅ Jau perkelti Tomo_QMS: <?= count($prazv_duomenys['nust_jau']) ?> vnt.
-            </div>
-        <?php endif; ?>
+<?php if (!empty($prazv['jau'])): ?>
+<details style="margin-bottom:16px;">
+    <summary style="cursor:pointer;font-weight:600;padding:10px 0;font-size:0.95rem;color:var(--text-secondary);">
+        ✅ Jau perkelti (<?= $jauC ?> vnt.) — bus praleisti
+    </summary>
+    <div style="overflow-x:auto;margin-top:8px;">
+    <table class="table table-sm" style="font-size:0.83rem;opacity:.75;">
+        <thead><tr><th>Tipas</th><th>Failas</th><th>Užsakymas</th><th style="text-align:right;">Dydis</th></tr></thead>
+        <tbody>
+        <?php foreach ($prazv['jau'] as $d): ?>
+        <tr>
+            <td><code style="font-size:11px;"><?= h($d['tipas']) ?></code></td>
+            <td><?= h($d['failas']) ?></td>
+            <td><?= h($d['qt_uzs_nr']) ?></td>
+            <td style="text-align:right;"><?= fmt_b((int)$d['dydis']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
     </div>
+</details>
+<?php endif; ?>
 
-    <!-- Praleista -->
-    <?php if (!empty($prazv_duomenys['praleista'])): ?>
-    <div class="card" style="margin-bottom:20px;">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;color:var(--text-secondary);">
-            ⏭️ Bus praleista — nerasta Tomo_QMS (<?= count($prazv_duomenys['praleista']) ?> vnt.)
-        </div>
-        <table class="table" style="margin:0;">
-            <thead><tr><th>Tipas</th><th>Failo vardas</th><th>Priežastis</th></tr></thead>
-            <tbody>
-            <?php foreach ($prazv_duomenys['praleista'] as $d): ?>
-                <tr style="opacity:0.6;">
-                    <td style="font-size:12px;"><?= h($d['tipas']) ?></td>
-                    <td style="font-size:13px;"><?= h($d['failas']) ?></td>
-                    <td style="font-size:12px;"><?= h($d['priežastis']) ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
+<?php if (!empty($prazv['praleista'])): ?>
+<details style="margin-bottom:16px;">
+    <summary style="cursor:pointer;font-weight:600;padding:10px 0;font-size:0.95rem;color:#a16207;">
+        ⚠️ Nesusieti (<?= $pral_c ?> vnt.) — nebus perkelti
+    </summary>
+    <p style="font-size:0.84rem;color:var(--text-secondary);margin:8px 0;">
+        Šie dokumentai nerasti jokio atitikimo tomas_qms užsakymuose.
+    </p>
+    <div style="overflow-x:auto;">
+    <table class="table table-sm" style="font-size:0.83rem;">
+        <thead><tr><th>Tipas</th><th>Failas</th><th>Priežastis</th></tr></thead>
+        <tbody>
+        <?php foreach ($prazv['praleista'] as $d): ?>
+        <tr>
+            <td><code style="font-size:11px;"><?= h($d['tipas']) ?></code></td>
+            <td><?= h($d['failas']) ?></td>
+            <td style="color:#92400e;"><?= h($d['priežastis']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
     </div>
-    <?php endif; ?>
-
-    <!-- Vykdymo mygtukas -->
-    <?php if (count($prazv_duomenys['paso_nauji']) > 0 || count($prazv_duomenys['nust_nauji']) > 0): ?>
-    <div class="card" style="padding:20px;background:var(--bg-secondary);">
-        <p style="margin:0 0 12px;">
-            <strong>Pasiruošta perkelti:</strong>
-            <?= count($prazv_duomenys['paso_nauji']) ?> paso PDF ir
-            <?= count($prazv_duomenys['nust_nauji']) ?> nustatymų protokolų
-            į Tomo_QMS duomenų bazę.
-            Jau turintys paso PDF gaminiai <strong>nebus perrašyti</strong>.
-        </p>
-        <form method="post">
-            <input type="hidden" name="vykdyti" value="1">
-            <button type="submit" class="btn btn-primary" data-testid="button-vykdyti-perkela"
-                onclick="return confirm('Pradėti perkėlimą? Gali užtrukti kelias minutes.')">
-                ▶ Pradėti perkėlimą
-            </button>
-        </form>
-    </div>
-    <?php else: ?>
-    <div class="alert alert-success">
-        Visi PDF failai jau perkelti arba nerasta sutampančių gaminių — nieko daryti nereikia.
-    </div>
-    <?php endif; ?>
+</details>
+<?php endif; ?>
 
 <?php endif; ?>
+
+<div style="margin-top:20px;">
+    <a href="/qt_import_admin.php" class="btn btn-secondary btn-sm">← Grįžti į importo valdymą</a>
+</div>
+
 </div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
