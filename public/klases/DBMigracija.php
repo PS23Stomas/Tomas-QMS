@@ -62,6 +62,7 @@ class DBMigracija {
         $this->pridetiAktyvusStulpeli();
         $this->sukurtiGaminioFailuLentele();
         $this->sukurtiGvxDokumentaiLentele();
+        $this->pridetiDefektoSunkumaStulpeli();
     }
 
     /**
@@ -710,6 +711,22 @@ class DBMigracija {
             $this->conn->exec("UPDATE vartotojai SET role = 'vartotojas'       WHERE role IN ('user', 'Vartotojas')");
             $this->conn->exec("UPDATE vartotojai SET role = 'skaitytojas'      WHERE role IN ('Skaitytojas', 'reader')");
         } catch (PDOException $e) {}
+    }
+
+    /**
+     * Prideda defekto_sunkumas stulpelį į funkciniai_bandymai lentelę.
+     * Saugo defekto sunkumo lygį: 'critical' (Kritinis), 'major' (Didelis),
+     * 'minor' (Mažas) arba '' (nenurodyta).
+     */
+    private function pridetiDefektoSunkumaStulpeli(): void {
+        try {
+            $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = 'funkciniai_bandymai' AND column_name = 'defekto_sunkumas'";
+            $stmt = $this->conn->query($sql);
+            if (!$stmt->fetchColumn()) {
+                $this->conn->exec("ALTER TABLE funkciniai_bandymai ADD COLUMN defekto_sunkumas VARCHAR(20) DEFAULT ''");
+            }
+        } catch (PDOException $e) {
+        }
     }
 
     private function sukurtiGvxDokumentaiLentele(): void {

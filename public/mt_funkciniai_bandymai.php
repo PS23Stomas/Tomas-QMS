@@ -99,7 +99,7 @@ $pdf_klaida = $_GET['pdf_klaida'] ?? '';
 
 /* --- Esamų bandymų duomenų užkrovimas iš duomenų bazės į žemėlapį (map) --- */
 /* Rezultatas: $duomenys_map[eilės_nr] = ['isvada', 'defektas', 'atliko', 'irase'] */
-$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam FROM funkciniai_bandymai WHERE gaminio_id = ?");
+$stmt = $conn->prepare("SELECT eil_nr, isvada, defektas, darba_atliko, irase_vartotojas, defekto_nuotraukos_pavadinimas, pataisyta, issiusta_kam, defekto_sunkumas FROM funkciniai_bandymai WHERE gaminio_id = ?");
 $stmt->execute([$gaminio_id]);
 
 $duomenys_map = [];
@@ -112,7 +112,8 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
         'irase'        => $r['irase_vartotojas'] ?? '',
         'nuotrauka'    => $r['defekto_nuotraukos_pavadinimas'] ?? '',
         'pataisyta'    => $r['pataisyta'] ?? '',
-        'issiusta_kam' => $r['issiusta_kam'] ?? ''
+        'issiusta_kam' => $r['issiusta_kam'] ?? '',
+        'sunkumas'     => $r['defekto_sunkumas'] ?? ''
     ];
 }
 
@@ -134,10 +135,15 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         .col-irase  { width: 110px; }
         .col-atliko { width: 160px; }
         .col-isvada { width: 160px; }
-        .col-defekt { width: 220px; }
+        .col-defekt { width: 240px; }
         .col-nuotr  { width: 220px; }
         .col-patais { width: 160px; }
         .col-issiusta { width: 140px; }
+        .sunkumas-select { width: 100%; font-size: 12px; margin-top: 4px; padding: 2px 6px; height: 28px; border-radius: 4px; border: 1px solid #ced4da; }
+        .sunkumas-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 4px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.4px; }
+        .sunkumas-critical { background: #fde8e8; color: #b91c1c; border: 1px solid #f5c6c6; }
+        .sunkumas-major    { background: #fef3cd; color: #92400e; border: 1px solid #fde68a; }
+        .sunkumas-minor    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
         .nuotr-preview { max-width: 60px; max-height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; }
         .nuotr-input { font-size: 11px; }
         .nuotr-wrap { position: relative; display: inline-block; }
@@ -330,6 +336,8 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                     $nuotrauka   = $row['nuotrauka']   ?? '';
                     $pataisyta   = $row['pataisyta']   ?? '';
                     $issiusta_kam = $row['issiusta_kam'] ?? '';
+                    $sunkumas    = $row['sunkumas']    ?? '';
+                    $sunkumas_pavadinimai = ['critical' => 'Kritinis', 'major' => 'Didelis', 'minor' => 'Mažas'];
                 ?>
                     <tr data-eil-nr="<?= $eil_nr ?>" data-reikalavimas="<?= htmlspecialchars($reik) ?>">
                         <td class="text-center" data-label=""><input type="checkbox" class="siuntimo-cb" value="<?= $eil_nr ?>" data-testid="checkbox-eilute-<?= $eil_nr ?>"></td>
@@ -356,7 +364,15 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
                         </td>
                         <td data-label="Defektas/Trūkumas">
                             <input type="text" name="defektas[<?= $i ?>]" class="form-control"
-                                   placeholder="Įveskite defektą (jei yra)" value="<?= htmlspecialchars($defektas) ?>">
+                                   placeholder="Įveskite defektą (jei yra)" value="<?= htmlspecialchars($defektas) ?>"
+                                   data-testid="input-defektas-<?= $eil_nr ?>">
+                            <select name="defekto_sunkumas[<?= $i ?>]" class="sunkumas-select"
+                                    data-testid="select-sunkumas-<?= $eil_nr ?>">
+                                <option value="">— Sunkumas —</option>
+                                <option value="minor"    <?= $sunkumas === 'minor'    ? 'selected' : '' ?>>🟢 Mažas (Minor)</option>
+                                <option value="major"    <?= $sunkumas === 'major'    ? 'selected' : '' ?>>🟡 Didelis (Major)</option>
+                                <option value="critical" <?= $sunkumas === 'critical' ? 'selected' : '' ?>>🔴 Kritinis (Critical)</option>
+                            </select>
                             <input type="hidden" name="reikalavimas[<?= $i ?>]" value="<?= htmlspecialchars($reik) ?>">
                             <input type="hidden" name="eil_nr[<?= $i ?>]" value="<?= (int)$eil_nr ?>">
                         </td>
@@ -620,16 +636,31 @@ document.getElementById('siuntimo-modal').addEventListener('click', function(e) 
     if (e.target === this) uzdarytiSiuntima();
 });
 
+var _sunkumasPavadinimai = { 'critical': 'Kritinis', 'major': 'Didelis', 'minor': 'Mažas' };
+var _sunkumasKlases = { 'critical': 'sunkumas-critical', 'major': 'sunkumas-major', 'minor': 'sunkumas-minor' };
+
 function atidarytiLightbox(gid, eilNr) {
     var row = document.querySelector('tr[data-eil-nr="' + eilNr + '"]');
     var reikalavimas = row ? row.getAttribute('data-reikalavimas') : '';
     var defektasInput = row ? row.querySelector('input[name^="defektas"]') : null;
     var defektas = defektasInput ? defektasInput.value : '';
+    var sunkumasSelect = row ? row.querySelector('select[name^="defekto_sunkumas"]') : null;
+    var sunkumas = sunkumasSelect ? sunkumasSelect.value : '';
 
     document.getElementById('lb-img').src = '/defekto_nuotrauka.php?gaminio_id=' + gid + '&eil_nr=' + eilNr;
     document.getElementById('lb-eilnr').textContent = eilNr;
     document.getElementById('lb-reikalavimas').textContent = reikalavimas || '-';
     document.getElementById('lb-defektas').textContent = defektas || 'Nėra';
+
+    var sunkumasEl = document.getElementById('lb-sunkumas');
+    if (sunkumas && _sunkumasPavadinimai[sunkumas]) {
+        sunkumasEl.innerHTML = '<span class="sunkumas-badge ' + _sunkumasKlases[sunkumas] + '">' + _sunkumasPavadinimai[sunkumas] + '</span>';
+        document.getElementById('lb-sunkumas-row').style.display = '';
+    } else {
+        sunkumasEl.textContent = '—';
+        document.getElementById('lb-sunkumas-row').style.display = 'none';
+    }
+
     document.getElementById('nuotr-lightbox').classList.add('active');
 }
 
@@ -674,6 +705,7 @@ function istrintiNuotrauka(gid, eilNr) {
         <div class="lb-info">
             <div class="lb-info-row"><span class="lb-info-label">Reikalavimas:</span> <span id="lb-reikalavimas"></span></div>
             <div class="lb-info-row"><span class="lb-info-label">Defektas/Trūkumas:</span> <span id="lb-defektas"></span></div>
+            <div class="lb-info-row" id="lb-sunkumas-row"><span class="lb-info-label">Sunkumo lygis:</span> <span id="lb-sunkumas"></span></div>
         </div>
     </div>
 </div>
