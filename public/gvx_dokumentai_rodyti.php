@@ -11,8 +11,6 @@ if ($id <= 0) {
     exit('Neteisingas ID');
 }
 
-$pdo = getDbConnection();
-
 $r = $pdo->prepare("SELECT failas, pavadinimas, turinys_lob FROM gvx_dokumentai WHERE id = ?");
 $r->execute([$id]);
 $dok = $r->fetch(PDO::FETCH_ASSOC);
