@@ -34,35 +34,7 @@ $local_gam_count = (int)$pdo->query("SELECT COUNT(*) FROM gaminiai g JOIN uzsaky
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfVerify();
 
-    if ($veiksmas === 'importuoti_uzsakymus') {
-        $pradzia = microtime(true);
-        $rez = TomoQMS::importuotiIsQualityTomas();
-        $trukme = round(microtime(true) - $pradzia, 2);
-        if (isset($rez['klaida'])) {
-            $klaida = $rez['klaida'];
-        } else {
-            $rezultatas = [
-                'tipas'   => 'uzsakymai',
-                'trukme'  => $trukme,
-                'duomenys' => $rez,
-            ];
-        }
-
-    } elseif ($veiksmas === 'importuoti_pretenzijas') {
-        $pradzia = microtime(true);
-        $rez = TomoQMS::importuotiPretenzijasSiQualityTomas();
-        $trukme = round(microtime(true) - $pradzia, 2);
-        if (isset($rez['klaida'])) {
-            $klaida = $rez['klaida'];
-        } else {
-            $rezultatas = [
-                'tipas'   => 'pretenzijos',
-                'trukme'  => $trukme,
-                'duomenys' => $rez,
-            ];
-        }
-
-    } elseif ($veiksmas === 'importuoti_i_local') {
+    if ($veiksmas === 'importuoti_i_local') {
         $pradzia = microtime(true);
         $rez = TomoQMS::importuotiILocalDB($pdo);
         $trukme = round(microtime(true) - $pradzia, 2);
@@ -75,51 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'duomenys' => $rez,
             ];
         }
-
-    } elseif ($veiksmas === 'sinchronizuoti_pdf') {
-        $pradzia = microtime(true);
-        set_time_limit(600);
-
-        $pdf_stulpeliai = [
-            ['mt_paso_pdf',        'mt_paso_failas'],
-            ['mt_dielektriniu_pdf', 'mt_dielektriniu_failas'],
-            ['mt_funkciniu_pdf',   'mt_funkciniu_failas'],
-        ];
-
-        $gaminiai = $pdo->query("
-            SELECT g.id, u.uzsakymo_numeris
-            FROM gaminiai g
-            JOIN uzsakymai u ON u.id = g.uzsakymo_id
-            WHERE g.mt_paso_pdf IS NOT NULL
-               OR g.mt_dielektriniu_pdf IS NOT NULL
-               OR g.mt_funkciniu_pdf IS NOT NULL
-            ORDER BY g.id
-        ")->fetchAll(PDO::FETCH_ASSOC);
-
-        $pdf_ok = 0; $pdf_klaidu = 0; $pdf_klaidos_list = [];
-
-        foreach ($gaminiai as $g) {
-            foreach ($pdf_stulpeliai as [$pdf_col, $failas_col]) {
-                // Tikrinti tik PDF BYTEA — failo vardas gali būti NULL (sinchPDF() suformuos numatytąjį)
-                $chk = $pdo->prepare("SELECT 1 FROM gaminiai WHERE id = ? AND $pdf_col IS NOT NULL");
-                $chk->execute([$g['id']]);
-                if (!$chk->fetchColumn()) continue;
-                try {
-                    TomoQMS::sinchPDF($pdo, (int)$g['id'], $pdf_col, $failas_col);
-                    $pdf_ok++;
-                } catch (Throwable $e) {
-                    $pdf_klaidu++;
-                    $pdf_klaidos_list[] = $g['uzsakymo_numeris'] . ' [' . $pdf_col . ']: ' . $e->getMessage();
-                }
-            }
-        }
-
-        $trukme = round(microtime(true) - $pradzia, 2);
-        $rezultatas = [
-            'tipas'   => 'pdf_sync',
-            'trukme'  => $trukme,
-            'duomenys' => ['ok' => $pdf_ok, 'klaidu' => $pdf_klaidu, 'klaidos' => $pdf_klaidos_list],
-        ];
 
     } elseif ($veiksmas === 'importuoti_viska') {
         $pradzia = microtime(true);
@@ -148,32 +75,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>quality_tomas → Tomo QMS importas</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        body { padding: 24px; max-width: 860px; margin: 0 auto; }
+        body { padding: 24px; max-width: 800px; margin: 0 auto; }
         .page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
-        .page-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 28px; }
-        .env-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-        .env-card { flex: 1; min-width: 200px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 18px; }
+        .page-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+        .env-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .env-card { flex: 1; min-width: 200px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; }
         .env-label { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
         .env-val { font-weight: 600; font-size: 0.9rem; }
-        .env-ok   { color: #22c55e; }
-        .env-err  { color: #ef4444; }
-        .import-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }
-        .import-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; }
-        .import-card h3 { font-size: 1rem; font-weight: 600; margin: 0 0 8px; }
-        .import-card p { font-size: 0.84rem; color: var(--text-secondary); margin: 0 0 16px; line-height: 1.5; }
-        .import-card.main { border-color: var(--primary); }
+        .env-ok  { color: #22c55e; }
+        .env-err { color: #ef4444; }
+        .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        @media (max-width: 560px) { .action-row { grid-template-columns: 1fr; } }
+        .action-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 22px; display: flex; flex-direction: column; }
+        .action-card h3 { font-size: 1rem; font-weight: 600; margin: 0 0 8px; }
+        .action-card p { font-size: 0.84rem; color: var(--text-secondary); margin: 0 0 auto; line-height: 1.5; padding-bottom: 16px; }
+        .action-card.primary { border-color: var(--primary); }
+        .action-card.green  { border-color: #22c55e; }
+        .action-card.purple { border-color: #7c3aed; background: #faf5ff; }
         .result-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 22px; margin-bottom: 20px; }
-        .result-box h3 { margin: 0 0 16px; font-size: 1rem; font-weight: 600; }
-        .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-        .stat-pill { background: var(--bg-secondary,#f3f4f6); border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; }
-        .stat-pill strong { display: block; font-size: 1.3rem; font-weight: 700; }
+        .result-box h3 { margin: 0 0 14px; font-size: 1rem; font-weight: 600; }
+        .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .stat-pill { background: var(--bg-secondary,#f3f4f6); border-radius: 6px; padding: 7px 13px; font-size: 0.84rem; }
+        .stat-pill strong { display: block; font-size: 1.2rem; font-weight: 700; }
         .err-list { margin: 12px 0 0; }
         .err-list summary { cursor: pointer; color: #ef4444; font-size: 0.85rem; font-weight: 600; }
         .err-list ul { margin: 8px 0 0; padding-left: 20px; }
         .err-list li { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 4px; }
         .alert-danger  { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; border-radius:8px; padding:14px 18px; margin-bottom:20px; }
-        .warning-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:14px 18px; margin-bottom:20px; font-size:0.88rem; color:#92400e; }
-        .btn-import { width:100%; }
+        .warning-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:0.87rem; color:#92400e; }
+        .info-box { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:0.87rem; color:#1e40af; }
+        .section-label { font-weight: 600; font-size: 0.85rem; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+        .btn-full { width: 100%; }
+        .btn-link-card { display: block; width: 100%; box-sizing: border-box; padding: 10px 16px; border-radius: 7px; border: 1px solid #7c3aed; background: #7c3aed; color: #fff; font-size: 0.9rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; transition: background .15s; }
+        .btn-link-card:hover { background: #6d28d9; text-decoration: none; color: #fff; }
     </style>
 </head>
 <body>
@@ -206,8 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php if ($rezultatas): ?>
 <div class="result-box">
-    <?php if ($rezultatas['tipas'] === 'uzsakymai' || $rezultatas['tipas'] === 'viskas'): ?>
-    <?php $r = $rezultatas['tipas'] === 'viskas' ? $rezultatas['duomenys']['uzsakymai'] : $rezultatas['duomenys']; ?>
+    <?php if ($rezultatas['tipas'] === 'viskas'): ?>
+    <?php $r = $rezultatas['duomenys']['uzsakymai']; ?>
     <h3>✓ Užsakymai importuoti</h3>
     <div class="stat-row">
         <div class="stat-pill"><strong><?= $r['nauji'] ?? 0 ?></strong>Nauji užsakymai</div>
@@ -226,11 +160,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <ul><?php foreach (array_slice($r['klaidos'], 0, 20) as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
     </details>
     <?php endif; ?>
-    <?php endif; ?>
 
-    <?php if ($rezultatas['tipas'] === 'pretenzijos' || $rezultatas['tipas'] === 'viskas'): ?>
-    <?php $p = $rezultatas['tipas'] === 'viskas' ? $rezultatas['duomenys']['pretenzijos'] : $rezultatas['duomenys']; ?>
-    <h3 style="margin-top:<?= $rezultatas['tipas'] === 'viskas' ? '20px' : '0' ?>">✓ Pretenzijos importuotos</h3>
+    <?php $p = $rezultatas['duomenys']['pretenzijos']; ?>
+    <h3 style="margin-top:18px;">✓ Pretenzijos importuotos</h3>
     <div class="stat-row">
         <div class="stat-pill"><strong><?= $p['pretenzijos'] ?? 0 ?></strong>Pretenzijos</div>
         <div class="stat-pill"><strong><?= $p['nuotraukos'] ?? 0 ?></strong>Nuotraukos</div>
@@ -263,30 +195,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($rezultatas['tipas'] === 'pdf_sync'): ?>
-    <?php $r = $rezultatas['duomenys']; ?>
-    <h3>📄 PDF persiuntimas į Tomo_QMS</h3>
-    <div class="stat-row">
-        <div class="stat-pill"><strong style="color:#22c55e;"><?= $r['ok'] ?></strong>Persiųsta PDF</div>
-        <?php if ($r['klaidu'] > 0): ?>
-        <div class="stat-pill"><strong style="color:#ef4444;"><?= $r['klaidu'] ?></strong>Klaidos</div>
-        <?php endif; ?>
-    </div>
-    <?php if (empty($r['klaidos'])): ?>
-    <p style="color:#16a34a;font-size:0.88rem;margin:8px 0 0;">✓ Visi PDF persiųsti sėkmingai. Patikrinkite nkokybe.elga.tech užsakymų sąraše — PASAS / DIELEKTR. / FUNKC. skiltyse turi atsirasti PDF ikonos.</p>
-    <?php else: ?>
-    <details class="err-list">
-        <summary><?= count($r['klaidos']) ?> klaida(-os)</summary>
-        <ul><?php foreach (array_slice($r['klaidos'], 0, 20) as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
-    </details>
-    <?php endif; ?>
-    <?php endif; ?>
-
-    <div style="margin-top:14px;font-size:0.83rem;color:var(--text-secondary);">Trukmė: <?= $rezultatas['trukme'] ?> sek.</div>
+    <div style="margin-top:12px;font-size:0.83rem;color:var(--text-secondary);">Trukmė: <?= $rezultatas['trukme'] ?> sek.</div>
 </div>
 <?php endif; ?>
 
-<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:0.88rem;color:#1e40af;">
+<div class="info-box">
     📊 <strong>Šios sistemos (nkokybe.elga.tech) LOCAL DB:</strong>
     MT užsakymai: <strong><?= $local_uzs_count ?></strong> &nbsp;|&nbsp;
     MT gaminiai: <strong><?= $local_gam_count ?></strong>
@@ -298,63 +211,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ⚠️ <strong>Dėmesio:</strong> Importas atnaujina esamus įrašus pagal užsakymo numerį (ne dubliuoja). Operacija negrįžtama.
 </div>
 
-<div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--text-secondary);">▼ Į ŠIĄ SISTEMĄ (nkokybe.elga.tech)</div>
-<div class="import-grid" style="margin-bottom:24px;">
-    <div class="import-card main" style="border-color:#22c55e;">
+<!-- ── Į ŠIĄ SISTEMĄ ── -->
+<div class="section-label">▼ Į šią sistemą (nkokybe.elga.tech)</div>
+<div class="action-row" style="grid-template-columns:1fr;margin-bottom:24px;">
+    <div class="action-card green">
         <h3>🏠 Importuoti į LOCAL DB</h3>
         <p>Kopijuoja MT užsakymus, gaminius, bandymus, komponentus ir pretenzijas iš quality_tomas į <strong>nkokybe.elga.tech</strong> duomenų bazę.</p>
-        <form method="POST" onsubmit="return confirm('Importuoti visus MT duomenis iš quality_tomas į šios sistemos DB?\n\nTai gali užtrukti 2-5 minutes.')">
+        <form method="POST" onsubmit="return confirm('Importuoti visus MT duomenis iš quality_tomas į šios sistemos DB?\n\nTai gali užtrukti 2–5 minutes.')">
             <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
             <input type="hidden" name="veiksmas" value="importuoti_i_local">
-            <button type="submit" class="btn btn-primary btn-import" data-testid="button-import-local" style="background:#16a34a;">Importuoti į LOCAL DB</button>
+            <button type="submit" class="btn btn-primary btn-full" data-testid="button-import-local" style="background:#16a34a;">Importuoti į LOCAL DB</button>
         </form>
     </div>
 </div>
 
-<div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--text-secondary);">▼ Į TOMO QMS (išorinė DB)</div>
-<div class="import-grid">
-    <div class="import-card" style="border-color:#7c3aed;background:#faf5ff;">
-        <h3 style="color:#7c3aed;">📄 Persiųsti PDF į Tomo_QMS</h3>
-        <p>Paso, dielektrinių ir funkcinių bandymų PDF iš šios sistemos DB → Tomo_QMS. Tik PDF, be kitų duomenų. Greičiau nei pilnas sinchronizavimas.</p>
-        <form method="POST" onsubmit="return confirm('Persiųsti visus PDF į Tomo_QMS? Gali užtrukti kelias minutes.')">
-            <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
-            <input type="hidden" name="veiksmas" value="sinchronizuoti_pdf">
-            <button type="submit" class="btn btn-import" style="background:#7c3aed;color:#fff;border:none;" data-testid="button-sync-pdf">Persiųsti PDF → Tomo_QMS</button>
-        </form>
-    </div>
-
-    <div class="import-card main">
-        <h3>🔄 Viskas iš karto</h3>
+<!-- ── Į TOMO QMS ── -->
+<div class="section-label">▼ Į Tomo QMS (išorinė DB)</div>
+<div class="action-row">
+    <div class="action-card primary">
+        <h3>🔄 Importuoti viską į Tomo QMS</h3>
         <p>Užsakymai + gaminiai + bandymai + komponentai + pretenzijos + nuotraukos + el. pašto istorija.</p>
         <form method="POST" onsubmit="return confirm('Importuoti VISKĄ iš quality_tomas į Tomo QMS production DB?')">
             <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
             <input type="hidden" name="veiksmas" value="importuoti_viska">
-            <button type="submit" class="btn btn-primary btn-import" data-testid="button-import-all">Importuoti viską</button>
+            <button type="submit" class="btn btn-primary btn-full" data-testid="button-import-all">Importuoti viską</button>
         </form>
     </div>
 
-    <div class="import-card">
-        <h3>📦 Tik užsakymai</h3>
-        <p>Užsakymai, gaminiai, funkciniai bandymai, komponentai. Be pretenzijų.</p>
-        <form method="POST" onsubmit="return confirm('Importuoti užsakymus ir gaminius?')">
-            <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
-            <input type="hidden" name="veiksmas" value="importuoti_uzsakymus">
-            <button type="submit" class="btn btn-secondary btn-import" data-testid="button-import-orders">Importuoti užsakymus</button>
-        </form>
-    </div>
-
-    <div class="import-card">
-        <h3>📋 Tik pretenzijos</h3>
-        <p>Pretenzijos, nuotraukos, el. pašto istorija. Užsakymai turi jau būti importuoti.</p>
-        <form method="POST" onsubmit="return confirm('Importuoti pretenzijas?')">
-            <input type="hidden" name="_csrf" value="<?= h(csrfToken()) ?>">
-            <input type="hidden" name="veiksmas" value="importuoti_pretenzijas">
-            <button type="submit" class="btn btn-secondary btn-import" data-testid="button-import-claims">Importuoti pretenzijas</button>
-        </form>
+    <div class="action-card purple">
+        <h3 style="color:#7c3aed;">📄 MT paso PDF ir protokolai</h3>
+        <p>MT paso PDF ir nustatymų protokolai iš quality_tomas <code>gvx_dokumentai</code> → Tomo QMS. Rodo peržiūrą prieš perkeliant.</p>
+        <a href="/perkelti_pdf_is_qt.php" class="btn-link-card" data-testid="link-pdf-transfer">Atidaryti PDF perkėlimą →</a>
     </div>
 </div>
 
-<div style="margin-top:8px;">
+<div style="margin-top:16px;">
     <a href="/index.php" class="btn btn-secondary btn-sm">← Grįžti į pradžią</a>
 </div>
 
