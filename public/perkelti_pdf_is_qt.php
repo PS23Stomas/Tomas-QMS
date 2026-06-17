@@ -139,14 +139,14 @@ function surinktZemelapius(): array {
         foreach ($rows as $r) $tq_nr_to_uzs_id[$r['uzsakymo_numeris']] = (int)$r['id'];
     } catch (Exception $e) { /* gali neegzistuoti */ }
 
-    // Jau perkelti į tomas_qms.gvx_dokumentai
+    // Jau perkelti į tomas_qms.gvx_dokumentai — tikrinama pagal uzsakymo_id + failas
     $tq_jau = [];
     try {
         $exists = $tq->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gvx_dokumentai' AND table_schema='public'")->fetchColumn();
         if ($exists) {
-            $rows = $tq->query("SELECT uzsakymo_id, tipas, failas FROM gvx_dokumentai")->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $tq->query("SELECT uzsakymo_id, failas FROM gvx_dokumentai")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($rows as $r) {
-                $tq_jau[$r['uzsakymo_id'] . '|' . $r['tipas'] . '|' . $r['failas']] = true;
+                $tq_jau[$r['uzsakymo_id'] . '|' . $r['failas']] = true;
             }
         }
     } catch (Exception $e) { /* praleisti */ }
@@ -208,21 +208,8 @@ function surinktDarbus(): array {
 
     foreach ($rows as $r) {
         $qt_uzs_id = (int)($r['uzsakymo_id'] ?? 0);
-        $uzs_nr    = $qt_uzs_id ? ($qt_uzs_id_to_nr[$qt_uzs_id] ?? null) : null;
-
-        // Jei uzsakymo_numeris nerastas — bandyti rasti pagal failą
-        if (!$uzs_nr) {
-            // Ieškoti numerio iš failo vardo (pvz. "23001 pasas.pdf" → "23001")
-            preg_match('/^(\d{4,6})/', $r['failas'] ?? '', $m);
-            if ($m[1] ?? '') {
-                foreach ($tq_nr_to_uzs_id as $nr => $id) {
-                    if (str_starts_with((string)$nr, $m[1]) || str_starts_with($m[1], (string)$nr)) {
-                        $uzs_nr = (string)$nr;
-                        break;
-                    }
-                }
-            }
-        }
+        // Siejimas tik per uzsakymo_numeris — jokio spekuliatyvaus atspėjimo pagal failo vardą
+        $uzs_nr = $qt_uzs_id ? ($qt_uzs_id_to_nr[$qt_uzs_id] ?? null) : null;
 
         if (!$uzs_nr || !isset($tq_nr_to_uzs_id[$uzs_nr])) {
             $praleista[] = [
@@ -230,13 +217,13 @@ function surinktDarbus(): array {
                 'failas'    => $r['failas'] ?? '?',
                 'priežastis' => $uzs_nr
                     ? "Užsakymas \"{$uzs_nr}\" nerastas tomas_qms"
-                    : 'Uzsakymo numeris nerastas',
+                    : 'Uzsakymo numeris nerastas quality_tomas',
             ];
             continue;
         }
 
         $tq_uzs_id = $tq_nr_to_uzs_id[$uzs_nr];
-        $jau_key   = $tq_uzs_id . '|' . $r['tipas'] . '|' . ($r['failas'] ?? '');
+        $jau_key   = $tq_uzs_id . '|' . ($r['failas'] ?? '');
 
         $perkelti[] = [
             'qt_dok_id'    => $r['id'],
