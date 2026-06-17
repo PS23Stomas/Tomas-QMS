@@ -543,14 +543,14 @@ function removeRow(btn) {
 
 <?php if (!$izem_tusti): ?>
 <div class="section-header">
-    <h5 class="text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTINŲ ELEMENTŲ TIKRINIMAS</h5>
+    <h5 class="text-uppercase fw-bold">GRANDINĖS TARP ĮŽEMINIMO VARŽTŲ IR ĮŽEMINTŲ ELEMENTŲ TIKRINIMAS</h5>
     <?= deleteTableBtn('izeminimas', 'Ištrinti') ?>
 </div>
 <table class="table table-bordered">
   <thead class="table-secondary text-center">
     <tr>
       <th>Eil. Nr.</th>
-      <th>Įžemintinų taškų pavadinimas</th>
+      <th>Įžemintų dalių pavadinimas</th>
       <th>Matavimo taškų skaičius</th>
       <th>Grandinės varža (Ω)</th>
       <th>Būdas</th>
