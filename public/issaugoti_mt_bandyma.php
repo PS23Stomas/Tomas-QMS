@@ -98,6 +98,7 @@ try {
         $pataisyta    = trim((string)($pataisyta_in[$i]    ?? ''));
         $sunkumas     = trim((string)($defekto_sunkumas_in[$i] ?? ''));
         if (!in_array($sunkumas, $leistini_sunkumai, true)) { $sunkumas = ''; }
+        if ($def === '') { $sunkumas = ''; }
 
         $pateikti_eil_nriai[] = $eil_nr;
         $buvo = $esami[$eil_nr] ?? null;

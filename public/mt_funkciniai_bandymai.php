@@ -140,6 +140,7 @@ $vartotojai_su_el = $conn->query("SELECT id, vardas, pavarde, el_pastas FROM var
         .col-patais { width: 160px; }
         .col-issiusta { width: 140px; }
         .sunkumas-select { width: 100%; font-size: 12px; margin-top: 4px; padding: 2px 6px; height: 28px; border-radius: 4px; border: 1px solid #ced4da; }
+        .sunkumas-select:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; opacity: 0.6; }
         .sunkumas-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 4px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.4px; }
         .sunkumas-critical { background: #fde8e8; color: #b91c1c; border: 1px solid #f5c6c6; }
         .sunkumas-major    { background: #fef3cd; color: #92400e; border: 1px solid #fde68a; }
@@ -635,6 +636,26 @@ function siustiMasiniai() {
 document.getElementById('siuntimo-modal').addEventListener('click', function(e) {
     if (e.target === this) uzdarytiSiuntima();
 });
+
+/* --- Sunkumo lygio valdymas: išjungti/įjungti pagal defekto lauką --- */
+(function() {
+    function atnaujintiSunkumaSelect(defektasInput) {
+        var row = defektasInput.closest('tr');
+        if (!row) return;
+        var sel = row.querySelector('select[name^="defekto_sunkumas"]');
+        if (!sel) return;
+        var tuscias = defektasInput.value.trim() === '';
+        sel.disabled = tuscias;
+        if (tuscias) { sel.value = ''; }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[name^="defektas"]').forEach(function(inp) {
+            atnaujintiSunkumaSelect(inp);
+            inp.addEventListener('input', function() { atnaujintiSunkumaSelect(inp); });
+        });
+    });
+})();
 
 var _sunkumasPavadinimai = { 'critical': 'Kritinis', 'major': 'Didelis', 'minor': 'Mažas' };
 var _sunkumasKlases = { 'critical': 'sunkumas-critical', 'major': 'sunkumas-major', 'minor': 'sunkumas-minor' };
