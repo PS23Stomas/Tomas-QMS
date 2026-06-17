@@ -352,6 +352,8 @@ $stmt_orders = $pdo->prepare('
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'dielektriniu\') as dielektriniu_ikeltu_sk,
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'funkciniu\') as funkciniu_ikeltu_sk,
            (SELECT COUNT(*) FROM gaminiu_pdf_failai pf JOIN gaminiai g ON pf.gaminio_id = g.id WHERE g.uzsakymo_id = u.id AND pf.pdf_tipas = \'nustatymu\') as nustatymu_ikeltu_sk,
+           (SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas IN (\'mt_deklaracija\',\'mt_deklaracija_pdf\')) as gvx_paso_sk,
+           (SELECT COUNT(*) FROM gvx_dokumentai gd WHERE gd.uzsakymo_id = u.id AND gd.tipas = \'nustatymu_protokolas\') as gvx_nust_sk,
            (SELECT g2.id FROM gaminiai g2 WHERE g2.uzsakymo_id = u.id ORDER BY g2.id DESC LIMIT 1) as pirmasis_gaminio_id
     FROM uzsakymai u
     LEFT JOIN uzsakovai uz ON u.uzsakovas_id = uz.id
@@ -866,7 +868,13 @@ require_once __DIR__ . '/includes/header.php';
                                     $stmt_gen->execute([$o['id']]);
                                     $pdf_g_paso = $stmt_gen->fetch();
                                 }
-                                $paso_any = !empty($pdf_g_paso) || !empty($paso_ikelti_all);
+                                $gvx_paso_all = [];
+                                if (($o['gvx_paso_sk'] ?? 0) > 0) {
+                                    $stmt_gp = $pdo->prepare("SELECT id, failas, pavadinimas FROM gvx_dokumentai WHERE uzsakymo_id = ? AND tipas IN ('mt_deklaracija','mt_deklaracija_pdf') ORDER BY id DESC");
+                                    $stmt_gp->execute([$o['id']]);
+                                    $gvx_paso_all = $stmt_gp->fetchAll(PDO::FETCH_ASSOC);
+                                }
+                                $paso_any = !empty($pdf_g_paso) || !empty($paso_ikelti_all) || !empty($gvx_paso_all);
                                 ?>
                                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center;">
                                 <?php if (!empty($pdf_g_paso)): ?>
@@ -891,6 +899,22 @@ require_once __DIR__ . '/includes/header.php';
                                                 <?php if ($is_admin): ?>
                                                 <button type="button" class="pdf-del-btn-sm" onclick="event.stopPropagation(); deleteIkeltasPdf(<?= $pf['id'] ?>)" title="Ištrinti">&times;</button>
                                                 <?php endif; ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (!empty($gvx_paso_all)): ?>
+                                    <?php if (count($gvx_paso_all) === 1): ?>
+                                    <a href="/gvx_dokumentai_rodyti.php?id=<?= $gvx_paso_all[0]['id'] ?>" target="_blank" class="btn btn-outline-secondary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($gvx_paso_all[0]['failas'] ?: $gvx_paso_all[0]['pavadinimas']) ?>">QT↑</a>
+                                    <?php else: ?>
+                                    <div class="pdf-dropdown">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm pdf-dropdown-btn" style="font-size:11px;padding:2px 8px;" onclick="togglePdfDropdown(this)">QT↑<?= count($gvx_paso_all) ?> ▾</button>
+                                        <div class="pdf-dropdown-list">
+                                        <?php foreach ($gvx_paso_all as $gd): ?>
+                                            <span class="pdf-dropdown-item-wrap">
+                                                <a href="/gvx_dokumentai_rodyti.php?id=<?= $gd['id'] ?>" target="_blank"><?= h($gd['failas'] ?: $gd['pavadinimas']) ?></a>
                                             </span>
                                         <?php endforeach; ?>
                                         </div>
@@ -1056,6 +1080,12 @@ require_once __DIR__ . '/includes/header.php';
                                     $stmt_ni->execute([$o['id']]);
                                     $nust_ikelti_all = $stmt_ni->fetchAll(PDO::FETCH_ASSOC);
                                 }
+                                $gvx_nust_all = [];
+                                if (($o['gvx_nust_sk'] ?? 0) > 0) {
+                                    $stmt_gn = $pdo->prepare("SELECT id, failas, pavadinimas FROM gvx_dokumentai WHERE uzsakymo_id = ? AND tipas = 'nustatymu_protokolas' ORDER BY id DESC");
+                                    $stmt_gn->execute([$o['id']]);
+                                    $gvx_nust_all = $stmt_gn->fetchAll(PDO::FETCH_ASSOC);
+                                }
                                 ?>
                                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:center;">
                                 <?php if (!empty($nust_ikelti_all)): ?>
@@ -1080,7 +1110,23 @@ require_once __DIR__ . '/includes/header.php';
                                     </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <?php if (empty($nust_ikelti_all) && !$gali_ikelti): ?>
+                                <?php if (!empty($gvx_nust_all)): ?>
+                                    <?php if (count($gvx_nust_all) === 1): ?>
+                                    <a href="/gvx_dokumentai_rodyti.php?id=<?= $gvx_nust_all[0]['id'] ?>" target="_blank" class="btn btn-outline-secondary btn-sm" style="font-size:11px;padding:2px 8px;" title="<?= h($gvx_nust_all[0]['failas'] ?: $gvx_nust_all[0]['pavadinimas']) ?>">QT↑</a>
+                                    <?php else: ?>
+                                    <div class="pdf-dropdown">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm pdf-dropdown-btn" style="font-size:11px;padding:2px 8px;" onclick="togglePdfDropdown(this)">QT↑<?= count($gvx_nust_all) ?> ▾</button>
+                                        <div class="pdf-dropdown-list">
+                                        <?php foreach ($gvx_nust_all as $gd): ?>
+                                            <span class="pdf-dropdown-item-wrap">
+                                                <a href="/gvx_dokumentai_rodyti.php?id=<?= $gd['id'] ?>" target="_blank"><?= h($gd['failas'] ?: $gd['pavadinimas']) ?></a>
+                                            </span>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (empty($nust_ikelti_all) && empty($gvx_nust_all) && !$gali_ikelti): ?>
                                     <span style="color:var(--text-secondary);font-size:11px;">-</span>
                                 <?php endif; ?>
                                 <?php if ($gali_ikelti): ?>
