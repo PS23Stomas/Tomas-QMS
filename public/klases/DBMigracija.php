@@ -63,6 +63,7 @@ class DBMigracija {
         $this->sukurtiGaminioFailuLentele();
         $this->sukurtiGvxDokumentaiLentele();
         $this->pridetiDefektoSunkumaStulpeli();
+        $this->perstumtiPretenzijoSeka();
     }
 
     /**
@@ -727,6 +728,15 @@ class DBMigracija {
             }
         } catch (PDOException $e) {
         }
+    }
+
+    private function perstumtiPretenzijoSeka(): void {
+        try {
+            $row = $this->conn->query("SELECT last_value FROM pretenzijos_id_seq")->fetch(PDO::FETCH_ASSOC);
+            if ($row && (int)$row['last_value'] < 202) {
+                $this->conn->exec("SELECT setval('pretenzijos_id_seq', 202)");
+            }
+        } catch (PDOException $e) {}
     }
 
     private function sukurtiGvxDokumentaiLentele(): void {

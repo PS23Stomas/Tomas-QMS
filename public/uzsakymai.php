@@ -821,9 +821,9 @@ require_once __DIR__ . '/includes/header.php';
                         <th>Sukūrė</th>
                         <th>Data</th>
                         <th>Užbaigtumas</th>
-                        <th>Pasas</th>
-                        <th>Dielektr.</th>
-                        <th>Funkc.</th>
+                        <th>gaminio Pasas</th>
+                        <th>Bandymų protokolas</th>
+                        <th>Atliktų darbų aprašas</th>
                         <th>Nust. prot.</th>
                         <th>Veiksmai</th>
                     </tr>
