@@ -158,6 +158,20 @@
                                     <span>Kokybiniai rodikliai</span>
                                 </a>
 
+                                <!-- Pareto analizė -->
+                                <a href="/pareto.php?grupe=<?= urlencode($aktyvus_grupe) ?>"
+                                   class="nav-item <?= $current_page === 'pareto' ? 'active' : '' ?>"
+                                   data-testid="link-pareto">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6"  y1="20" x2="6"  y2="14"/>
+                                        <line x1="2"  y1="20" x2="22" y2="20"/>
+                                    </svg>
+                                    <span>Pareto analizė</span>
+                                </a>
+
                                 <?php $isAdmin = (($user['role'] ?? '') === 'administratorius'); ?>
                                 <?php if ($isAdmin): ?>
                                 <!-- Tikrinimo šablonas — tik administratoriams -->
