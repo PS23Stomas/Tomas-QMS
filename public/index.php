@@ -692,7 +692,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
       <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--text-primary);">TOP 11 darbuotojai (daugiausiai punktu) — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
         <table data-testid="table-kp-top-workers">
-          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Be def.</th></tr></thead>
+          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Operacijos</th><th style="text-align:center;">Be def.</th></tr></thead>
           <tbody>
             <?php $i = 1; foreach ($men_top_darbuotojai as $d): ?>
             <tr>
@@ -714,7 +714,7 @@ $p_proc = kp_defPokytis($kp_q1['defektu_proc'], $kp_q2['defektu_proc']);
       <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#dc2626;">TOP 11 daugiausiai klydo — <?= $menesiu_pav[$men_menuo] ?> <?= $men_metai ?></div>
       <div class="table-wrapper">
         <table data-testid="table-kp-top-errors">
-          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Bandymų</th><th style="text-align:center;">Be def.</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
+          <thead><tr><th>#</th><th>Darbuotojas</th><th style="text-align:center;">Operacijos</th><th style="text-align:center;">Be def.</th><th style="text-align:center;">Def.</th><th style="text-align:center;">%</th></tr></thead>
           <tbody>
             <?php $i = 1; foreach ($men_top_klydusieji as $d): ?>
             <tr>
