@@ -169,6 +169,51 @@
     window.__csrfToken = token;
 })();
 
+/* =========================================================================
+   CSRF APSAUGA — automatinis žetono pridėjimas prie AJAX užklausų
+   Įterpia „X-CSRF-Token" antraštę į visas same-origin POST/PUT/PATCH/DELETE
+   fetch() ir XMLHttpRequest užklausas, kad serverio csrfVerify() jas priimtų.
+   ========================================================================= */
+(function() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var token = meta ? meta.getAttribute('content') : (window.__csrfToken || '');
+    if (!token) return;
+    var unsafe = /^(POST|PUT|PATCH|DELETE)$/i;
+    function sameOrigin(url) {
+        if (!url) return true;
+        if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) return true;
+        return url.indexOf(window.location.origin) === 0;
+    }
+
+    if (window.fetch) {
+        var origFetch = window.fetch;
+        window.fetch = function(input, init) {
+            init = init || {};
+            var method = init.method || (typeof input === 'object' && input ? input.method : 'GET') || 'GET';
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            if (unsafe.test(method) && sameOrigin(url)) {
+                var headers = new Headers(init.headers || (typeof input === 'object' && input ? input.headers : null) || {});
+                if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
+                init.headers = headers;
+            }
+            return origFetch.call(this, input, init);
+        };
+    }
+
+    var origOpen = XMLHttpRequest.prototype.open;
+    var origSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(method) {
+        this.__csrfUnsafe = unsafe.test(method || '');
+        return origOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function() {
+        if (this.__csrfUnsafe) {
+            try { this.setRequestHeader('X-CSRF-Token', token); } catch (e) {}
+        }
+        return origSend.apply(this, arguments);
+    };
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
     var menuToggle = document.getElementById('menuToggle');
     var sidebar = document.getElementById('sidebar');

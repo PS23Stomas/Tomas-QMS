@@ -30,6 +30,7 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/klases/Emailas.php';
 requireLogin();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali siųsti
 
 header('Content-Type: application/json; charset=utf-8');
 

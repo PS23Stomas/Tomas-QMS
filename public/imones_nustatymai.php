@@ -40,6 +40,7 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
     $action = $_POST['action'] ?? '';
 
     if ($action === 'update') {

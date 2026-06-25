@@ -30,6 +30,7 @@ require_once __DIR__ . '/klases/Sesija.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 header('Content-Type: application/json; charset=utf-8');
 

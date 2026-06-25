@@ -14,7 +14,7 @@ session_set_cookie_params([
     'path' => '/',
     'secure' => true,
     'httponly' => true,
-    'samesite' => 'None'
+    'samesite' => 'Lax'
 ]);
 ini_set('session.gc_maxlifetime', 1800);
 session_start();
@@ -82,7 +82,7 @@ if (!isset($_SESSION['vartotojas_id']) && isset($_COOKIE['remember_token'])) {
                 'path' => '/',
                 'secure' => true,
                 'httponly' => true,
-                'samesite' => 'None'
+                'samesite' => 'Lax'
             ]);
         }
     } catch (Exception $e) {
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'path' => '/',
                         'secure' => true,
                         'httponly' => true,
-                        'samesite' => 'None'
+                        'samesite' => 'Lax'
                     ]);
                 }
                 

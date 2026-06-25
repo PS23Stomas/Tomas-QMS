@@ -46,6 +46,16 @@ if (!$p) {
     exit;
 }
 
+// Prieiga: prisijungęs vartotojas ARBA galiojantis pretenzijos peržiūros token
+if (!isLoggedIn()) {
+    $token = trim($_GET['token'] ?? '');
+    if ($token === '' || !hash_equals((string)($p['perziuros_token'] ?? ''), $token)) {
+        http_response_code(403);
+        echo 'Prieiga negalima';
+        exit;
+    }
+}
+
 $tipai = [
     'vidine' => 'Vidinė pretenzija',
     'kliento' => 'Kliento pretenzija',

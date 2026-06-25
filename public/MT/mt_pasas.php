@@ -53,6 +53,7 @@ $protokolo_nr = $gaminio_info['protokolo_nr'] ?? '';
 $atitikmuo_kodas = !empty($gaminio_info['atitikmuo_kodas']) ? $gaminio_info['atitikmuo_kodas'] : '15.6.2';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_atitikmuo'])) {
+    Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
     $naujas_kodas = $_POST['atitikmuo_kodas'] ?? '15.6.2';
     $stmt = $conn->prepare("UPDATE gaminiai SET atitikmuo_kodas = ? WHERE id = ?");
     $stmt->execute([$naujas_kodas, $gaminio_id]);
@@ -63,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_atitikmuo']
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['issaugoti_protokola'])) {
+    Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
     $naujas_nr = trim($_POST['protokolo_nr'] ?? '');
     if ($naujas_nr !== '') {
         $stmt = $conn->prepare("UPDATE gaminiai SET protokolo_nr = ? WHERE id = ?");

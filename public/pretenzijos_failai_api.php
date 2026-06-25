@@ -42,6 +42,7 @@ if ($veiksmas === 'sarasas') {
 }
 
 if ($veiksmas === 'trinti' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali trinti
     $failo_id = (int)($_POST['failo_id'] ?? 0);
     if ($failo_id > 0) {
         $stmt = $pdo->prepare("DELETE FROM pretenzijos_failai WHERE id = :id AND pretenzija_id = :pid");

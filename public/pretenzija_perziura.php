@@ -177,7 +177,7 @@ $nl    = fn($s) => nl2br($esc($s));
       <div class="section-label"><i class="bi bi-images me-1"></i>Nuotraukos (<?= count($nuotraukos) ?>)</div>
       <div class="photo-grid mt-2">
         <?php foreach ($nuotraukos as $n): ?>
-          <img src="pretenzijos_nuotrauka.php?id=<?= (int)$n['id'] ?>" alt="<?= $esc($n['pavadinimas'] ?? '') ?>"
+          <img src="pretenzijos_nuotrauka.php?id=<?= (int)$n['id'] ?>&token=<?= urlencode($token) ?>" alt="<?= $esc($n['pavadinimas'] ?? '') ?>"
                onclick="window.open(this.src,'_blank')" title="Padidinti"
                data-testid="img-nuotrauka-<?= (int)$n['id'] ?>">
         <?php endforeach; ?>
@@ -189,7 +189,7 @@ $nl    = fn($s) => nl2br($esc($s));
     <div class="mb-3" style="background:#fdedec;padding:0.75rem;border-radius:6px;border:1px solid #f5c6cb;">
       <div class="section-label"><i class="bi bi-file-earmark-pdf me-1"></i>Defekto PDF</div>
       <div style="margin-top:0.3rem;">
-        <a href="pretenzija_defekto_pdf.php?id=<?= (int)$p['id'] ?>" target="_blank" style="color:#c0392b;font-weight:500;text-decoration:none;" data-testid="link-perziura-defekto-pdf">
+        <a href="pretenzija_defekto_pdf.php?id=<?= (int)$p['id'] ?>&token=<?= urlencode($token) ?>" target="_blank" style="color:#c0392b;font-weight:500;text-decoration:none;" data-testid="link-perziura-defekto-pdf">
           <i class="bi bi-download me-1"></i><?= $esc($p['defekto_pdf_pavadinimas']) ?>
         </a>
       </div>
@@ -241,7 +241,7 @@ $nl    = fn($s) => nl2br($esc($s));
     <?php endif; ?>
 
     <div class="text-center mt-4 mb-2 no-print">
-      <a href="pretenzijos_pdf.php?id=<?= $id ?>" target="_blank" class="btn btn-danger btn-lg fw-semibold" data-testid="button-pdf-perziura">
+      <a href="pretenzijos_pdf.php?id=<?= $id ?>&token=<?= urlencode($token) ?>" target="_blank" class="btn btn-danger btn-lg fw-semibold" data-testid="button-pdf-perziura">
         <i class="bi bi-file-earmark-pdf me-2"></i>Atsisiųsti PDF
       </a>
     </div>

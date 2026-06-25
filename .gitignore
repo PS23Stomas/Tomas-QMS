@@ -8,3 +8,5 @@ vite.config.ts.*
 .local/
 attached_assets/
 /tmp/
+start.bat
+.claude/

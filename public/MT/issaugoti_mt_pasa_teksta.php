@@ -23,6 +23,7 @@ header('Content-Type: application/json; charset=utf-8');
 // requireLogin() + Sesija::tikrintiPrisijungima() dabar grąžina JSON
 // AJAX užklausoms vietoje HTTP 302 redirect (žr. Sesija::isAjax())
 requireLogin();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 $response = ['success' => false, 'message' => ''];
 

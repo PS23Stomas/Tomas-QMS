@@ -48,6 +48,7 @@ $message = '';
 //  apdorojame tuos duomenis ir įrašome/ištriname iš duomenų bazės.
 // --------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
 
     // Nustatome kokį veiksmą vartotojas nori atlikti
     $action = $_POST['action'] ?? '';
@@ -84,14 +85,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($user['role'] ?? '') !== 'administratorius') {
             $error = 'Tik administratorius gali trinti gaminius.';
         } elseif ($id) {
-            // Pirmiausia ištriname susijusius komponentus (nes jie susieti per gaminio_id)
-            // Jei to nepadarytume - DB mestų klaidą dėl foreign key apribojimo
-            $pdo->prepare('DELETE FROM komponentai WHERE gaminio_id = :id')->execute(['id' => $id]);
-
-            // Tada ištriname patį gaminį
-            $pdo->prepare('DELETE FROM gaminiai WHERE id = :id')->execute(['id' => $id]);
-
-            $message = 'Gaminys ištrintas.';
+            // FK RESTRICT: pirma pašaliname VISUS susijusius vaikus (FK-saugia tvarka),
+            // tada patį gaminį. Viskas viename transakcijoje.
+            $pdo->beginTransaction();
+            try {
+                foreach ([
+                    'DELETE FROM funkciniai_bandymai WHERE gaminio_id = :id',
+                    'DELETE FROM komponentai WHERE gaminio_id = :id',
+                    'DELETE FROM dielektriniai_bandymai WHERE gaminys_id = :id',
+                    'DELETE FROM saugikliu_ideklai WHERE gaminio_id = :id',
+                    'DELETE FROM izeminimo_tikrinimas WHERE gaminys_id = :id',
+                    'DELETE FROM paso_teksto_korekcijos WHERE gaminio_id = :id',
+                    'DELETE FROM bandymai_prietaisai WHERE gaminys_id = :id',
+                    'DELETE FROM gaminiu_pdf_failai WHERE gaminio_id = :id',
+                    'DELETE FROM pretenzijos WHERE gaminio_id = :id', // jų vaikai - per FK CASCADE
+                    'DELETE FROM gaminiai WHERE id = :id',
+                ] as $sql) {
+                    $pdo->prepare($sql)->execute(['id' => $id]);
+                }
+                $pdo->commit();
+                $message = 'Gaminys ištrintas.';
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                if ($e->getCode() === '23503') {
+                    $error = 'Negalima ištrinti gaminio — jis turi susijusių įrašų.';
+                } else {
+                    error_log('Gaminio trynimo klaida: ' . $e->getMessage());
+                    $error = 'Klaida trinant gaminį.';
+                }
+            }
         }
     }
 }

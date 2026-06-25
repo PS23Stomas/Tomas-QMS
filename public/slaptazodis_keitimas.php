@@ -8,7 +8,7 @@
 
 // Sesijos konfigūracija su saugumo parametrais
 session_set_cookie_params([
-    'lifetime' => 28800, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'None'
+    'lifetime' => 28800, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax'
 ]);
 ini_set('session.gc_maxlifetime', 28800);
 session_start();

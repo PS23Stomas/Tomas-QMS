@@ -48,6 +48,7 @@ function tikrintiPdfFaila(&$error) {
 
 // POST užklausų apdorojimas (kūrimas, atnaujinimas, šalinimas)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
     array_walk_recursive($_POST, function(&$val) {
         if (is_string($val)) $val = utf8Valyti($val);
     });

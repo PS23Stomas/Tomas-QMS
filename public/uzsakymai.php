@@ -60,6 +60,7 @@ $error = $_GET['klaida'] ?? '';
 
 // POST veiksmų apdorojimas: kūrimas, atnaujinimas arba trynimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
     $action = $_POST['action'] ?? '';
 
     // Naujo užsakymo kūrimas
@@ -182,6 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo->prepare('DELETE FROM saugikliu_ideklai WHERE gaminio_id = ?')->execute([$gid]);
                         $pdo->prepare('DELETE FROM izeminimo_tikrinimas WHERE gaminys_id = ?')->execute([$gid]);
                         $pdo->prepare('DELETE FROM paso_teksto_korekcijos WHERE gaminio_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM bandymai_prietaisai WHERE gaminys_id = ?')->execute([$gid]);
+                        $pdo->prepare('DELETE FROM gaminiu_pdf_failai WHERE gaminio_id = ?')->execute([$gid]);
                         $pret_ids = $pdo->prepare('SELECT id FROM pretenzijos WHERE gaminio_id = ?');
                         $pret_ids->execute([$gid]);
                         foreach ($pret_ids->fetchAll(PDO::FETCH_COLUMN) as $pid) {
@@ -195,13 +198,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo->prepare('DELETE FROM pretenzijos_nuotraukos WHERE pretenzija_id = ?')->execute([$pid]);
                     }
                     $pdo->prepare('DELETE FROM pretenzijos WHERE uzsakymo_id = ?')->execute([$id]);
+                    $pdo->prepare('DELETE FROM gvx_dokumentai WHERE uzsakymo_id = ?')->execute([$id]);
                     $pdo->prepare('DELETE FROM gaminiai WHERE uzsakymo_id = ?')->execute([$id]);
                     $pdo->prepare('DELETE FROM uzsakymai WHERE id = ?')->execute([$id]);
                     $pdo->commit();
                     $message = 'Užsakymas Nr. ' . h($tikras_nr) . ' ištrintas su visais susijusiais duomenimis.';
-                } catch (Exception $e) {
+                } catch (PDOException $e) {
                     $pdo->rollBack();
-                    $error = 'Klaida trinant užsakymą: ' . $e->getMessage();
+                    if ($e->getCode() === '23503') {
+                        $error = 'Negalima ištrinti — užsakymas turi susijusių įrašų, kurių nepavyko pašalinti.';
+                    } else {
+                        error_log('Užsakymo trynimo klaida: ' . $e->getMessage());
+                        $error = 'Klaida trinant užsakymą.';
+                    }
                 }
             }
         }

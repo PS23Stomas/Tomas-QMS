@@ -15,13 +15,27 @@ if ($id <= 0) {
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT tipas, turinys FROM pretenzijos_nuotraukos WHERE id = :id");
+    $stmt = $pdo->prepare("
+        SELECT n.tipas, n.turinys, p.perziuros_token
+        FROM pretenzijos_nuotraukos n
+        JOIN pretenzijos p ON p.id = n.pretenzija_id
+        WHERE n.id = :id
+    ");
     $stmt->execute([':id' => $id]);
     $photo = $stmt->fetch();
 
     if (!$photo || empty($photo['turinys'])) {
         http_response_code(404);
         exit('Photo not found');
+    }
+
+    // Prieiga: prisijungęs vartotojas ARBA galiojantis pretenzijos peržiūros token
+    if (!isLoggedIn()) {
+        $token = trim($_GET['token'] ?? '');
+        if ($token === '' || !hash_equals((string)($photo['perziuros_token'] ?? ''), $token)) {
+            http_response_code(403);
+            exit('Prieiga negalima');
+        }
     }
 
     // Nustatyti turinio tipą (numatytasis: image/jpeg)

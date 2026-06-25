@@ -11,6 +11,7 @@ $message = '';
 
 // POST užklausų apdorojimas: kūrimas, redagavimas, šalinimas
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
     $action = $_POST['action'] ?? '';
     // Naujo užsakovo sukūrimas
     if ($action === 'create') {
@@ -28,8 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $id = $_POST['id'] ?? null;
             if ($id) {
-                $pdo->prepare('DELETE FROM uzsakovai WHERE id = :id')->execute(['id' => $id]);
-                $message = 'Užsakovas ištrintas.';
+                try {
+                    $pdo->prepare('DELETE FROM uzsakovai WHERE id = :id')->execute(['id' => $id]);
+                    $message = 'Užsakovas ištrintas.';
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '23503') {
+                        $error = 'Negalima ištrinti — užsakovas naudojamas užsakymuose.';
+                    } else {
+                        error_log('Užsakovo trynimo klaida: ' . $e->getMessage());
+                        $error = 'Klaida trinant užsakovą.';
+                    }
+                }
             }
         }
     }

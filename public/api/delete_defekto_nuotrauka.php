@@ -22,6 +22,7 @@
  */
 require_once __DIR__ . '/../includes/config.php';
 requireLogin();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali trinti
 
 header('Content-Type: application/json; charset=utf-8');
 

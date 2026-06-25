@@ -26,6 +26,18 @@
 
 
 // --------------------------------------------------------------------------
+//  0 DALIS: KLAIDŲ APDOROJIMAS (SAUGUMAS)
+//  Produkcijoje klaidų NEVAIZDUOJAME vartotojui (gali nutekėti slaptažodžiai,
+//  SQL, keliai) — jas rašome į serverio žurnalą. Derinimui galima įjungti
+//  rodymą nustačius aplinkos kintamąjį APP_DEBUG=1.
+// --------------------------------------------------------------------------
+$app_debug = getenv('APP_DEBUG') === '1';
+ini_set('display_errors', $app_debug ? '1' : '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
+
+// --------------------------------------------------------------------------
 //  1 DALIS: KLASIŲ ĮKĖLIMAS
 //  Visos sistemos klasės yra /klases/ direktorijoje. Įkeliame jas vieną
 //  kartą (require_once) — taip išvengiame dvigubo įkėlimo klaidų.
@@ -280,4 +292,18 @@ function csrfVerify(): void {
         http_response_code(403);
         die('CSRF patikrinimas nepavyko. Atnaujinkite puslapį ir bandykite dar kartą.');
     }
+}
+
+/**
+ * Bendras apsaugos vartų patikrinimas KIEKVIENAM rašymo veiksmui (POST).
+ * Sujungia dvi būtinas patikras:
+ *   1. csrfVerify()                      — apsauga nuo CSRF (svetimų užklausų)
+ *   2. Sesija::blokuotiSkaitytojaVeiksma() — „skaitytojas" rolė negali rašyti
+ *
+ * Naudojimas formų valdikliuose, prieš bet kokį INSERT/UPDATE/DELETE:
+ *   if ($_SERVER['REQUEST_METHOD'] === 'POST') { requireWrite(); ... }
+ */
+function requireWrite(): void {
+    csrfVerify();
+    Sesija::blokuotiSkaitytojaVeiksma();
 }

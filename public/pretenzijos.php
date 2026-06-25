@@ -74,6 +74,7 @@ function pretenzijosRedirect($msg) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireWrite();
     $veiksmas = $_POST['veiksmas'] ?? '';
 
     // Naujos pretenzijos kūrimas

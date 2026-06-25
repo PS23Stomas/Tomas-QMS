@@ -29,6 +29,7 @@ require_once __DIR__ . '/klases/Sesija.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 /* Tik adminai gali keisti šabloną */
 $user = currentUser();

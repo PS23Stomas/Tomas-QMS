@@ -57,7 +57,7 @@ class Sesija {
                 'path' => '/',
                 'secure' => true,
                 'httponly' => true,
-                'samesite' => 'None'
+                'samesite' => 'Lax'
             ]);
             session_start();
         }
@@ -137,6 +137,11 @@ class Sesija {
      */
     public static function blokuotiSkaitytojaVeiksma($redirect = '/index.php'): void {
         if (self::arSkaitytojas()) {
+            // AJAX užklausoms grąžiname JSON klaidą, o ne nukreipimą
+            if (self::isAjax()) {
+                http_response_code(403);
+                self::ajaxKlaida('Skaitytojo rolė negali atlikti šio veiksmo');
+            }
             header("Location: $redirect?klaida=skaitytojas");
             exit;
         }

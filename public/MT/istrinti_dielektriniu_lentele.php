@@ -21,6 +21,7 @@ require_once __DIR__ . '/../klases/Sesija.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 $conn = Database::getConnection();
 $gaminys_id = (int)($_REQUEST['gaminys_id'] ?? 0);

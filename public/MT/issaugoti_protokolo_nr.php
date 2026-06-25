@@ -16,6 +16,7 @@ require_once __DIR__ . '/../klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 // Leidžiamos tik POST užklausos
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

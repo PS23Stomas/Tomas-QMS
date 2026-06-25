@@ -13,6 +13,7 @@ require_once __DIR__ . '/klases/TomoQMS.php';
 
 Sesija::pradzia();
 Sesija::tikrintiPrisijungima();
+Sesija::blokuotiSkaitytojaVeiksma(); // skaitytojas negali rašyti
 
 /* Tikrinama, ar užklausa yra POST ir ar yra būtini duomenys */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['gaminio_id'], $_POST['isvada'], $_POST['defektas'])) {

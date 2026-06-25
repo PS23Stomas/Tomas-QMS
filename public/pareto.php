@@ -38,7 +38,11 @@ $nuo_param = $_GET['nuo'] ?? '';
 $iki_param = $_GET['iki'] ?? '';
 
 // Datos pagal periodą
-if ($nuo_param && $iki_param) {
+// SAUGUMAS: datos interpoliuojamos i SQL, todel privalo atitikti YYYY-MM-DD formata.
+$datos_formatas = '/^\d{4}-\d{2}-\d{2}$/';
+if ($nuo_param && $iki_param
+    && preg_match($datos_formatas, $nuo_param)
+    && preg_match($datos_formatas, $iki_param)) {
     $nuo_date = $nuo_param;
     $iki_date = $iki_param;
     $periodas = 'custom';
